@@ -1,4 +1,4 @@
-\inst error (Register dst, Displacement d)
+\inst error (Register dst, PrimitiveDisplacement d)
 
 \otherwise \{
   dst = 0;

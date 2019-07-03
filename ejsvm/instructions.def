@@ -2,7 +2,7 @@ fixnum                SMALLPRIMITIVE Register   int
 specconst             SMALLPRIMITIVE Register   int
 string                BIGPRIMITIVE   LABELONLY
 regexp                BIGPRIMITIVE   LABELONLY
-number                BIGPRIMITIVE   Register   Displacement
+number                BIGPRIMITIVE   Register   PrimitiveDisplacement
 add                   THREEOP        Register   JSValue   JSValue
 sub                   THREEOP        Register   JSValue   JSValue
 mul                   THREEOP        Register   JSValue   JSValue
@@ -39,9 +39,9 @@ getglobalobj          ONEOP          Register
 newframe              TWOOP          int        int
 ret                   ZEROOP
 nop                   ZEROOP
-jump                  UNCONDJUMP     Displacement
-jumptrue              CONDJUMP       JSValue    Displacement
-jumpfalse             CONDJUMP       JSValue    Displacement
+jump                  UNCONDJUMP     InstructionDisplacement
+jumptrue              CONDJUMP       JSValue    InstructionDisplacement
+jumpfalse             CONDJUMP       JSValue    InstructionDisplacement
 getlocal              GETVAR         Register   int          Subscript
 setlocal              SETVAR         int        Subscript    JSValue
 makeclosure           MAKECLOSUREOP  Register   Subscript
@@ -52,13 +52,13 @@ newsend               CALLOP         LABELONLY
 call                  CALLOP         JSValue    int
 tailsend              CALLOP         LABELONLY
 tailcall              CALLOP         JSValue    int
-pushhandler           UNCONDJUMP     Displacement
+pushhandler           UNCONDJUMP     InstructionDisplacement
 pophandler            ZEROOP
 throw                 ZEROOP
-localcall             UNCONDJUMP     Displacement
+localcall             UNCONDJUMP     InstructionDisplacement
 localret              ZEROOP
 poplocal              ZEROOP
-error                 BIGPRIMITIVE   Register   Displacement
+error                 BIGPRIMITIVE   Register   PrimitiveDisplacement
 unknown               UNKNOWNOP
 end                   ZEROOP
 // lightcall             CALLOP

@@ -32,7 +32,11 @@
 #define __USE_GNU
 #endif /* __USE_GNU */
 
+#ifdef BIT_64
 typedef uint64_t JSValue;
+#else
+typedef uint64_t JSValue;
+#endif
 
 #define BYTES_IN_JSVALUE (sizeof(JSValue))
 #define BITS_IN_JSVALUE  (BYTES_IN_JSVALUE * 8)

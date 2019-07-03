@@ -62,7 +62,7 @@ def var_prefix(kind)
     "v"
   when "Subscript" then
     "s"
-  when "Displacement" then
+  when "PrimitiveDisplacement" then
     "d"
   when "int" then
     "i"
@@ -79,8 +79,10 @@ def macro_postfix(kind)
     "value"
   when "Subscript" then
     "subscr"
-  when "Displacement", "Number", "String" then
-    "disp"
+  when "PrimitiveDisplacement", "Number", "String" then
+    "primitive_disp"
+  when "InstructionDisplacement" then
+    "instruction_disp"
   when "int", "Fixnum", "Special" then
     "int"
   else

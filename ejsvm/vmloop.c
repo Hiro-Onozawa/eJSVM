@@ -83,7 +83,7 @@ inline void make_ilabel(FunctionTable *curfn, void *const *jt) {
       printf("pc = %d, insn = %s, fp = %d\n",           \
              pc, insn_nemonic(get_opcode(insn)), fp);   \
       if (get_opcode(insn) == STRING) {                 \
-        Displacement disp = get_big_disp(insn);         \
+        PrimitiveDisplacement disp = get_big_disp(insn);\
         JSValue s = get_literal(insns, disp);           \
         printf("   %s\n", string_to_cstr(s));           \
       }                                                 \
@@ -252,7 +252,7 @@ int vmrun_threaded(Context* context, int border) {
   ENTER_INSN(__LINE__);
   {
     Register dst = get_first_operand_reg(insn);
-    Displacement disp = get_big_disp(insn);
+    PrimitiveDisplacement disp = get_big_disp(insn);
 #include "insns/number.def"
   }
   NEXT_INSN_INCPC();
@@ -736,7 +736,7 @@ int vmrun_threaded(Context* context, int border) {
   ENTER_INSN(__LINE__);
   {
     Register dst = get_first_operand_reg(insn);
-    Displacement disp = get_big_disp(insn);
+    PrimitiveDisplacement disp = get_big_disp(insn);
 #include "insns/error.def"
   }
   NEXT_INSN_INCPC();

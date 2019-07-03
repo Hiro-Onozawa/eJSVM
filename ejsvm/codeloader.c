@@ -60,7 +60,7 @@ extern int insn_load_sbc(Context *, Instruction *, int, int, int);
 
 #ifdef USE_OBC
 extern void init_constant_info(CItable *citable, int nconsts, int i);
-extern void add_constant_info(CItable *ci, Opcode oc, int index,
+extern void add_constant_info(CItable *ci, Opcode oc, unsigned int index,
                               InsnOperandType type);
 extern void const_load(Context *, int, JSValue *, CItable *);
 extern int insn_load_obc(Context *, Instruction *, int, int, CItable *);
@@ -376,12 +376,12 @@ Opcode find_insn(char* s) {
 #endif /* USE_SBC */
 
 #ifdef USE_OBC
-Bytecode convertToBc(unsigned char buf[8]) {
+Bytecode convertToBc(unsigned char buf[sizeof(Bytecode)]) {
   int i;
   Bytecode ret;
 
   ret = 0;
-  for (i = 0; i < 8; i++)
+  for (i = 0; i < sizeof(Bytecode); i++)
     ret = ret * 256 + buf[i];
   return ret;
 }
@@ -453,7 +453,7 @@ InsnOperandType si_optype(Opcode oc, int i) {
  */
 int load_const_sbc(char *start, int nconsts, double *d, char **str) {
   char *s, *p;
-  Subscript index;
+  int index;
 
   s = start;
   if (s == NULL || *s++ != '#') {
@@ -588,10 +588,14 @@ int insn_load_sbc(Context *ctx, Instruction *insns, int ninsns,
   case SMALLPRIMITIVE:
     {
       Register dst;
-      dst = atoi(next_token());
+      get_register(&dst, atoi(next_token()), "SMALLPRIMITIVE DST");
       switch (oc) {
       case FIXNUM:
-        insns[pc].code = makecode_fixnum(dst, atoi(next_token()));
+        {
+          SmallPrimitive imm;
+          get_small_primitive(&imm, atoi(next_token()), "FIXNUM IMM");
+          insns[pc].code = makecode_fixnum(dst, imm);
+        }
         break;
       case SPECCONST:
         insns[pc].code =
@@ -608,9 +612,9 @@ int insn_load_sbc(Context *ctx, Instruction *insns, int ninsns,
       Register dst;
       char *src;
       int index;
-      Displacement disp;
+      PrimitiveDisplacement disp;
 
-      dst = atoi(next_token());   /* destination register */
+      get_register(&dst, atoi(next_token()), "BIGPRIMITIVE DST"); /* destination register */
       switch (oc) {
       case NUMBER:
         {
@@ -618,6 +622,8 @@ int insn_load_sbc(Context *ctx, Instruction *insns, int ninsns,
           index = load_number_sbc(src, ctop, ninsns, nconsts);
           if (index < 0) return LOAD_FAIL;
           disp = calc_displacement(ninsns, pc, index);
+          if (maxval_primitive_displacement() < disp)
+            LOG_EXIT("NUMBER DISP IS GREATER THAN VALID RANGE");
           insns[pc].code = makecode_number(dst, disp);
         }
         break;
@@ -628,6 +634,8 @@ int insn_load_sbc(Context *ctx, Instruction *insns, int ninsns,
           index = load_string_sbc(src, ctop, ninsns, nconsts);
           if (index < 0) return LOAD_FAIL;
           disp = calc_displacement(ninsns, pc, index);
+          if (maxval_primitive_displacement() < disp)
+            LOG_EXIT("STRING/ERROR DISP IS GREATER THAN VALID RANGE");
           insns[pc].code = (oc == STRING? makecode_string(dst, disp):
                             makecode_error(dst, disp));
         }
@@ -641,6 +649,8 @@ int insn_load_sbc(Context *ctx, Instruction *insns, int ninsns,
           index = load_regexp_sbc(ctx, src, ctop, ninsns, nconsts, flag);
           if (index < 0) return LOAD_FAIL;
           disp = calc_displacement(ninsns, pc, index);
+          if (maxval_primitive_displacement() < disp)
+            LOG_EXIT("REGEXP DISP IS GREATER THAN VALID RANGE");
           insns[pc].code = makecode_regexp(dst, disp);
         }
         break;
@@ -655,9 +665,9 @@ int insn_load_sbc(Context *ctx, Instruction *insns, int ninsns,
   case THREEOP:
     {
       Register op0, op1, op2;
-      load_op(insn_info_table[oc].op0, op0);
-      load_op(insn_info_table[oc].op1, op1);
-      load_op(insn_info_table[oc].op2, op2);
+      get_register(&op0, atoi(next_token()), "THREEOP OP0");
+      get_register(&op1, atoi(next_token()), "THREEOP OP1");
+      get_register(&op2, atoi(next_token()), "THREEOP OP2");
       insns[pc].code = makecode_three_operands(oc, op0, op1, op2);
       return LOAD_OK;
     }
@@ -665,8 +675,8 @@ int insn_load_sbc(Context *ctx, Instruction *insns, int ninsns,
   case TWOOP:
     {
       Register op0, op1;
-      op0 = atoi(next_token());
-      op1 = atoi(next_token());
+      get_register(&op0, atoi(next_token()), "TWOOP OP0");
+      get_register(&op1, atoi(next_token()), "TWOOP OP1");
       insns[pc].code = makecode_two_operands(oc, op0, op1);
       return LOAD_OK;
     }
@@ -674,7 +684,7 @@ int insn_load_sbc(Context *ctx, Instruction *insns, int ninsns,
   case ONEOP:
     {
       Register op;
-      op = atoi(next_token());
+      get_register(&op, atoi(next_token()), "ONEOP OP");
       insns[pc].code = makecode_one_operand(oc, op);
       return LOAD_OK;
     }
@@ -687,18 +697,18 @@ int insn_load_sbc(Context *ctx, Instruction *insns, int ninsns,
 
   case UNCONDJUMP:
     {
-      Displacement disp;
-      disp = (Displacement)atoi(next_token());
+      InstructionDisplacement disp;
+      get_instruction_displacement(&disp, atoi(next_token()), "UNCONDJUNP OFFSET");
       insns[pc].code = makecode_jump(oc, disp);
       return LOAD_OK;
     }
 
   case CONDJUMP:
     {
-      Displacement disp;
       Register src;
-      src = atoi(next_token());
-      disp = (Displacement)atoi(next_token());
+      InstructionDisplacement disp;
+      get_register(&src, atoi(next_token()), "CONDJUNP SRC");
+      get_instruction_displacement(&disp, atoi(next_token()), "CONDJUNP OFFSET");
       insns[pc].code = makecode_cond_jump(oc, src, disp);
       return LOAD_OK;
     }
@@ -707,9 +717,9 @@ int insn_load_sbc(Context *ctx, Instruction *insns, int ninsns,
     {
       Subscript link, offset;
       Register reg;
-      link = atoi(next_token());
-      offset = atoi(next_token());
-      reg = atoi(next_token());
+      get_subscript(&link, atoi(next_token()), "GETVAR LINK");
+      get_subscript(&offset, atoi(next_token()), "GETVAR OFFSET");
+      get_register(&reg, atoi(next_token()), "GETVAR REG");
       insns[pc].code = makecode_getvar(oc, link, offset, reg);
       return LOAD_OK;
     }
@@ -718,9 +728,9 @@ int insn_load_sbc(Context *ctx, Instruction *insns, int ninsns,
     {
       Subscript link, offset;
       Register reg;
-      link = atoi(next_token());
-      offset = atoi(next_token());
-      reg = atoi(next_token());
+      get_subscript(&link, atoi(next_token()), "SETVAR LINK");
+      get_subscript(&offset, atoi(next_token()), "SETVAR OFFSET");
+      get_register(&reg, atoi(next_token()), "SETVAR REG");
       insns[pc].code = makecode_setvar(oc, link, offset, reg);
       return LOAD_OK;
     }
@@ -728,9 +738,9 @@ int insn_load_sbc(Context *ctx, Instruction *insns, int ninsns,
   case MAKECLOSUREOP:
     {
       Register dst;
-      uint16_t index;
-      dst = atoi(next_token());
-      index = (uint16_t)atoi(next_token());
+      Subscript index;
+      get_register(&dst, atoi(next_token()), "MAKECLOSUREOP DST");
+      get_subscript(&index, atoi(next_token()), "MAKECLOSUREOP INDEX");
       insns[pc].code = makecode_makeclosure(oc, dst, index);
       return LOAD_OK;
     }
@@ -738,9 +748,9 @@ int insn_load_sbc(Context *ctx, Instruction *insns, int ninsns,
   case CALLOP:
     {
       Register closure;
-      uint16_t argc;
-      closure = atoi(next_token());
-      argc = atoi(next_token());
+      Register argc;
+      get_register(&closure, atoi(next_token()), "CALLOP CLOSURE");
+      get_register(&argc, atoi(next_token()), "CALLOP ARGC");
       insns[pc].code = makecode_call(oc, closure, argc);
       return LOAD_OK;
     }
@@ -760,7 +770,7 @@ int insn_load_obc(Context *ctx, Instruction *insns, int ninsns, int pc,
   unsigned char buf[sizeof(Bytecode)];
   Opcode oc;
   Subscript index;
-  Displacement disp;
+  PrimitiveDisplacement disp;
   Bytecode bc;
   int i;
   JSValue *ctop;
@@ -769,8 +779,8 @@ int insn_load_obc(Context *ctx, Instruction *insns, int ninsns, int pc,
   if (fread(buf, sizeof(unsigned char), sizeof(Bytecode), file_pointer)
       != sizeof(Bytecode))
     LOG_ERR("Error: cannot read %dth bytecode", pc);
-  oc = buf[0] * 256 + buf[1];
   bc = convertToBc(buf);
+  oc = get_opcode(bc);
 
   switch (insn_info_table[oc].otype) {
   case BIGPRIMITIVE:
@@ -783,7 +793,7 @@ int insn_load_obc(Context *ctx, Instruction *insns, int ninsns, int pc,
     case REGEXP:
 #endif
 #endif
-      index = buf[4] * 256 + buf[5];
+      index = get_second_operand_subscr(bc);
       add_constant_info(citable, oc, index, NONE);
       disp = calc_displacement(ninsns, pc, index);
       insns[pc].code = update_displacement(bc, disp);
@@ -798,7 +808,9 @@ int insn_load_obc(Context *ctx, Instruction *insns, int ninsns, int pc,
       InsnOperandType type = si_optype(oc, i);
       if (type == OPTYPE_ERROR) return LOAD_FAIL;
       if (type == STR || type == NUM ) {
-        index = buf[i * 2 + 2] * 256 + buf[i * 2 + 3];
+        index = ((i == 0)? get_first_operand_subscr(bc):
+                (i == 1)? get_second_operand_subscr(bc):
+                get_third_operand_subscr(bc));
         add_constant_info(citable, oc, index, type);
         disp = calc_displacement(ninsns, pc, index);
         bc = ((i == 0)? update_first_operand_disp(bc, disp):
@@ -851,7 +863,7 @@ void init_constant_info(CItable *citable, int nconsts, int i) {
   citable->const_info = p;
 }
 
-void add_constant_info(CItable *ci, Opcode c, int index, InsnOperandType t) {
+void add_constant_info(CItable *ci, Opcode c, unsigned int index, InsnOperandType t) {
   if (index >= CONSTANT_LIMIT)
     LOG_ERR("Error: index %d is out of range of constant info table", index);
   (ci->const_info)[index].oc = c;
@@ -916,7 +928,7 @@ int print_function_table(FunctionTable *ftable, int nfuncs) {
 /*
  * prints a bytecode instruction
  */
-void print_constant(Instruction *insns, int pc, Displacement disp) {
+void print_constant(Instruction *insns, int pc, PrimitiveDisplacement disp) {
   JSValue o;
   o = get_literal((&insns[pc]), disp);
   if (is_flonum(o))
@@ -950,7 +962,7 @@ void print_bytecode(Instruction *insns, int pc) {
   switch (t) {
   case SMALLPRIMITIVE:
     {
-      int imm;
+      SmallPrimitive imm;
       printf(" %d", get_first_operand_reg(code));
       switch (oc) {
       case FIXNUM:
@@ -980,13 +992,14 @@ void print_bytecode(Instruction *insns, int pc) {
       for (i = 0; i < 3; i++) {
         type = si_optype(oc, i);
         if (type == STR || type == NUM) {
-          Displacement disp;
-          disp = ((i == 0)? get_first_operand_disp(code):
-                  (i == 1)? get_second_operand_disp(code):
-                  get_third_operand_disp(code));
+          PrimitiveDisplacement disp;
+          disp = ((i == 0)? get_first_operand_primitive_disp(code):
+                  (i == 1)? get_second_operand_primitive_disp(code):
+                  get_third_operand_primitive_disp(code));
           print_constant(insns, pc, disp);
         } else if (type == SPEC) {
-          int k, imm;
+          int k;
+          SmallPrimitive imm;
           k = ((i == 0)? get_first_operand_int(code):
                (i == 1)? get_second_operand_int(code):
                get_third_operand_int(code));
@@ -1022,17 +1035,17 @@ void print_bytecode(Instruction *insns, int pc) {
   case UNCONDJUMP:
   case TRYOP:
     {
-      Displacement disp;
-      disp = get_first_operand_disp(code);
+      InstructionDisplacement disp;
+      disp = get_first_operand_instruction_disp(code);
       printf(" %d", pc + disp);
     }
     break;
   case CONDJUMP:          
     {
       Register r;
-      Displacement disp;
+      InstructionDisplacement disp;
       r = get_first_operand_reg(code);
-      disp = get_second_operand_disp(code);
+      disp = get_second_operand_instruction_disp(code);
       printf(" %d %d", r, pc + disp);
     }
     break;

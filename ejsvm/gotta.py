@@ -60,7 +60,9 @@ def var_prefix(kind):
     return "v"
   elif kind == "Subscript":
     return "s"
-  elif kind == "Displacement":
+  elif kind == "InstructionDisplacement":
+    return "d"
+  elif kind == "PrimitiveDisplacement":
     return "d"
   elif kind == "int":
     return "i"
@@ -78,8 +80,10 @@ def macro_postfix(kind):
     return "value"
   elif kind == "Subscript":
     return "subscr"
-  elif kind == "Displacement":
-    return "disp"
+  elif kind == "InstructionDisplacement":
+    return "instruction_disp"
+  elif kind == "PrimitiveDisplacement":
+    return "primitive_disp"
   elif kind == "int":
     return "int"
   else:
@@ -136,7 +140,7 @@ def gen_assignment_smallprimitive(kind):
 
 def gen_assignment_bigprimitive(kind):
   gen_indent(2)
-  ofile.write("Displacement d1 = get_big_disp(insn);\n")
+  ofile.write("PrimitiveDisplacement d1 = get_big_disp(insn);\n")
 
 def gen_include(insn, *, uselabel = None, deflabel = None):
   if not uselabel: uselabel = insn

@@ -462,7 +462,9 @@ public class DslParser {
                     appendParamDefIfNecessary(prologue, epilogue, n.raw, "s"+order);
                 else if (t.raw.equals("Immediate"))
                     appendParamDefIfNecessary(prologue, epilogue, n.raw, "i"+order);
-                else if (t.raw.equals("Displacement"))
+                else if (t.raw.equals("InstructionDisplacement"))
+                    appendParamDefIfNecessary(prologue, epilogue, n.raw, "d"+order);
+                else if (t.raw.equals("PrimitiveDisplacement"))
                     appendParamDefIfNecessary(prologue, epilogue, n.raw, "d"+order);
                 else
                     throw new ParseErrorException("invalid parameter type: "+n.raw);

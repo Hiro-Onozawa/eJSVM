@@ -66,10 +66,92 @@
 #define TP_FIXSPE TAG_PAIR(T_FIXNUM, T_SPECIAL)
 #define TP_FIXFIX TAG_PAIR(T_FIXNUM, T_FIXNUM)
 
+#ifdef BIT_64
 typedef uint16_t Register;
-typedef int16_t  Displacement;
+typedef int16_t  InstructionDisplacement;
+typedef uint32_t  PrimitiveDisplacement;
 typedef uint16_t Subscript;
 typedef uint16_t Tag;
+
+#define minval_register() (0)
+#define maxval_register() (UINT16_MAX)
+#define minval_instruction_displacement() (INT16_MIN)
+#define maxval_instruction_displacement() (INT16_MAX)
+#define minval_primitive_displacement() (0)
+#define maxval_primitive_displacement() (UINT32_MAX)
+#define minval_subscript() (0)
+#define maxval_subscript() (UINT16_MAX)
+#define minval_tag() (0)
+#define maxval_tag() (UINT16_MAX)
+#else
+typedef uint8_t Register;
+typedef int8_t  InstructionDisplacement;
+typedef uint16_t  PrimitiveDisplacement;
+typedef uint8_t Subscript;
+typedef uint8_t Tag;
+
+#define minval_register() (0)
+#define maxval_register() (UINT8_MAX)
+#define minval_instruction_displacement() (INT8_MIN)
+#define maxval_instruction_displacement() (INT8_MAX)
+#define minval_primitive_displacement() (0)
+#define maxval_primitive_displacement() (UINT16_MAX)
+#define minval_subscript() (0)
+#define maxval_subscript() (UINT8_MAX)
+#define minval_tag() (0)
+#define maxval_tag() (UINT8_MAX)
+#endif
+
+#define get_small_primitive(pvar, val, message)             \
+do {                                                        \
+  int _val_tmp;                                             \
+  _val_tmp = (val);                                         \
+  if (_val_tmp < minval_small_primitive())                  \
+    LOG_EXIT((message " IS LESS THAN VALID RANGE"));        \
+  if (maxval_small_primitive() < _val_tmp)                  \
+    LOG_EXIT((message " IS GREATER THAN VALID RANGE"));     \
+  *(pvar) = (SmallPrimitive)_val_tmp;                       \
+} while(0)
+#define get_register(pvar, val, message)                    \
+do {                                                        \
+  int _val_tmp;                                             \
+  _val_tmp = (val);                                         \
+  if (_val_tmp < minval_register())                         \
+    LOG_EXIT((message " IS LESS THAN VALID RANGE"));        \
+  if (maxval_register() < _val_tmp)                         \
+    LOG_EXIT((message " IS GREATER THAN VALID RANGE"));     \
+  *(pvar) = (Register)_val_tmp;                             \
+} while(0)
+#define get_instruction_displacement(pvar, val, message)    \
+do {                                                        \
+  int _val_tmp;                                             \
+  _val_tmp = (val);                                         \
+  if (_val_tmp < minval_instruction_displacement())         \
+    LOG_EXIT((message " IS LESS THAN VALID RANGE"));        \
+  if (maxval_instruction_displacement() < _val_tmp)         \
+    LOG_EXIT((message " IS GREATER THAN VALID RANGE"));     \
+  *(pvar) = (InstructionDisplacement)_val_tmp;              \
+} while(0)
+#define get_primitive_displacement(pvar, val, message)      \
+do {                                                        \
+  int _val_tmp;                                             \
+  _val_tmp = (val);                                         \
+  if (_val_tmp < minval_primitive_displacement())           \
+    LOG_EXIT((message " IS LESS THAN VALID RANGE"));        \
+  if (maxval_primitive_displacement() < _val_tmp)           \
+    LOG_EXIT((message " IS GREATER THAN VALID RANGE"));     \
+  *(pvar) = (PrimitiveDisplacement)_val_tmp;                \
+} while(0)
+#define get_subscript(pvar, val, message)                   \
+do {                                                        \
+  int _val_tmp;                                             \
+  _val_tmp = (val);                                         \
+  if (_val_tmp < minval_subscript())                        \
+    LOG_EXIT((message " IS LESS THAN VALID RANGE"));        \
+  if (maxval_subscript() < _val_tmp)                        \
+    LOG_EXIT((message " IS GREATER THAN VALID RANGE"));     \
+  *(pvar) = (Subscript)_val_tmp;                            \
+} while(0)
 
 /*
  * Object
