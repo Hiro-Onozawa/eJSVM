@@ -1,0 +1,6 @@
+ejsvm/build/
+
+ejsvm/vmgen/bin/
+
+regression-test/bc/
+regression-test/vm_result/

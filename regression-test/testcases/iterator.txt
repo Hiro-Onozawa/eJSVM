@@ -1,0 +1,10 @@
+100
+200
+300
+riki
+300
+soko
+100
+goyo
+200
+undefined:undefined

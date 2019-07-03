@@ -1,0 +1,6 @@
+[object Object]
+fuga 2
+hoge 1
+fuga:2
+hoge:1
+undefined:undefined

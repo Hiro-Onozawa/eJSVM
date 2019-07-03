@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<project basedir="." default="newejsc.jar" name="ejsc">
+    <property environment="env"/>
+    <property name="target" value="1.8"/>
+    <property name="source" value="1.8"/>
+    <path id="ejsc.classpath">
+        <pathelement location="bin"/>
+        <pathelement location="libs/antlr-4.5.3-complete.jar"/>
+        <pathelement location="libs/javax.json-1.0.4.jar"/>
+    </path>
+    <target name="clean">
+        <delete dir="bin"/>
+    </target>
+    <target name="init">
+        <mkdir dir="bin"/>
+    </target>
+    <target depends="init" name="compile">
+        <javac destdir="bin" includeantruntime="false"
+	       source="${source}" target="${target}" debug="on">
+            <src path="src"/>
+            <classpath refid="ejsc.classpath"/>
+        </javac>
+    </target>
+    <target depends="compile" name="newejsc.jar">
+        <jar jarfile="newejsc.jar" basedir="bin" manifest="compiler.mf"/>
+    </target>
+    <target depends="newejsc.jar" name="compiler.jar">
+        <copy file="newejsc.jar" tofile="compiler.jar"/>
+    </target>
+</project>
