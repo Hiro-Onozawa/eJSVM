@@ -1,12 +1,21 @@
 [default]
 vm : ../ejsvm/build/ejsvm
 compiler : ../ejsc/newejsc.jar
-compile-opt : -omit-frame
 
 [x86]
 vm : ../ejsvm/build/ejsvm_32
 compiler : ../ejsc/newejsc.jar
+compile-opt : -O
 
 [x64]
+vm : ../ejsvm/build/ejsvm_64
+compiler : ../ejsc/newejsc.jar
+compile-opt : -O
+
+[x86_no_opt]
+vm : ../ejsvm/build/ejsvm_32
+compiler : ../ejsc/newejsc.jar
+
+[x64_no_opt]
 vm : ../ejsvm/build/ejsvm_64
 compiler : ../ejsc/newejsc.jar
