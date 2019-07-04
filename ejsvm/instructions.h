@@ -79,7 +79,7 @@ typedef enum {
    *  ---------------------------------------------
    *  |          |          |          |          |
    *  ---------------------------------------------
-   *    opcode   displacement not used   not used
+   *    opcode     not used       displacement
    */
   UNCONDJUMP,
 
@@ -87,7 +87,7 @@ typedef enum {
    *  ---------------------------------------------
    *  |          |          |          |          |
    *  ---------------------------------------------
-   *    opcode     src       displacement not used
+   *    opcode     src            displacement
    *               register
    */
   CONDJUMP,
@@ -206,6 +206,7 @@ typedef struct instruction {
 
 #define SMALLPRIMITIVE_IMMMASK  ((Bytecode)(0x00000000ffffffff))
 #define BIGPRIMITIVE_SUBSCRMASK ((Bytecode)(0x00000000ffffffff))
+#define INSTRUCTION_DISP_MASK   ((Bytecode)(0x00000000ffffffff))
 
 #define CONST_SUBSCR_MASK       ((Bytecode)(0x00000000ffff0000))
 #else
@@ -222,6 +223,7 @@ typedef struct instruction {
 
 #define SMALLPRIMITIVE_IMMMASK  ((Bytecode)(0x0000ffff))
 #define BIGPRIMITIVE_SUBSCRMASK ((Bytecode)(0x0000ffff))
+#define INSTRUCTION_DISP_MASK   ((Bytecode)(0x0000ffff))
 
 #define CONST_SUBSCR_MASK       ((Bytecode)(0x0000ff00))
 #endif
@@ -307,18 +309,19 @@ typedef struct instruction {
 #define makecode_slowsetglobal(op1, op2, op3)           \
   makecode_three_operands(SLOWSETGLOBAL, op1, op2, op3)
 
+#define makecode_jump(opcode, disp)                 \
+  (makecode_cond_jump(opcode, 0, disp))
+
 #ifdef BIT_64
-#define makecode_jump(opcode, disp)                                     \
-  makecode_one_operand(opcode, (uint16_t)((InstructionDisplacement)(disp)))
-
-#define makecode_cond_jump(opcode, src, disp)                           \
-  makecode_two_operands(opcode, src, (uint16_t)((InstructionDisplacement)(disp)))
+#define makecode_cond_jump(opcode, src, disp)       \
+  ( ((Bytecode)(opcode) << OPCODE_OFFSET)         | \
+    ((Bytecode)(src)    << FIRST_OPERAND_OFFSET)  | \
+    (Bytecode)((uint32_t)((InstructionDisplacement)(disp))) )
 #else
-#define makecode_jump(opcode, disp)                                     \
-  makecode_one_operand(opcode, (uint8_t)((InstructionDisplacement)(disp)))
-
-#define makecode_cond_jump(opcode, src, disp)                           \
-  makecode_two_operands(opcode, src, (uint8_t)((InstructionDisplacement)(disp)))
+#define makecode_cond_jump(opcode, src, disp)       \
+  ( ((Bytecode)(opcode) << OPCODE_OFFSET)         | \
+    ((Bytecode)(src)    << FIRST_OPERAND_OFFSET)  | \
+    (Bytecode)((uint16_t)((InstructionDisplacement)(disp))) )
 #endif
 
 #define makecode_getvar(opcode, op1, op2, op3)          \
@@ -367,19 +370,25 @@ typedef struct instruction {
   ((PrimitiveDisplacement)(get_third_operand(code)))
 
 #ifdef BIT_64
-#define get_first_operand_instruction_disp(code)          \
-  ((InstructionDisplacement)((uint16_t)(get_first_operand(code))))
-#define get_second_operand_instruction_disp(code)         \
-  ((InstructionDisplacement)((uint16_t)(get_second_operand(code))))
-#define get_third_operand_instruction_disp(code)          \
-  ((InstructionDisplacement)((uint16_t)(get_third_operand(code))))
+#define get_instruction_disp(code) \
+  ((InstructionDisplacement)((uint32_t)((Bytecode)(code) & INSTRUCTION_DISP_MASK)))
+
+#define get_first_operand_instruction_disp(code)  \
+  (get_instruction_disp((code)))
+#define get_second_operand_instruction_disp(code) \
+  (get_instruction_disp((code)))
+#define get_third_operand_instruction_disp(code)  \
+  (get_instruction_disp((code)))
 #else
-#define get_first_operand_instruction_disp(code)          \
-  ((InstructionDisplacement)((uint8_t)(get_first_operand(code))))
-#define get_second_operand_instruction_disp(code)         \
-  ((InstructionDisplacement)((uint8_t)(get_second_operand(code))))
-#define get_third_operand_instruction_disp(code)          \
-  ((InstructionDisplacement)((uint8_t)(get_third_operand(code))))
+#define get_instruction_disp(code) \
+  ((InstructionDisplacement)((uint16_t)((Bytecode)(code) & INSTRUCTION_DISP_MASK)))
+
+#define get_first_operand_instruction_disp(code)  \
+  (get_instruction_disp((code)))
+#define get_second_operand_instruction_disp(code) \
+  (get_instruction_disp((code)))
+#define get_third_operand_instruction_disp(code)  \
+  (get_instruction_disp((code)))
 #endif
 
 #define get_first_operand_subscr(code) ((Subscript)(get_first_operand(code)))

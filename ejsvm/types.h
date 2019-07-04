@@ -68,15 +68,15 @@
 
 #ifdef BIT_64
 typedef uint16_t Register;
-typedef int16_t  InstructionDisplacement;
+typedef int32_t  InstructionDisplacement;
 typedef uint32_t  PrimitiveDisplacement;
 typedef uint16_t Subscript;
 typedef uint16_t Tag;
 
 #define minval_register() (0)
 #define maxval_register() (UINT16_MAX)
-#define minval_instruction_displacement() (INT16_MIN)
-#define maxval_instruction_displacement() (INT16_MAX)
+#define minval_instruction_displacement() (INT32_MIN)
+#define maxval_instruction_displacement() (INT32_MAX)
 #define minval_primitive_displacement() (0)
 #define maxval_primitive_displacement() (UINT32_MAX)
 #define minval_subscript() (0)
@@ -85,15 +85,15 @@ typedef uint16_t Tag;
 #define maxval_tag() (UINT16_MAX)
 #else
 typedef uint8_t Register;
-typedef int8_t  InstructionDisplacement;
+typedef int16_t  InstructionDisplacement;
 typedef uint16_t  PrimitiveDisplacement;
 typedef uint8_t Subscript;
 typedef uint8_t Tag;
 
 #define minval_register() (0)
 #define maxval_register() (UINT8_MAX)
-#define minval_instruction_displacement() (INT8_MIN)
-#define maxval_instruction_displacement() (INT8_MAX)
+#define minval_instruction_displacement() (INT16_MIN)
+#define maxval_instruction_displacement() (INT16_MAX)
 #define minval_primitive_displacement() (0)
 #define maxval_primitive_displacement() (UINT16_MAX)
 #define minval_subscript() (0)
