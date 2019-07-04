@@ -102,7 +102,7 @@ typedef uint8_t Tag;
 #define maxval_tag() (UINT8_MAX)
 #endif
 
-#define get_small_primitive(pvar, val, message)             \
+#define load_small_primitive(pvar, val, message)            \
 do {                                                        \
   int _val_tmp;                                             \
   _val_tmp = (val);                                         \
@@ -112,7 +112,7 @@ do {                                                        \
     LOG_EXIT((message " IS GREATER THAN VALID RANGE"));     \
   *(pvar) = (SmallPrimitive)_val_tmp;                       \
 } while(0)
-#define get_register(pvar, val, message)                    \
+#define load_register(pvar, val, message)                   \
 do {                                                        \
   int _val_tmp;                                             \
   _val_tmp = (val);                                         \
@@ -122,7 +122,7 @@ do {                                                        \
     LOG_EXIT((message " IS GREATER THAN VALID RANGE"));     \
   *(pvar) = (Register)_val_tmp;                             \
 } while(0)
-#define get_instruction_displacement(pvar, val, message)    \
+#define load_instruction_displacement(pvar, val, message)   \
 do {                                                        \
   int _val_tmp;                                             \
   _val_tmp = (val);                                         \
@@ -132,7 +132,7 @@ do {                                                        \
     LOG_EXIT((message " IS GREATER THAN VALID RANGE"));     \
   *(pvar) = (InstructionDisplacement)_val_tmp;              \
 } while(0)
-#define get_primitive_displacement(pvar, val, message)      \
+#define load_primitive_displacement(pvar, val, message)     \
 do {                                                        \
   int _val_tmp;                                             \
   _val_tmp = (val);                                         \
@@ -142,7 +142,7 @@ do {                                                        \
     LOG_EXIT((message " IS GREATER THAN VALID RANGE"));     \
   *(pvar) = (PrimitiveDisplacement)_val_tmp;                \
 } while(0)
-#define get_subscript(pvar, val, message)                   \
+#define load_subscript(pvar, val, message)                  \
 do {                                                        \
   int _val_tmp;                                             \
   _val_tmp = (val);                                         \

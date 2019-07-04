@@ -588,12 +588,12 @@ int insn_load_sbc(Context *ctx, Instruction *insns, int ninsns,
   case SMALLPRIMITIVE:
     {
       Register dst;
-      get_register(&dst, atoi(next_token()), "SMALLPRIMITIVE DST");
+      load_register(&dst, atoi(next_token()), "SMALLPRIMITIVE DST");
       switch (oc) {
       case FIXNUM:
         {
           SmallPrimitive imm;
-          get_small_primitive(&imm, atoi(next_token()), "FIXNUM IMM");
+          load_small_primitive(&imm, atoi(next_token()), "FIXNUM IMM");
           insns[pc].code = makecode_fixnum(dst, imm);
         }
         break;
@@ -614,7 +614,7 @@ int insn_load_sbc(Context *ctx, Instruction *insns, int ninsns,
       int index;
       PrimitiveDisplacement disp;
 
-      get_register(&dst, atoi(next_token()), "BIGPRIMITIVE DST"); /* destination register */
+      load_register(&dst, atoi(next_token()), "BIGPRIMITIVE DST"); /* destination register */
       switch (oc) {
       case NUMBER:
         {
@@ -665,9 +665,9 @@ int insn_load_sbc(Context *ctx, Instruction *insns, int ninsns,
   case THREEOP:
     {
       Register op0, op1, op2;
-      get_register(&op0, atoi(next_token()), "THREEOP OP0");
-      get_register(&op1, atoi(next_token()), "THREEOP OP1");
-      get_register(&op2, atoi(next_token()), "THREEOP OP2");
+      load_register(&op0, atoi(next_token()), "THREEOP OP0");
+      load_register(&op1, atoi(next_token()), "THREEOP OP1");
+      load_register(&op2, atoi(next_token()), "THREEOP OP2");
       insns[pc].code = makecode_three_operands(oc, op0, op1, op2);
       return LOAD_OK;
     }
@@ -675,8 +675,8 @@ int insn_load_sbc(Context *ctx, Instruction *insns, int ninsns,
   case TWOOP:
     {
       Register op0, op1;
-      get_register(&op0, atoi(next_token()), "TWOOP OP0");
-      get_register(&op1, atoi(next_token()), "TWOOP OP1");
+      load_register(&op0, atoi(next_token()), "TWOOP OP0");
+      load_register(&op1, atoi(next_token()), "TWOOP OP1");
       insns[pc].code = makecode_two_operands(oc, op0, op1);
       return LOAD_OK;
     }
@@ -684,7 +684,7 @@ int insn_load_sbc(Context *ctx, Instruction *insns, int ninsns,
   case ONEOP:
     {
       Register op;
-      get_register(&op, atoi(next_token()), "ONEOP OP");
+      load_register(&op, atoi(next_token()), "ONEOP OP");
       insns[pc].code = makecode_one_operand(oc, op);
       return LOAD_OK;
     }
@@ -698,7 +698,7 @@ int insn_load_sbc(Context *ctx, Instruction *insns, int ninsns,
   case UNCONDJUMP:
     {
       InstructionDisplacement disp;
-      get_instruction_displacement(&disp, atoi(next_token()), "UNCONDJUNP OFFSET");
+      load_instruction_displacement(&disp, atoi(next_token()), "UNCONDJUNP OFFSET");
       insns[pc].code = makecode_jump(oc, disp);
       return LOAD_OK;
     }
@@ -707,8 +707,8 @@ int insn_load_sbc(Context *ctx, Instruction *insns, int ninsns,
     {
       Register src;
       InstructionDisplacement disp;
-      get_register(&src, atoi(next_token()), "CONDJUNP SRC");
-      get_instruction_displacement(&disp, atoi(next_token()), "CONDJUNP OFFSET");
+      load_register(&src, atoi(next_token()), "CONDJUNP SRC");
+      load_instruction_displacement(&disp, atoi(next_token()), "CONDJUNP OFFSET");
       insns[pc].code = makecode_cond_jump(oc, src, disp);
       return LOAD_OK;
     }
@@ -717,9 +717,9 @@ int insn_load_sbc(Context *ctx, Instruction *insns, int ninsns,
     {
       Subscript link, offset;
       Register reg;
-      get_subscript(&link, atoi(next_token()), "GETVAR LINK");
-      get_subscript(&offset, atoi(next_token()), "GETVAR OFFSET");
-      get_register(&reg, atoi(next_token()), "GETVAR REG");
+      load_subscript(&link, atoi(next_token()), "GETVAR LINK");
+      load_subscript(&offset, atoi(next_token()), "GETVAR OFFSET");
+      load_register(&reg, atoi(next_token()), "GETVAR REG");
       insns[pc].code = makecode_getvar(oc, link, offset, reg);
       return LOAD_OK;
     }
@@ -728,9 +728,9 @@ int insn_load_sbc(Context *ctx, Instruction *insns, int ninsns,
     {
       Subscript link, offset;
       Register reg;
-      get_subscript(&link, atoi(next_token()), "SETVAR LINK");
-      get_subscript(&offset, atoi(next_token()), "SETVAR OFFSET");
-      get_register(&reg, atoi(next_token()), "SETVAR REG");
+      load_subscript(&link, atoi(next_token()), "SETVAR LINK");
+      load_subscript(&offset, atoi(next_token()), "SETVAR OFFSET");
+      load_register(&reg, atoi(next_token()), "SETVAR REG");
       insns[pc].code = makecode_setvar(oc, link, offset, reg);
       return LOAD_OK;
     }
@@ -739,8 +739,8 @@ int insn_load_sbc(Context *ctx, Instruction *insns, int ninsns,
     {
       Register dst;
       Subscript index;
-      get_register(&dst, atoi(next_token()), "MAKECLOSUREOP DST");
-      get_subscript(&index, atoi(next_token()), "MAKECLOSUREOP INDEX");
+      load_register(&dst, atoi(next_token()), "MAKECLOSUREOP DST");
+      load_subscript(&index, atoi(next_token()), "MAKECLOSUREOP INDEX");
       insns[pc].code = makecode_makeclosure(oc, dst, index);
       return LOAD_OK;
     }
@@ -749,8 +749,8 @@ int insn_load_sbc(Context *ctx, Instruction *insns, int ninsns,
     {
       Register closure;
       Register argc;
-      get_register(&closure, atoi(next_token()), "CALLOP CLOSURE");
-      get_register(&argc, atoi(next_token()), "CALLOP ARGC");
+      load_register(&closure, atoi(next_token()), "CALLOP CLOSURE");
+      load_register(&argc, atoi(next_token()), "CALLOP ARGC");
       insns[pc].code = makecode_call(oc, closure, argc);
       return LOAD_OK;
     }
