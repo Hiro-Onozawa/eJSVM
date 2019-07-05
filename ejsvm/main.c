@@ -11,6 +11,27 @@
 #define EXTERN
 #include "header.h"
 
+#define BUILD_BUG_ON(condition) typedef char _dummy_type[1 - 2*!!(condition)];
+#if !defined(BIT_64) && !defined(BIT_32)
+#error Either BIT_64 or BIT_32 must be defined.
+#endif
+#if (defined BIT_64) && (defined BIT_32)
+#error Both BIT_64 and BIT_32 are defined.
+#endif
+#if defined BIT_32
+//#if sizeof void * != 4
+//#error BIT_32 is defined, but size of pointer is not 32bit.
+//#endif
+BUILD_BUG_ON(sizeof (void *) != 4);
+#endif
+#if defined BIT_64
+//#if sizeof void * != 8
+//#error BIT_64 is defined, but size of pointer is not 64bit.
+//#endif
+BUILD_BUG_ON(sizeof (void *) != 8);
+#endif
+#undef BUILD_BUG_ON
+
 /*
  *  phase
  */
