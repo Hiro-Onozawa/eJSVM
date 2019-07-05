@@ -213,6 +213,14 @@ INSN_FILES = $(INSN_SUPERINSNS) $(INSN_GENERATED) $(INSN_HANDCRAFT)
 
 ######################################################
 
+ifeq ($(USEBIT),32)
+BITOPT  = -m32
+CFLAGS += -DBIT_32
+endif
+ifeq ($(USEBIT),64)
+CFLAGS += -DBIT_64
+endif
+
 ifeq ($(OPT_GC),native)
     CFLAGS+=-DUSE_NATIVEGC=1
 endif
@@ -238,7 +246,7 @@ GCCHECK_PATTERN = ../gccheck.cocci
 ######################################################
 
 ejsvm :: $(OFILES)
-	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS)
+	$(CC) $(BITOPT) $(LDFLAGS) -o $@ $^ $(LIBS)
 
 instructions-opcode.h: $(EJSVM_DIR)/instructions.def $(SUPERINSNSPEC)
 	$(GOTTA) --gen-insn-opcode -o $@
@@ -341,10 +349,10 @@ instructions.h: instructions-opcode.h instructions-table.h
 	cp $< $@
 
 vmloop.o: vmloop.c vmloop-cases.inc $(INSN_FILES) $(HFILES)
-	$(CC) -c $(CFLAGS) -o $@ $<
+	$(CC) -c $(BITOPT) $(CFLAGS) -o $@ $<
 
 %.o: %.c $(HFILES)
-	$(CC) -c $(CFLAGS) -o $@ $<
+	$(CC) -c $(BITOPT) $(CFLAGS) -o $@ $<
 
 #### check
 
