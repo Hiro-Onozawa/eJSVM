@@ -159,6 +159,8 @@ typedef int32_t  BigPrimitiveId;
 
 #define minval_small_primitive() (INT32_MIN)
 #define maxval_small_primitive() (INT32_MAX)
+
+#define PRIByteCode PRIx64
 #else
 typedef uint32_t Bytecode;
 typedef uint32_t Counter;
@@ -167,6 +169,8 @@ typedef int16_t  BigPrimitiveId;
 
 #define minval_small_primitive() (INT16_MIN)
 #define maxval_small_primitive() (INT16_MAX)
+
+#define PRIByteCode PRIx32
 #endif
 
 /*

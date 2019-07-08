@@ -900,14 +900,14 @@ int print_function_table(FunctionTable *ftable, int nfuncs) {
     printf("n_constants: %d\n", ftable[i].n_constants);
     printf("body_size: %d\n", ftable[i].body_size);
     for (j = 0; j < ftable[i].n_insns; j++) {
-      printf("%03d: %016"PRIx64" --- ", j, ftable[i].insns[j].code);
+      printf("%03d: %016" PRIByteCode " --- ", j, ftable[i].insns[j].code);
       print_bytecode(ftable[i].insns, j);
     }
     lit = (JSValue *)&(ftable[i].insns[ftable[i].n_insns]);
     for (j = 0; j < ftable[i].n_constants; j++) {
       JSValue o;
       o = lit[j];
-      printf("%03d: %016"PRIx64" --- ", j, o);
+      printf("%03d: %016" PRIByteCode " --- ", j, o);
       if (is_flonum(o))
         printf("FLONUM %lf\n", flonum_value(o));
       else if (is_string(o))
