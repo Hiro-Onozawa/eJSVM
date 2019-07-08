@@ -361,7 +361,7 @@ void print_object_properties(JSValue o) {
 }
 
 char* ststrdup(const char* str) {
-  uint64_t len = strlen(str)+1;
+  size_t len = strlen(str)+1;
   char *dst = (char*)malloc(sizeof(char) * len);
 
   strcpy(dst, str);

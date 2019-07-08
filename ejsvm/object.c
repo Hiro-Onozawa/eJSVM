@@ -264,7 +264,7 @@ JSValue get_array_prop(Context *ctx, JSValue a, JSValue p) {
  * sets an object's property value with its attribute
  */
 int set_prop_with_attribute(Context *ctx, JSValue obj, JSValue name, JSValue v, Attribute attr) {
-  uint64_t retv, newsize;
+  JSObjectSize retv, newsize;
   int index, r;
 #ifdef HIDDEN_CLASS
   HiddenClass *nexth, *oh;
@@ -290,7 +290,7 @@ int set_prop_with_attribute(Context *ctx, JSValue obj, JSValue name, JSValue v, 
       GC_POP3(v, name, obj);
       obj_limit_props(obj) = newsize;
     }
-    index = (cint)retv;
+    index = (int)retv;
     /* printf("set_prop_with_index: index = %d\n", index); */
 #ifdef HIDDEN_CLASS
     oh = obj_hidden_class(obj);    /* source hidden class */
@@ -383,8 +383,8 @@ int set_object_prop(Context *ctx, JSValue o, JSValue p, JSValue v) {
  */
 int set_array_index_value(Context *ctx, JSValue a, cint n, JSValue v,
                           int setlength) {
-  cint len, size, adatamax;
-  int i;
+  JSArraySize len, size, adatamax;
+  JSArraySize i;
 
   len = array_length(a);
   size = array_size(a);
@@ -396,7 +396,7 @@ int set_array_index_value(Context *ctx, JSValue a, cint n, JSValue v,
        * It is necessary to expand the array, but since n is less than
        *  ASIZE_LIMIT, it is possible to expand the array data.
        */
-      cint newsize;
+      JSArraySize newsize;
       while ((newsize = increase_asize(size)) <= n) size = newsize;
       GC_PUSH2(a, v);
       reallocate_array_data(ctx, a, newsize);
@@ -566,8 +566,8 @@ int delete_array_element(JSValue a, cint n) {
  * iter:Iterator
  */
 int iterator_get_next_propname(JSValue iter, JSValue *name) {
-  int size = iterator_size(iter);
-  int index = iterator_index(iter);
+  JSIteratorSize size = iterator_size(iter);
+  JSIteratorSize index = iterator_index(iter);
   if(index < size) {
     *name = iterator_body_index(iter,index++);
     iterator_index(iter) = index;

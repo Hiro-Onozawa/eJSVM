@@ -120,7 +120,8 @@ BUILTIN_FUNCTION(array_join)
 BUILTIN_FUNCTION(array_concat)
 {
   JSValue a, e, subElement;
-  cint n, k, i, len;
+  cint i;
+  JSArraySize n, k, len;
 
   builtin_prologue();
   a = new_normal_array(context);
@@ -197,15 +198,16 @@ BUILTIN_FUNCTION(array_concat)
 BUILTIN_FUNCTION(array_pop)
 {
   JSValue a, ret, flen;
-  cint len;
+  JSArraySize len;
 
   builtin_prologue();
   a = args[0];
-  len = array_length(a) - 1;    /* len >= -1 */
-  if (len < 0) {
+  len = array_length(a);    /* len >= -1 */
+  if (len <= 0) {
     set_a(context, JS_UNDEFINED);
     return;
   }
+  len = len - 1;
 
   flen = cint_to_fixnum(len);
   if (len < array_size(a))
@@ -224,7 +226,7 @@ BUILTIN_FUNCTION(array_pop)
 BUILTIN_FUNCTION(array_push)
 {
   JSValue a, ret;
-  cint len;
+  JSArraySize len;
   int i;
 
   builtin_prologue();
@@ -246,7 +248,7 @@ BUILTIN_FUNCTION(array_push)
 
 BUILTIN_FUNCTION(array_reverse)
 {
-  cint len, mid, lower, upper;
+  JSArraySize len, mid, lower, upper;
   int lowerExists, upperExists;
   JSValue lowerValue, upperValue;
 
@@ -315,7 +317,7 @@ BUILTIN_FUNCTION(array_reverse)
 BUILTIN_FUNCTION(array_shift)
 {
   JSValue first, fromVal;
-  cint len, from, to;
+  JSArraySize len, from, to;
 
   builtin_prologue();
   len = array_length(args[0]);
@@ -384,7 +386,7 @@ BUILTIN_FUNCTION(array_shift)
 BUILTIN_FUNCTION(array_slice)
 {
   JSValue o, a;
-  cint len, relativeStart, relativeEnd, k, n, final, count;
+  JSArraySize len, relativeStart, relativeEnd, k, n, final, count;
   JSValue start, end, kValue;
 
   builtin_prologue();
@@ -672,15 +674,17 @@ void asort(Context* context, JSValue array, cint l, cint r, JSValue comparefn) {
 BUILTIN_FUNCTION(array_sort)
 {
   JSValue obj, comparefn;
-  cint len;
+  JSArraySize len;
 
   builtin_prologue();
   obj = args[0];
   comparefn = args[1];
   len = array_length(obj);
-  GC_PUSH(obj);
-  asort(context, obj, 0, len - 1, comparefn);
-  GC_POP(obj);
+  if (len > 0) {
+    GC_PUSH(obj);
+    asort(context, obj, 0, len - 1, comparefn);
+    GC_POP(obj);
+  }
   set_a(context, obj);
   return;
 
@@ -744,8 +748,7 @@ BUILTIN_FUNCTION(array_debugarray)
 {
   /* BUG?: The method does not print a[i] (i >= max(size, ASIZE_LIMIT)) */
   JSValue a;
-  cint size, length, to;
-  int i;
+  JSArraySize size, length, to, i;
 
   builtin_prologue();
   a = args[0];

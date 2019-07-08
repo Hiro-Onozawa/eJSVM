@@ -193,9 +193,15 @@ typedef struct hidden_class {
  */
 #endif
 
+#ifdef BIT_64
+typedef uint64_t JSObjectSize;
+#else
+typedef uint32_t JSObjectSize;
+#endif
+
 typedef struct object_cell {
-  uint64_t n_props;       /* number of properties */
-  uint64_t limit_props;
+  JSObjectSize n_props;       /* number of properties */
+  JSObjectSize limit_props;
 #ifdef HIDDEN_CLASS
   HiddenClass *class;     /* Hidden class for this object */
 #else
@@ -279,10 +285,16 @@ typedef struct object_cell {
  * Array
  * tag == T_GENERIC
  */
+#ifdef BIT_64
+typedef uint64_t JSArraySize;
+#else
+typedef uint32_t JSArraySize;
+#endif
+
 typedef struct array_cell {
   Object o;
-  uint64_t size;        /* size of the C array pointed from `body' field */
-  uint64_t length;      /* length of the array, i.e., max subscript - 1 */
+  JSArraySize size;        /* size of the C array pointed from `body' field */
+  JSArraySize length;      /* length of the array, i.e., max subscript - 1 */
   JSValue *body;        /* pointer to a C array */
 } ArrayCell;
 
@@ -297,7 +309,11 @@ typedef struct array_cell {
 #define ASIZE_INIT   10       /* default initial size of the C array */
 #define ASIZE_DELTA  10       /* delta when expanding the C array */
 #define ASIZE_LIMIT  100      /* limit size of the C array */
-#define MAX_ARRAY_LENGTH  ((uint64_t)(0xffffffff))
+#ifdef BIT_64
+#define MAX_ARRAY_LENGTH  ((JSArraySize)(0x00000000ffffffff))
+#else
+#define MAX_ARRAY_LENGTH  ((JSArraySize)(0x03ffffff))
+#endif
 
 #define increase_asize(n)     (((n) >= ASIZE_LIMIT)? (n): ((n) + ASIZE_DELTA))
 
@@ -354,9 +370,14 @@ typedef struct builtin_cell {
  * Iterator
  * tag == T_GENERIC
  */
+#ifdef BIT_64
+typedef uint64_t JSIteratorSize;
+#else
+typedef uint32_t JSIteratorSize;
+#endif
 typedef struct iterator {
-  uint64_t size;        /* array size */
-  uint64_t index;       /* array index */
+  JSIteratorSize size;        /* array size */
+  JSIteratorSize index;       /* array index */
   JSValue *body;        /* pointer to a C array */
 } Iterator;
 

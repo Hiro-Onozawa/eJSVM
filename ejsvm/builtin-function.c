@@ -26,14 +26,14 @@ BUILTIN_FUNCTION(function_apply) {
   JSValue thisobj = args[1];
   JSValue ret = JS_UNDEFINED;
   JSValue arguments[MAX_FUNCTION_APPLY_ARGUMENTS];
-  int arguments_len = 0;
+  JSArraySize arguments_len = 0;
   if (na >= 2 && is_array(args[2])) {
     JSValue ary = args[2];
     arguments_len = array_length(ary);
     if (arguments_len > MAX_FUNCTION_APPLY_ARGUMENTS) {
       LOG_EXIT("Error\n");
     }
-    int i;
+    JSArraySize i;
     for (i = 0; i < arguments_len; i++) {
       arguments[i] = array_body_index(ary, i);
     }

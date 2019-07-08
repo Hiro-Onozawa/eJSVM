@@ -471,11 +471,12 @@ JSValue object_to_boolean(JSValue v) {
  */
 JSValue array_to_string(Context *context, JSValue array, JSValue separator)
 {
-  uint64_t length, seplen, sumlen;
+  JSArraySize length, sumlen;
+  size_t seplen;
   JSValue ret, item;
   JSValue *strs;
   char *sep, *cstr, *p;
-  int i;
+  JSArraySize i;
 
   if (!is_array(array)) {
     type_error("array expected in array_to_string");
