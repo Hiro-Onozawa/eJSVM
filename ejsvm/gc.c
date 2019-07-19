@@ -201,8 +201,8 @@ STATIC void* space_alloc(struct space *space,
   struct free_chunk **p;
   
   alloc_jsvalues =
-    (request_bytes + BYTES_IN_JSVALUE - 1) >> LOG_BYTES_IN_JSVALUE;
-  alloc_jsvalues += HEADER_JSVALUES;
+    (request_bytes + (1 << LOG_BYTES_IN_JSVALUE) - 1) >> LOG_BYTES_IN_JSVALUE;
+  alloc_jsvalues += HEADER_BYTES >> LOG_BYTES_IN_JSVALUE;
 
   /* allocate from freelist */
   for (p = &space->freelist; *p != NULL; p = &(*p)->next) {
@@ -302,7 +302,7 @@ void gc_pop_checked(void *addr)
 
 cell_type_t gc_obj_header_type(void *p)
 {
-  header_t *hdrp = ((header_t *) p) - 1;
+  header_t *hdrp = (header_t *)(((uintptr_t) p) - HEADER_BYTES);
   return HEADER0_GET_TYPE(*hdrp);
 }
 
@@ -343,7 +343,7 @@ JSValue* gc_jsalloc(Context *ctx, uintptr_t request_bytes, uint32_t type)
 	      request_bytes, type, addr);
 #ifdef GC_DEBUG
   {
-  header_t *hdrp = (header_t *) (addr - HEADER_JSVALUES);
+  header_t *hdrp = (header_t *) (((uintptr_t) addr) - HEADER_BYTES);
   header_t *shadow = get_shadow(hdrp);
   *shadow = *hdrp;
   }
@@ -648,7 +648,7 @@ STATIC void trace_js_object(uintptr_t *ptrp)
 #endif
   trace_JSValue_array(&obj->prop, obj->n_props);
 
-  switch (HEADER0_GET_TYPE(((header_t *) ptr)[-1])) {
+  switch (HEADER0_GET_TYPE(*((header_t *) (ptr - HEADER_BYTES)))) {
   case HTAG_SIMPLE_OBJECT:
     break;
   case HTAG_ARRAY:
@@ -722,18 +722,18 @@ STATIC void trace_slot(JSValue* ptr)
 {
   JSValue jsv = *ptr;
   if (is_leaf_object(jsv)) {
-    uint8_t tag = jsv & TAGMASK;
+    Tag tag = jsv & TAGMASK;
     jsv &= ~TAGMASK;
     trace_leaf_object((uintptr_t *) &jsv);
     *ptr = jsv | tag;
   } else if (is_iterator(jsv)) {
     /* iterator does not have common headers but does have pointers */
-    uint8_t tag = jsv & TAGMASK;
+    Tag tag = jsv & TAGMASK;
     jsv &= ~TAGMASK;
     trace_iterator((Iterator **) &jsv);
     *ptr = jsv | tag;
   } else if (is_pointer(jsv)) {
-    uint8_t tag = jsv & TAGMASK;
+    Tag tag = jsv & TAGMASK;
     jsv &= ~TAGMASK;
     trace_js_object((uintptr_t *) &jsv);
     *ptr = jsv | tag;

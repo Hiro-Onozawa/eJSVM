@@ -37,9 +37,9 @@ typedef uint64_t JSValue;
 
 #define PRIJSValue PRIx64
 #else
-typedef uint64_t JSValue;
+typedef uint32_t JSValue;
 
-#define PRIJSValue PRIx64
+#define PRIJSValue PRIx32
 #endif
 
 #define BYTES_IN_JSVALUE (sizeof(JSValue))

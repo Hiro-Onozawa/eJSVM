@@ -8,7 +8,11 @@
  */
 
 typedef JSValue HashKey;
+#ifdef BIT_64
 typedef uint64_t HashData;
+#else
+typedef uint32_t HashData;
+#endif
 typedef uint16_t Attribute;
 
 /* Attributes */

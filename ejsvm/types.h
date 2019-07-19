@@ -25,6 +25,7 @@
  *  ---------------------------------------------------
  *  63                                             210
  */
+#ifdef BIT_64
 #define TAGOFFSET (3)
 #define TAGMASK   (0x7)  /* 111 */
 
@@ -33,6 +34,16 @@
 #define clear_tag(p)    ((uint64_t)(p) & ~TAGMASK)
 #define remove_tag(p,t) (clear_tag(p))
 #define equal_tag(p,t)  (get_tag((p)) == (t))
+#else
+#define TAGOFFSET (3)
+#define TAGMASK   (0x7)  /* 111 */
+
+#define get_tag(p)      (((Tag)(p)) & TAGMASK)
+#define put_tag(p,t)    ((JSValue)((uint32_t)(p) + (t)))
+#define clear_tag(p)    ((uint32_t)(p) & ~TAGMASK)
+#define remove_tag(p,t) (clear_tag(p))
+#define equal_tag(p,t)  (get_tag((p)) == (t))
+#endif
 
 /*
  * Pair of two pointer tags
@@ -562,9 +573,9 @@ typedef struct string_cell {
 
 /* change name: OBJECT_xxx -> HEADER_xxx (ugawa) */
 #define HEADER_SIZE_OFFSET   (32)
-#define HEADER_TYPE_MASK     ((uint64_t)0x000000ff)
-#define HEADER_SHARED_MASK   ((uint64_t)0x80000000)
-#define FUNCTION_ATOMIC_MASK ((uint64_t)0x40000000)
+/* #define HEADER_TYPE_MASK     ((uint64_t)0x000000ff) */
+/* #define HEADER_SHARED_MASK   ((uint64_t)0x80000000) */
+/* #define FUNCTION_ATOMIC_MASK ((uint64_t)0x40000000) */
 
 #define make_header(s, t) (((uint64_t)(s) << HEADER_SIZE_OFFSET) | (t))
 
@@ -592,9 +603,12 @@ typedef struct string_cell {
  * So we use `cint' to represent a fixnum value.
  */
 
+#ifdef BIT_64
 typedef int64_t cint;
 typedef uint64_t cuint;
 
+
+#define PRIcint PRId64
 
 /* #define fixnum_to_int(p) (((int64_t)(p)) >> TAGOFFSET) */
 #define fixnum_to_cint(p) (((cint)(p)) >> TAGOFFSET)
@@ -683,6 +697,101 @@ typedef uint64_t cuint;
 #define is_null_or_undefined(p)  (special_tag((p)) == T_OTHER)
 #define is_null(p)               ((p) == JS_NULL)
 #define is_undefined(p)          ((p) == JS_UNDEFINED)
+#else
+typedef int32_t cint;
+typedef uint32_t cuint;
+
+#define PRIcint PRId32
+
+
+/* #define fixnum_to_int(p) (((int64_t)(p)) >> TAGOFFSET) */
+#define fixnum_to_cint(p) ((cint)(((int32_t)(p)) >> TAGOFFSET))
+#define fixnum_to_int(p)  ((int)fixnum_to_cint(p))
+#define fixnum_to_double(p) ((double)(fixnum_to_cint(p)))
+
+/*
+ * #define int_to_fixnum(f) \
+ * ((JSValue)(put_tag((((uint64_t)(f)) << TAGOFFSET), T_FIXNUM)))
+ */
+#define int_to_fixnum(f)    cint_to_fixnum(((cint)(f)))
+#define cint_to_fixnum(f)   put_tag(((uint32_t)(f) << TAGOFFSET), T_FIXNUM)
+
+/* #define double_to_fixnum(f) int_to_fixnum((int64_t)(f)) */
+#define double_to_fixnum(f) cint_to_fixnum((cint)(f))
+
+#define is_fixnum_range_cint(n)                                 \
+  ((MIN_FIXNUM_CINT <= (n)) && ((n) <= MAX_FIXNUM_CINT))
+
+#define is_integer_value_double(d) ((d) == (double)((cint)(d)))
+
+#define is_fixnum_range_double(d)                                       \
+  (is_integer_value_double(d) && is_fixnum_range_cint((cint)(d)))
+
+#define in_fixnum_range(dval)                           \
+  ((((double)(dval)) == ((double)((int32_t)(dval))))    \
+   && ((((int32_t)(dval)) <= MAX_FIXNUM_INT)            \
+       && (((int32_t)(dval)) >= MIN_FIXNUM_INT)))
+
+#define in_flonum_range(ival)                           \
+  ((ival ^ (ival << 1))                                 \
+   & ((int32_t)1 << (BITS_IN_JSVALUE - TAGOFFSET)))
+
+#define half_fixnum_range(ival)                                         \
+  (((MIN_FIXNUM_CINT / 2) <= (ival)) && ((ival) <= (MAX_FIXNUM_CINT / 2)))
+
+#define FIXNUM_ZERO (cint_to_fixnum((cint)0))
+#define FIXNUM_ONE  (cint_to_fixnum((cint)1))
+#define FIXNUM_TEN  (cint_to_fixnum((cint)10))
+
+#define MAX_FIXNUM_CINT (((cint)(1) << (BITS_IN_JSVALUE - TAGOFFSET - 1)) - 1)
+#define MIN_FIXNUM_CINT (-MAX_FIXNUM_CINT-1)
+
+
+#define cint_to_number(n)                                               \
+  (is_fixnum_range_cint((n))? cint_to_fixnum((n)): cint_to_flonum((n)))
+
+#define number_to_double(p)                                     \
+  ((is_fixnum(p)? fixnum_to_double(p): flonum_to_double(p)))
+#define double_to_number(d)                                             \
+  ((is_fixnum_range_double(d))? double_to_fixnum(d): double_to_flonum(d))
+
+/*
+ * Special
+ * tag == T_SPECIAL
+ */
+#define SPECIALOFFSET           (TAGOFFSET + 1)
+#define SPECIALMASK             ((uint32_t)(1 << SPECIALOFFSET) - 1)
+
+#define make_special(spe,t)     ((JSValue)((spe) << SPECIALOFFSET | (t)))
+#define special_tag(p)          ((uint32_t)(p) & SPECIALMASK)
+#define special_equal_tag(p,t)  (special_tag((p)) == (t))
+
+/*
+ * Special - Boolean
+ */
+#define T_BOOLEAN         ((0x1 << TAGOFFSET) | T_SPECIAL)
+#define JS_TRUE           make_special(1, T_BOOLEAN)
+#define JS_FALSE          make_special(0, T_BOOLEAN)
+
+#define is_boolean(p)     (special_tag((p)) == T_BOOLEAN)
+#define is_true(p)        ((p) == JS_TRUE)
+#define is_false(p)       ((p) == JS_FALSE)
+#define int_to_boolean(e) ((e) ? JS_TRUE : JS_FALSE)
+
+#define true_false(e)     ((e) ? JS_TRUE : JS_FALSE)
+#define false_true(e)     ((e) ? JS_FALSE : JS_TRUE)
+
+/*
+ * Special - Others
+ */
+#define T_OTHER           ((0x0 << TAGOFFSET) | T_SPECIAL)
+#define JS_NULL           make_special(0, T_OTHER)
+#define JS_UNDEFINED      make_special(1, T_OTHER)
+
+#define is_null_or_undefined(p)  (special_tag((p)) == T_OTHER)
+#define is_null(p)               ((p) == JS_NULL)
+#define is_undefined(p)          ((p) == JS_UNDEFINED)
+#endif
 
 /*
  * Primitive is either number, boolean, or string.
