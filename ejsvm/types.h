@@ -35,8 +35,8 @@
 #define remove_tag(p,t) (clear_tag(p))
 #define equal_tag(p,t)  (get_tag((p)) == (t))
 #else
-#define TAGOFFSET (3)
-#define TAGMASK   (0x7)  /* 111 */
+#define TAGOFFSET (2)
+#define TAGMASK   (0x3)  /* 11 */
 
 #define get_tag(p)      (((Tag)(p)) & TAGMASK)
 #define put_tag(p,t)    ((JSValue)((uint32_t)(p) + (t)))
