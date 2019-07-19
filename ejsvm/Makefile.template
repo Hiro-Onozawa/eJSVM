@@ -5,6 +5,7 @@
 ##
 
 DATATYPES = ../datatypes/default.def
+# DATATYPES = ../datatypes/default_32.def
 OPERANDSPEC = ../operand-spec/any.spec
 # OPERANDSPEC = ../operand-spec/fixnum-unspec.spec
 SUPERINSNSPEC = ../superinsn-spec/all.si
