@@ -34,10 +34,12 @@
 
 #ifdef BIT_64
 typedef uint64_t JSValue;
+#define LOG_BYTES_IN_JSVALUE   3
 
 #define PRIJSValue PRIx64
 #else
 typedef uint32_t JSValue;
+#define LOG_BYTES_IN_JSVALUE   2
 
 #define PRIJSValue PRIx32
 #endif

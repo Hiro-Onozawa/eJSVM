@@ -39,7 +39,7 @@
  * defined in header.h
  */
 /* typedef uint64_t JSValue; */
-#define LOG_BYTES_IN_JSVALUE   3
+/* #define LOG_BYTES_IN_JSVALUE   3 */
 /* #define BYTES_IN_JSVALUE       (1 << LOG_BYTES_IN_JSVALUE) */
 
 /*
