@@ -981,7 +981,7 @@ void print_bytecode(Instruction *insns, int pc) {
     break;
   case BIGPRIMITIVE:
     {
-      printf("%d", get_first_operand_reg(code));
+      printf(" %d", get_first_operand_reg(code));
       print_constant(insns, pc, get_big_disp(code));
     }
     break;
@@ -1020,7 +1020,7 @@ void print_bytecode(Instruction *insns, int pc) {
       Register dst, r1;
       dst = get_first_operand_reg(code);
       r1 = get_second_operand_reg(code);
-      printf("%d %d", dst, r1);
+      printf(" %d %d", dst, r1);
     }
     break;
   case ONEOP:
