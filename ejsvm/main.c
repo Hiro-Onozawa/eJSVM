@@ -56,6 +56,10 @@ int coverage_flag;     /* print the coverage */
 int icount_flag;       /* print instruction count */
 int forcelog_flag;     /* treat every instruction as ``_log'' one */
 #endif
+#ifdef GC_PROFILE_SIZE
+unsigned int g_malloced_size_overflow;
+uintptr_t g_malloced_size;
+#endif
 
 #if defined(USE_OBC) && defined(USE_SBC)
 int obcsbc;
@@ -263,6 +267,50 @@ void print_icount(FunctionTable *ft, int n) {
   free(ic);
 }
 #endif
+
+#ifdef GC_PROFILE_SIZE
+void print_malloced_size() {
+#define DIG_SIZE 5
+  unsigned int bytes[DIG_SIZE];
+  uintptr_t i;
+
+  for (i = 0; i < DIG_SIZE; ++i) 
+    bytes[i] = 0;
+
+  for (i = 0; i <= g_malloced_size_overflow; ++i) {
+    unsigned int j, tmp;
+    uintptr_t size;
+
+    size = (i == g_malloced_size_overflow) ? g_malloced_size : UINTPTR_MAX;
+    for (j = 0; j < DIG_SIZE - 1; ++j) {
+      tmp = bytes[j] + size % 1000;
+      size = size / 1000;
+      bytes[j + 1] = bytes[j + 1] + tmp / 1000;
+      bytes[j] = tmp % 1000;
+      if (size == 0) break;
+    }
+  }
+
+  {
+    int flag;
+
+    printf("malloced size : ");
+    for (i = 0, flag = 0; i < DIG_SIZE; ++i) {
+      unsigned int tmp = bytes[DIG_SIZE - 1 - i];
+      if (flag == 0) {
+        if (tmp == 0) continue;
+
+        flag = 1;
+        printf("%u", tmp);
+      } else {
+        printf(",%03u", tmp);
+      }
+    }
+    printf(" bytes\n");
+  }
+#undef DIG_SIZE
+}
+#endif /* GC_PROFILE_SIZE */
 
 #ifndef NDEBUG
 void **stack_start;
@@ -490,6 +538,10 @@ int main(int argc, char *argv[]) {
     print_icount(function_table, n);
   if (prof_stream != NULL)
     fclose(prof_stream);
+#endif
+
+#ifdef GC_PROFILE_SIZE
+  print_malloced_size();
 #endif
 
   return 0;

@@ -114,6 +114,11 @@ int generation = 0;
 int gc_sec;
 int gc_usec; 
 
+#ifdef GC_PROFILE_SIZE
+extern unsigned int g_malloced_size_overflow;
+extern uintptr_t g_malloced_size;
+#endif /* GC_PROFILE_SIZE */
+
 #ifdef GC_DEBUG
 STATIC void **top;
 STATIC void sanity_check();
@@ -259,6 +264,11 @@ void init_memory()
   generation = 1;
   gc_sec = 0;
   gc_usec = 0;
+
+#ifdef GC_PROFILE_SIZE
+  g_malloced_size_overflow = 0;
+  g_malloced_size = 0;
+#endif /* GC_PROFILE_SIZE */
 }
 
 void gc_push_tmp_root(JSValue *loc)
@@ -348,6 +358,16 @@ JSValue* gc_jsalloc(Context *ctx, uintptr_t request_bytes, uint32_t type)
   *shadow = *hdrp;
   }
 #endif /* GC_DEBUG */
+#ifdef GC_PROFILE_SIZE
+  if (addr != NULL) {
+    if (UINTPTR_MAX - g_malloced_size <= request_bytes) {
+      ++g_malloced_size_overflow;
+      g_malloced_size -= UINTPTR_MAX - request_bytes;
+    } else {
+      g_malloced_size += request_bytes;
+    }
+  }
+#endif /* GC_PROFILE_SIZE */
   return addr;
 }
 
