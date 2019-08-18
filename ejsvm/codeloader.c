@@ -44,7 +44,8 @@ typedef struct {
 } ConstInfo;
 
 typedef struct {
-  int n_const_info;
+  size_t n_const_info;
+  size_t size_const_info;
   ConstInfo *const_info;
 } CItable;
 
@@ -793,7 +794,7 @@ int insn_load_obc(Context *ctx, Instruction *insns, int ninsns, int pc,
     case REGEXP:
 #endif
 #endif
-      index = get_second_operand_subscr(bc);
+      index = get_big_subscr(bc);
       add_constant_info(citable, oc, index, NONE);
       disp = calc_displacement(ninsns, pc, index);
       insns[pc].code = update_displacement(bc, disp);
@@ -857,6 +858,7 @@ char *jsvalue_to_specstr(JSValue v) {
 void init_constant_info(CItable *citable, int nconsts, int i) {
   ConstInfo* p;
   citable->n_const_info = 0;
+  citable->size_const_info = nconsts;
   p = (ConstInfo*)malloc(sizeof(ConstInfo) * nconsts);
   if (p == NULL)
     LOG_EXIT("%dth func: cannot malloc constant_info", i);
@@ -864,7 +866,7 @@ void init_constant_info(CItable *citable, int nconsts, int i) {
 }
 
 void add_constant_info(CItable *ci, Opcode c, unsigned int index, InsnOperandType t) {
-  if (index >= CONSTANT_LIMIT)
+  if (index >= ci->size_const_info)
     LOG_ERR("Error: index %d is out of range of constant info table", index);
   (ci->const_info)[index].oc = c;
   (ci->const_info)[index].type = t;
