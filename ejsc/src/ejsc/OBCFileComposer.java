@@ -14,6 +14,7 @@ import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.List;
 import ejsc.Main.Info;
+import ejsc.ast_node.ThisExpression;
 
 public class OBCFileComposer extends OutputFileComposer {
     static final boolean DEBUG = false;
@@ -26,48 +27,102 @@ public class OBCFileComposer extends OutputFileComposer {
     static final int FIELD_VALUE_UNDEFINED = 0x16;
 
     static class OBCInstruction {
-        static final int INSTRUCTION_BYTES = 8;
-        static final int OPCODE_OFFSET = 16 * 3;
-        static final int OPCODE_BITS   = 16;
-        static final long OPCODE_MASK  = ((1L << OPCODE_BITS) - 1) << OPCODE_OFFSET;
-        static final int A_OFFSET      = 16 * 2;
-        static final int A_BITS        = 16;
-        static final long A_MASK       = ((1L << A_BITS) - 1) << A_OFFSET;
-        static final int B_OFFSET      = 16 * 1;
-        static final int B_BITS        = 16;
-        static final long B_MASK       = ((1L << B_BITS) - 1) << B_OFFSET;
-        static final int BB_OFFSET     = 0;
-        static final int BB_BITS       = 32;
-        static final long BB_MASK      = ((1L << BB_BITS) - 1) << BB_OFFSET;
-        static final int C_OFFSET      = 0;
-        static final int C_BITS        = 16;
-        static final long C_MASK       = ((1L << C_BITS) - 1) << C_OFFSET;
+        static final int CHAR_BITS             = 8;
+        static final int INSTRUCTION_BYTES     = 8;
+        static final int INSTRUCTION_BITS      = INSTRUCTION_BYTES * CHAR_BITS;
+        static final int OPCODE_BITS           = 16;
+        static final int OPCODE_OFFSET         = INSTRUCTION_BITS - OPCODE_BITS;
+        static final long OPCODE_MASK          = ((1L << OPCODE_BITS) - 1) << OPCODE_OFFSET;
+        static final int FIRST_OPERAND_BITS    = 16;
+        static final int FIRST_OPERAND_OFFSET  = OPCODE_OFFSET - FIRST_OPERAND_BITS;
+        static final long FIRST_OPERAND_MASK   = ((1L << FIRST_OPERAND_BITS) - 1) << FIRST_OPERAND_OFFSET;
+        static final int SECOND_OPERAND_BITS    = 16;
+        static final int SECOND_OPERAND_OFFSET  = FIRST_OPERAND_OFFSET - SECOND_OPERAND_BITS;
+        static final long SECOND_OPERAND_MASK   = ((1L << SECOND_OPERAND_BITS) - 1) << SECOND_OPERAND_OFFSET;
+        static final int THIRD_OPERAND_BITS    = 16;
+        static final int THIRD_OPERAND_OFFSET  = SECOND_OPERAND_OFFSET - THIRD_OPERAND_BITS;
+        static final long THIRD_OPERAND_MASK   = ((1L << THIRD_OPERAND_BITS) - 1) << THIRD_OPERAND_OFFSET;
+        static final int PRIMITIVE_BITS    = 32;
+        static final int PRIMITIVE_OFFSET  = 0;
+        static final long PRIMITIVE_MASK   = ((1L << PRIMITIVE_BITS) - 1) << PRIMITIVE_OFFSET;
 
         enum Format {
-            ABC,
-            AB
+            SMALLPRIMITIVE,
+            BIGPRIMITIVE,
+            THREEOP,
+            TWOOP,
+            ONEOP,
+            ZEROOP,
+            UNCONDJUMP,
+            CONDJUMP,
+            GETVAR,
+            SETVAR,
+            MAKECLOSUREOP,
+            CALLOP,
+            TRYOP,
+            UNKNOWNOP
         }
 
-        static OBCInstruction createAB(String insnName, int opcode, int a, int b) {
-            return new OBCInstruction(insnName, opcode, Format.AB, a, b, 0);
+        static OBCInstruction createSmallPrimitive(String insnName, int opcode, int register, int immediate) {
+            return new OBCInstruction(insnName, opcode, Format.SMALLPRIMITIVE, register, immediate, 0);
         }
 
-        static OBCInstruction createABC(String insnName, int opcode, int a, int b, int c) {
-            return new OBCInstruction(insnName, opcode, Format.ABC, a, b, c);
+        static OBCInstruction createBigPrimitive(String insnName, int opcode, int register, int index) {
+            return new OBCInstruction(insnName, opcode, Format.BIGPRIMITIVE, register, index, 0);
+        }
+
+        static OBCInstruction createThreeOp(String insnName, int opcode, int firstOperand, int secondOperand, int thirdOperand) {
+            return new OBCInstruction(insnName, opcode, Format.THREEOP, firstOperand, secondOperand, thirdOperand);
+        }
+
+        static OBCInstruction createTwoOp(String insnName, int opcode, int firstOperand, int secondOperand) {
+            return new OBCInstruction(insnName, opcode, Format.TWOOP, firstOperand, secondOperand, 0);
+        }
+
+        static OBCInstruction createOneOp(String insnName, int opcode, int firstOperand) {
+            return new OBCInstruction(insnName, opcode, Format.ONEOP, firstOperand, 0, 0);
+        }
+
+        static OBCInstruction createZeroOp(String insnName, int opcode) {
+            return new OBCInstruction(insnName, opcode, Format.ZEROOP, 0, 0, 0);
+        }
+
+        static OBCInstruction createUncondJump(String insnName, int opcode, int displacement) {
+            return new OBCInstruction(insnName, opcode, Format.UNCONDJUMP, 0, displacement, 0);
+        }
+
+        static OBCInstruction createCondJump(String insnName, int opcode, int register, int displacement) {
+            return new OBCInstruction(insnName, opcode, Format.CONDJUMP, register, displacement, 0);
+        }
+
+        static OBCInstruction createGetVar(String insnName, int opcode, int link, int offset, int register) {
+            return new OBCInstruction(insnName, opcode, Format.GETVAR, link, offset, register);
+        }
+
+        static OBCInstruction createSetVar(String insnName, int opcode, int link, int offset, int register) {
+            return new OBCInstruction(insnName, opcode, Format.SETVAR, link, offset, register);
+        }
+
+        static OBCInstruction createMakeClosureOp(String insnName, int opcode, int register, int subscr) {
+            return new OBCInstruction(insnName, opcode, Format.MAKECLOSUREOP, register, subscr, 0);
+        }
+
+        static OBCInstruction createCallOp(String insnName, int opcode, int register, int nargs) {
+            return new OBCInstruction(insnName, opcode, Format.MAKECLOSUREOP, register, nargs, 0);
         }
 
         String insnName;  /* debug */
         int opcode;
         Format format;
-        int a, b, c;
+        int firstOperand, secondOperand, thirdOperand;
 
         OBCInstruction(String insnName, int opcode, Format format, int a, int b, int c) {
             this.insnName = insnName;
             this.opcode = opcode;
             this.format = format;
-            this.a = a;
-            this.b = b;
-            this.c = c;
+            this.firstOperand = a;
+            this.secondOperand = b;
+            this.thirdOperand = c;
         }
 
         /**
@@ -77,14 +132,45 @@ public class OBCFileComposer extends OutputFileComposer {
         byte[] getBytes() {
             long insn = ((long) opcode) << OPCODE_OFFSET;
             switch (format) {
-            case ABC:
-                insn |= (((long) a) << A_OFFSET) & A_MASK;
-                insn |= (((long) b) << B_OFFSET) & B_MASK;
-                insn |= (((long) c) << C_OFFSET) & C_MASK;
+            case SMALLPRIMITIVE:
+            case BIGPRIMITIVE:
+                insn |= (((long) firstOperand) << FIRST_OPERAND_OFFSET) & FIRST_OPERAND_MASK;
+                insn |= (((long) secondOperand) << PRIMITIVE_OFFSET) & PRIMITIVE_MASK;
                 break;
-            case AB:
-                insn |= (((long) a) << A_OFFSET) & A_MASK;
-                insn |= (((long) b) << BB_OFFSET) & BB_MASK;
+            case THREEOP:
+                insn |= (((long) firstOperand) << FIRST_OPERAND_OFFSET) & FIRST_OPERAND_MASK;
+                insn |= (((long) secondOperand) << SECOND_OPERAND_OFFSET) & SECOND_OPERAND_MASK;
+                insn |= (((long) thirdOperand) << THIRD_OPERAND_OFFSET) & THIRD_OPERAND_MASK;
+                break;
+            case TWOOP:
+                insn |= (((long) firstOperand) << FIRST_OPERAND_OFFSET) & FIRST_OPERAND_MASK;
+                insn |= (((long) secondOperand) << SECOND_OPERAND_OFFSET) & SECOND_OPERAND_MASK;
+                break;
+            case ONEOP:
+                insn |= (((long) firstOperand) << FIRST_OPERAND_OFFSET) & FIRST_OPERAND_MASK;
+                break;
+            case ZEROOP:
+                break;
+            case UNCONDJUMP:
+                insn |= (((long) secondOperand) << PRIMITIVE_OFFSET) & PRIMITIVE_MASK;
+                break;
+            case CONDJUMP:
+                insn |= (((long) firstOperand) << FIRST_OPERAND_OFFSET) & FIRST_OPERAND_MASK;
+                insn |= (((long) secondOperand) << PRIMITIVE_OFFSET) & PRIMITIVE_MASK;
+                break;
+            case GETVAR:
+            case SETVAR:
+                insn |= (((long) firstOperand) << FIRST_OPERAND_OFFSET) & FIRST_OPERAND_MASK;
+                insn |= (((long) secondOperand) << SECOND_OPERAND_OFFSET) & SECOND_OPERAND_MASK;
+                insn |= (((long) thirdOperand) << THIRD_OPERAND_OFFSET) & THIRD_OPERAND_MASK;
+                break;
+            case MAKECLOSUREOP:
+            case CALLOP:
+                insn |= (((long) firstOperand) << FIRST_OPERAND_OFFSET) & FIRST_OPERAND_MASK;
+                insn |= (((long) secondOperand) << SECOND_OPERAND_OFFSET) & SECOND_OPERAND_MASK;
+                break;
+            case TRYOP:
+            case UNKNOWNOP:
                 break;
             default:
                 throw new Error("Unknown instruction format");    
@@ -94,10 +180,12 @@ public class OBCFileComposer extends OutputFileComposer {
                 System.out.println(String.format("insn: %016x  %s", insn, insnName));
 
             if (BIG_ENDIAN)
-                insn = Long.reverseBytes(insn);                
+                insn = Long.reverseBytes(insn);
+
             byte[] bytes = new byte[INSTRUCTION_BYTES];
             for (int i = 0; i < INSTRUCTION_BYTES; i++)
-                bytes[i] = (byte) (insn >> (8 * i));
+                bytes[i] = (byte) (insn >> (CHAR_BITS * i));
+
             return bytes;
         }
     }
@@ -174,7 +262,7 @@ public class OBCFileComposer extends OutputFileComposer {
             int opcode = getOpcode(insnName);
             int a = dst.getRegisterNumber();
             int b = n;
-            OBCInstruction insn = OBCInstruction.createAB(insnName, opcode, a, b);
+            OBCInstruction insn = OBCInstruction.createSmallPrimitive(insnName, opcode, a, b);
             instructions.add(insn);
         }
         @Override
@@ -182,7 +270,7 @@ public class OBCFileComposer extends OutputFileComposer {
             int opcode = getOpcode(insnName);
             int a = dst.getRegisterNumber();
             int b = constants.lookup(n);
-            OBCInstruction insn = OBCInstruction.createABC(insnName, opcode, a, b, 0);
+            OBCInstruction insn = OBCInstruction.createBigPrimitive(insnName, opcode, a, b);
             instructions.add(insn);
 
         }
@@ -191,7 +279,7 @@ public class OBCFileComposer extends OutputFileComposer {
             int opcode = getOpcode(insnName);
             int a = dst.getRegisterNumber();
             int b = constants.lookup(s);
-            OBCInstruction insn = OBCInstruction.createABC(insnName, opcode, a, b, 0);
+            OBCInstruction insn = OBCInstruction.createBigPrimitive(insnName, opcode, a, b);
             instructions.add(insn);
         }
         @Override
@@ -211,7 +299,7 @@ public class OBCFileComposer extends OutputFileComposer {
             default:
                 throw new Error("Unknown special");
             }
-            OBCInstruction insn = OBCInstruction.createAB(insnName, opcode, a, b);
+            OBCInstruction insn = OBCInstruction.createSmallPrimitive(insnName, opcode, a, b);
             instructions.add(insn);
         }
         @Override
@@ -219,7 +307,7 @@ public class OBCFileComposer extends OutputFileComposer {
             int opcode = getOpcode(insnName);
             int a = dst.getRegisterNumber();
             int c = constants.lookup(ptn);
-            OBCInstruction insn = OBCInstruction.createABC(insnName, opcode, a, flag, c);
+            OBCInstruction insn = OBCInstruction.createThreeOp(insnName, opcode, a, flag, c);
             instructions.add(insn);
         }
         @Override
@@ -228,7 +316,7 @@ public class OBCFileComposer extends OutputFileComposer {
             int a = dst.getRegisterNumber();
             int b = fieldBitsOf(src1);
             int c = fieldBitsOf(src2);
-            OBCInstruction insn = OBCInstruction.createABC(insnName, opcode, a, b, c);
+            OBCInstruction insn = OBCInstruction.createThreeOp(insnName, opcode, a, b, c);
             instructions.add(insn);
         }
         @Override
@@ -237,7 +325,7 @@ public class OBCFileComposer extends OutputFileComposer {
             int a = fieldBitsOf(src1);
             int b = fieldBitsOf(src2);
             int c = fieldBitsOf(src3);
-            OBCInstruction insn = OBCInstruction.createABC(insnName, opcode, a, b, c);
+            OBCInstruction insn = OBCInstruction.createThreeOp(insnName, opcode, a, b, c);
             instructions.add(insn);
         }
         @Override
@@ -245,7 +333,7 @@ public class OBCFileComposer extends OutputFileComposer {
             int opcode = getOpcode(insnName, src1, src2);
             int a = fieldBitsOf(src1);
             int c = fieldBitsOf(src2);
-            OBCInstruction insn = OBCInstruction.createABC(insnName, opcode, a, index, c);
+            OBCInstruction insn = OBCInstruction.createThreeOp(insnName, opcode, a, index, c);
             instructions.add(insn);
         }
         @Override
@@ -253,7 +341,7 @@ public class OBCFileComposer extends OutputFileComposer {
             int opcode = getOpcode(insnName, src);
             int a = dst.getRegisterNumber();
             int b = fieldBitsOf(src);
-            OBCInstruction insn = OBCInstruction.createABC(insnName, opcode, a, b, 0);
+            OBCInstruction insn = OBCInstruction.createTwoOp(insnName, opcode, a, b);
             instructions.add(insn);
         }
         @Override
@@ -261,54 +349,54 @@ public class OBCFileComposer extends OutputFileComposer {
             int opcode = getOpcode(insnName, src1, src2);
             int a = fieldBitsOf(src1);
             int b = fieldBitsOf(src2);
-            OBCInstruction insn = OBCInstruction.createABC(insnName, opcode, a, b, 0);
+            OBCInstruction insn = OBCInstruction.createTwoOp(insnName, opcode, a, b);
             instructions.add(insn);
         }
         @Override
         public void addROneOp(String insnName, boolean log, Register dst) {
             int opcode = getOpcode(insnName);
             int a = dst.getRegisterNumber();
-            OBCInstruction insn = OBCInstruction.createABC(insnName, opcode, a, 0, 0);
+            OBCInstruction insn = OBCInstruction.createOneOp(insnName, opcode, a);
             instructions.add(insn);
         }
         @Override
         public void addXOneOp(String insnName, boolean log, SrcOperand src) {
             int opcode = getOpcode(insnName, src);
             int a = fieldBitsOf(src);
-            OBCInstruction insn = OBCInstruction.createABC(insnName, opcode, a, 0, 0);
+            OBCInstruction insn = OBCInstruction.createOneOp(insnName, opcode, a);
             instructions.add(insn);
         }
         @Override
         public void addIOneOp(String insnName, boolean log, int n) {
             int opcode = getOpcode(insnName);
-            OBCInstruction insn = OBCInstruction.createABC(insnName, opcode, n, 0, 0);
+            OBCInstruction insn = OBCInstruction.createOneOp(insnName, opcode, n);
             instructions.add(insn);
         }
         @Override
         public void addZeroOp(String insnName, boolean log) {
             int opcode = getOpcode(insnName);
-            OBCInstruction insn = OBCInstruction.createABC(insnName, opcode, 0, 0, 0);
+            OBCInstruction insn = OBCInstruction.createZeroOp(insnName, opcode);
             instructions.add(insn);
         }
         @Override
         public void addNewFrameOp(String insnName, boolean log, int len, boolean mkargs) {
             int opcode = getOpcode(insnName);
             int b = mkargs ? 1 : 0;
-            OBCInstruction insn = OBCInstruction.createABC(insnName, opcode, len, b, 0);
+            OBCInstruction insn = OBCInstruction.createTwoOp(insnName, opcode, len, b);
             instructions.add(insn);
         }
         @Override
         public void addGetVar(String insnName, boolean log, Register dst, int link, int index) {
             int opcode = getOpcode(insnName);
             int a = dst.getRegisterNumber();
-            OBCInstruction insn = OBCInstruction.createABC(insnName, opcode, a, link, index);
+            OBCInstruction insn = OBCInstruction.createGetVar(insnName, opcode, a, link, index);
             instructions.add(insn);
         }
         @Override
         public void addSetVar(String insnName, boolean log, int link, int index, SrcOperand src) {
             int opcode = getOpcode(insnName, src);
             int c = fieldBitsOf(src);
-            OBCInstruction insn = OBCInstruction.createABC(insnName, opcode, link, index, c);
+            OBCInstruction insn = OBCInstruction.createSetVar(insnName, opcode, link, index, c);
             instructions.add(insn);
         }
         @Override
@@ -316,14 +404,14 @@ public class OBCFileComposer extends OutputFileComposer {
             int opcode = getOpcode(insnName);
             int a = dst.getRegisterNumber();
             int b = index + functionNumberOffset;
-            OBCInstruction insn = OBCInstruction.createABC(insnName, opcode, a, b, 0);
+            OBCInstruction insn = OBCInstruction.createMakeClosureOp(insnName, opcode, a, b);
             instructions.add(insn);
         }
         @Override
         public void addXICall(String insnName, boolean log, SrcOperand fun, int nargs) {
             int opcode = getOpcode(insnName, fun);
             int a = fieldBitsOf(fun);
-            OBCInstruction insn = OBCInstruction.createABC(insnName, opcode, a, nargs, 0);
+            OBCInstruction insn = OBCInstruction.createCallOp(insnName, opcode, a, nargs);
             instructions.add(insn);                    
         }
         @Override
@@ -331,20 +419,20 @@ public class OBCFileComposer extends OutputFileComposer {
             int opcode = getOpcode(insnName, fun);
             int a = dst.getRegisterNumber();
             int b = fieldBitsOf(fun);
-            OBCInstruction insn = OBCInstruction.createABC(insnName, opcode, a, b, 0);
+            OBCInstruction insn = OBCInstruction.createCallOp(insnName, opcode, a, b);
             instructions.add(insn);
         }
         @Override
         public void addUncondJump(String insnName, boolean log, int disp) {
             int opcode = getOpcode(insnName);
-            OBCInstruction insn = OBCInstruction.createABC(insnName, opcode, disp, 0, 0);
+            OBCInstruction insn = OBCInstruction.createUncondJump(insnName, opcode, disp);
             instructions.add(insn);
         }
         @Override
         public void addCondJump(String insnName, boolean log, SrcOperand test, int disp) {
             int opcode = getOpcode(insnName, test);
             int a = fieldBitsOf(test);
-            OBCInstruction insn = OBCInstruction.createABC(insnName, opcode, a, disp,  0);
+            OBCInstruction insn = OBCInstruction.createCondJump(insnName, opcode, a, disp);
             instructions.add(insn);
         }
     }
