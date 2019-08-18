@@ -37,6 +37,7 @@ public class Main {
         String specFilePath;
         String insnsDefFile;    // instructions.def
         InsnsDef insnsdef;
+        Platform targetPlatform = Platform.Default;
         SISpecInfo sispecInfo;
         int baseFunctionNumber = 0;
         enum OptLocals {
@@ -44,6 +45,11 @@ public class Main {
             PROSYM,
             G1,
             G3;
+        }
+        enum Platform {
+            Default,
+            BIT_32,
+            BIT_64
         }
 
         boolean optPrintESTree = false;
@@ -128,6 +134,23 @@ public class Main {
                         info.optLocals = OptLocals.G3;
                         break;
 
+                    case "--platform":
+                        i++;
+                        if (i >= args.length) {
+                            throw new Error("failed to parse arguments: --platform");
+                        }
+                        switch(args[i]) {
+                        case "32":
+                            info.targetPlatform = Platform.BIT_32;
+                            break;
+                        case "64":
+                            info.targetPlatform = Platform.BIT_64;
+                            break;
+                        default:
+                            throw new Error("unknown platform: " + args[i]);
+                        }
+                        break;
+
 
                     case "-log":
                         i++;
@@ -171,6 +194,9 @@ public class Main {
                 } else {
                     info.outputFileName = firstInputFileName + ext;
                 }
+            }
+            if (info.targetPlatform == Platform.Default) {
+                info.targetPlatform = Platform.BIT_64;
             }
             return info;
         }
