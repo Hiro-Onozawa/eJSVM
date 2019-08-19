@@ -14,7 +14,6 @@ import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.List;
 import ejsc.Main.Info;
-import ejsc.ast_node.ThisExpression;
 
 public class OBCFileComposer extends OutputFileComposer {
     static final boolean DEBUG = false;
@@ -28,23 +27,44 @@ public class OBCFileComposer extends OutputFileComposer {
 
     static class OBCInstruction {
         static final int CHAR_BITS             = 8;
-        static final int INSTRUCTION_BYTES     = 8;
-        static final int INSTRUCTION_BITS      = INSTRUCTION_BYTES * CHAR_BITS;
-        static final int OPCODE_BITS           = 16;
-        static final int OPCODE_OFFSET         = INSTRUCTION_BITS - OPCODE_BITS;
-        static final long OPCODE_MASK          = ((1L << OPCODE_BITS) - 1) << OPCODE_OFFSET;
-        static final int FIRST_OPERAND_BITS    = 16;
-        static final int FIRST_OPERAND_OFFSET  = OPCODE_OFFSET - FIRST_OPERAND_BITS;
-        static final long FIRST_OPERAND_MASK   = ((1L << FIRST_OPERAND_BITS) - 1) << FIRST_OPERAND_OFFSET;
-        static final int SECOND_OPERAND_BITS    = 16;
-        static final int SECOND_OPERAND_OFFSET  = FIRST_OPERAND_OFFSET - SECOND_OPERAND_BITS;
-        static final long SECOND_OPERAND_MASK   = ((1L << SECOND_OPERAND_BITS) - 1) << SECOND_OPERAND_OFFSET;
-        static final int THIRD_OPERAND_BITS    = 16;
-        static final int THIRD_OPERAND_OFFSET  = SECOND_OPERAND_OFFSET - THIRD_OPERAND_BITS;
-        static final long THIRD_OPERAND_MASK   = ((1L << THIRD_OPERAND_BITS) - 1) << THIRD_OPERAND_OFFSET;
-        static final int PRIMITIVE_BITS    = 32;
-        static final int PRIMITIVE_OFFSET  = 0;
-        static final long PRIMITIVE_MASK   = ((1L << PRIMITIVE_BITS) - 1) << PRIMITIVE_OFFSET;
+        static final class Param32 {
+            static final int INSTRUCTION_BYTES     = 4;
+            static final int INSTRUCTION_BITS      = INSTRUCTION_BYTES * CHAR_BITS;
+            static final int OPCODE_BITS           = 8;
+            static final int OPCODE_OFFSET         = INSTRUCTION_BITS - OPCODE_BITS;
+            static final long OPCODE_MASK          = ((1L << OPCODE_BITS) - 1) << OPCODE_OFFSET;
+            static final int FIRST_OPERAND_BITS    = 8;
+            static final int FIRST_OPERAND_OFFSET  = OPCODE_OFFSET - FIRST_OPERAND_BITS;
+            static final long FIRST_OPERAND_MASK   = ((1L << FIRST_OPERAND_BITS) - 1) << FIRST_OPERAND_OFFSET;
+            static final int SECOND_OPERAND_BITS   = 8;
+            static final int SECOND_OPERAND_OFFSET = FIRST_OPERAND_OFFSET - SECOND_OPERAND_BITS;
+            static final long SECOND_OPERAND_MASK  = ((1L << SECOND_OPERAND_BITS) - 1) << SECOND_OPERAND_OFFSET;
+            static final int THIRD_OPERAND_BITS    = 8;
+            static final int THIRD_OPERAND_OFFSET  = SECOND_OPERAND_OFFSET - THIRD_OPERAND_BITS;
+            static final long THIRD_OPERAND_MASK   = ((1L << THIRD_OPERAND_BITS) - 1) << THIRD_OPERAND_OFFSET;
+            static final int PRIMITIVE_BITS        = 16;
+            static final int PRIMITIVE_OFFSET      = 0;
+            static final long PRIMITIVE_MASK       = ((1L << PRIMITIVE_BITS) - 1) << PRIMITIVE_OFFSET;
+        }
+        static final class Param64 {
+            static final int INSTRUCTION_BYTES     = 8;
+            static final int INSTRUCTION_BITS      = INSTRUCTION_BYTES * CHAR_BITS;
+            static final int OPCODE_BITS           = 16;
+            static final int OPCODE_OFFSET         = INSTRUCTION_BITS - OPCODE_BITS;
+            static final long OPCODE_MASK          = ((1L << OPCODE_BITS) - 1) << OPCODE_OFFSET;
+            static final int FIRST_OPERAND_BITS    = 16;
+            static final int FIRST_OPERAND_OFFSET  = OPCODE_OFFSET - FIRST_OPERAND_BITS;
+            static final long FIRST_OPERAND_MASK   = ((1L << FIRST_OPERAND_BITS) - 1) << FIRST_OPERAND_OFFSET;
+            static final int SECOND_OPERAND_BITS   = 16;
+            static final int SECOND_OPERAND_OFFSET = FIRST_OPERAND_OFFSET - SECOND_OPERAND_BITS;
+            static final long SECOND_OPERAND_MASK  = ((1L << SECOND_OPERAND_BITS) - 1) << SECOND_OPERAND_OFFSET;
+            static final int THIRD_OPERAND_BITS    = 16;
+            static final int THIRD_OPERAND_OFFSET  = SECOND_OPERAND_OFFSET - THIRD_OPERAND_BITS;
+            static final long THIRD_OPERAND_MASK   = ((1L << THIRD_OPERAND_BITS) - 1) << THIRD_OPERAND_OFFSET;
+            static final int PRIMITIVE_BITS        = 32;
+            static final int PRIMITIVE_OFFSET      = 0;
+            static final long PRIMITIVE_MASK       = ((1L << PRIMITIVE_BITS) - 1) << PRIMITIVE_OFFSET;
+        }
 
         enum Format {
             SMALLPRIMITIVE,
@@ -129,45 +149,77 @@ public class OBCFileComposer extends OutputFileComposer {
          * Returns binary representation of the instruction.
          * @return binary representation of this instruction.
          */
-        byte[] getBytes() {
-            long insn = ((long) opcode) << OPCODE_OFFSET;
+        byte[] getBytes(Info.Platform targetPlatform) {
+            long insn;
+            int instsBytes;
+            switch(targetPlatform) {
+            case BIT_32:
+                insn = makeInstructionAs32();
+                instsBytes = Param32.INSTRUCTION_BYTES;
+                break;
+            case BIT_64:
+                insn = makeInstructionAs64();
+                instsBytes = Param64.INSTRUCTION_BYTES;
+                break;
+            default:
+                insn = makeInstructionAs64();
+                instsBytes = Param64.INSTRUCTION_BYTES;
+                break;
+            }
+            
+            if (DEBUG)
+                System.out.println(String.format("insn: %016x  %s", insn, insnName));
+
+            if (BIG_ENDIAN)
+                insn = Long.reverseBytes(insn);
+
+            insn = insn >> (CHAR_BITS * (8 - instsBytes));
+            byte[] bytes = new byte[instsBytes];
+            for (int i = 0; i < instsBytes; i++)
+                bytes[i] = (byte) (insn >> (CHAR_BITS * i));
+
+            return bytes;
+        }
+
+        long makeInstructionAs32() {
+            long insn = ((long) opcode) << Param32.OPCODE_OFFSET;
             switch (format) {
             case SMALLPRIMITIVE:
             case BIGPRIMITIVE:
-                insn |= (((long) firstOperand) << FIRST_OPERAND_OFFSET) & FIRST_OPERAND_MASK;
-                insn |= (((long) secondOperand) << PRIMITIVE_OFFSET) & PRIMITIVE_MASK;
+                insn |= (((long) firstOperand) << Param32.FIRST_OPERAND_OFFSET) & Param32.FIRST_OPERAND_MASK;
+                insn |= (((long) secondOperand) << Param32.PRIMITIVE_OFFSET) & Param32.PRIMITIVE_MASK;
                 break;
             case THREEOP:
-                insn |= (((long) firstOperand) << FIRST_OPERAND_OFFSET) & FIRST_OPERAND_MASK;
-                insn |= (((long) secondOperand) << SECOND_OPERAND_OFFSET) & SECOND_OPERAND_MASK;
-                insn |= (((long) thirdOperand) << THIRD_OPERAND_OFFSET) & THIRD_OPERAND_MASK;
+                insn |= (((long) firstOperand) << Param32.FIRST_OPERAND_OFFSET) & Param32.FIRST_OPERAND_MASK;
+                insn |= (((long) secondOperand) << Param32.SECOND_OPERAND_OFFSET) & Param32.SECOND_OPERAND_MASK;
+                insn |= (((long) thirdOperand) << Param32.THIRD_OPERAND_OFFSET) & Param32.THIRD_OPERAND_MASK;
                 break;
             case TWOOP:
-                insn |= (((long) firstOperand) << FIRST_OPERAND_OFFSET) & FIRST_OPERAND_MASK;
-                insn |= (((long) secondOperand) << SECOND_OPERAND_OFFSET) & SECOND_OPERAND_MASK;
+                insn |= (((long) firstOperand) << Param32.FIRST_OPERAND_OFFSET) & Param32.FIRST_OPERAND_MASK;
+                insn |= (((long) secondOperand) << Param32.SECOND_OPERAND_OFFSET) & Param32.SECOND_OPERAND_MASK;
                 break;
             case ONEOP:
-                insn |= (((long) firstOperand) << FIRST_OPERAND_OFFSET) & FIRST_OPERAND_MASK;
+                insn |= (((long) firstOperand) << Param32.FIRST_OPERAND_OFFSET) & Param32.FIRST_OPERAND_MASK;
                 break;
             case ZEROOP:
                 break;
             case UNCONDJUMP:
-                insn |= (((long) secondOperand) << PRIMITIVE_OFFSET) & PRIMITIVE_MASK;
+                insn |= (((long) secondOperand) << Param32.PRIMITIVE_OFFSET) & Param32.PRIMITIVE_MASK;
                 break;
             case CONDJUMP:
-                insn |= (((long) firstOperand) << FIRST_OPERAND_OFFSET) & FIRST_OPERAND_MASK;
-                insn |= (((long) secondOperand) << PRIMITIVE_OFFSET) & PRIMITIVE_MASK;
+                insn |= (((long) firstOperand) << Param32.FIRST_OPERAND_OFFSET) & Param32.FIRST_OPERAND_MASK;
+                insn |= (((long) secondOperand) << Param32.PRIMITIVE_OFFSET) & Param32.PRIMITIVE_MASK;
                 break;
             case GETVAR:
             case SETVAR:
-                insn |= (((long) firstOperand) << FIRST_OPERAND_OFFSET) & FIRST_OPERAND_MASK;
-                insn |= (((long) secondOperand) << SECOND_OPERAND_OFFSET) & SECOND_OPERAND_MASK;
-                insn |= (((long) thirdOperand) << THIRD_OPERAND_OFFSET) & THIRD_OPERAND_MASK;
+                insn |= (((long) firstOperand) << Param32.FIRST_OPERAND_OFFSET) & Param32.FIRST_OPERAND_MASK;
+                insn |= (((long) secondOperand) << Param32.SECOND_OPERAND_OFFSET) & Param32.SECOND_OPERAND_MASK;
+                insn |= (((long) thirdOperand) << Param32.THIRD_OPERAND_OFFSET) & Param32.THIRD_OPERAND_MASK;
                 break;
             case MAKECLOSUREOP:
             case CALLOP:
-                insn |= (((long) firstOperand) << FIRST_OPERAND_OFFSET) & FIRST_OPERAND_MASK;
-                insn |= (((long) secondOperand) << SECOND_OPERAND_OFFSET) & SECOND_OPERAND_MASK;
+                insn |= (((long) firstOperand) << Param32.FIRST_OPERAND_OFFSET) & Param32.FIRST_OPERAND_MASK;
+                insn |= (((long) secondOperand) << Param32.SECOND_OPERAND_OFFSET) & Param32.SECOND_OPERAND_MASK;
                 break;
             case TRYOP:
             case UNKNOWNOP:
@@ -175,18 +227,56 @@ public class OBCFileComposer extends OutputFileComposer {
             default:
                 throw new Error("Unknown instruction format");    
             }
+            return insn;
+        }
 
-            if (DEBUG)
-                System.out.println(String.format("insn: %016x  %s", insn, insnName));
-
-            if (BIG_ENDIAN)
-                insn = Long.reverseBytes(insn);
-
-            byte[] bytes = new byte[INSTRUCTION_BYTES];
-            for (int i = 0; i < INSTRUCTION_BYTES; i++)
-                bytes[i] = (byte) (insn >> (CHAR_BITS * i));
-
-            return bytes;
+        long makeInstructionAs64() {
+            long insn = ((long) opcode) << Param64.OPCODE_OFFSET;
+            switch (format) {
+            case SMALLPRIMITIVE:
+            case BIGPRIMITIVE:
+                insn |= (((long) firstOperand) << Param64.FIRST_OPERAND_OFFSET) & Param64.FIRST_OPERAND_MASK;
+                insn |= (((long) secondOperand) << Param64.PRIMITIVE_OFFSET) & Param64.PRIMITIVE_MASK;
+                break;
+            case THREEOP:
+                insn |= (((long) firstOperand) << Param64.FIRST_OPERAND_OFFSET) & Param64.FIRST_OPERAND_MASK;
+                insn |= (((long) secondOperand) << Param64.SECOND_OPERAND_OFFSET) & Param64.SECOND_OPERAND_MASK;
+                insn |= (((long) thirdOperand) << Param64.THIRD_OPERAND_OFFSET) & Param64.THIRD_OPERAND_MASK;
+                break;
+            case TWOOP:
+                insn |= (((long) firstOperand) << Param64.FIRST_OPERAND_OFFSET) & Param64.FIRST_OPERAND_MASK;
+                insn |= (((long) secondOperand) << Param64.SECOND_OPERAND_OFFSET) & Param64.SECOND_OPERAND_MASK;
+                break;
+            case ONEOP:
+                insn |= (((long) firstOperand) << Param64.FIRST_OPERAND_OFFSET) & Param64.FIRST_OPERAND_MASK;
+                break;
+            case ZEROOP:
+                break;
+            case UNCONDJUMP:
+                insn |= (((long) secondOperand) << Param64.PRIMITIVE_OFFSET) & Param64.PRIMITIVE_MASK;
+                break;
+            case CONDJUMP:
+                insn |= (((long) firstOperand) << Param64.FIRST_OPERAND_OFFSET) & Param64.FIRST_OPERAND_MASK;
+                insn |= (((long) secondOperand) << Param64.PRIMITIVE_OFFSET) & Param64.PRIMITIVE_MASK;
+                break;
+            case GETVAR:
+            case SETVAR:
+                insn |= (((long) firstOperand) << Param64.FIRST_OPERAND_OFFSET) & Param64.FIRST_OPERAND_MASK;
+                insn |= (((long) secondOperand) << Param64.SECOND_OPERAND_OFFSET) & Param64.SECOND_OPERAND_MASK;
+                insn |= (((long) thirdOperand) << Param64.THIRD_OPERAND_OFFSET) & Param64.THIRD_OPERAND_MASK;
+                break;
+            case MAKECLOSUREOP:
+            case CALLOP:
+                insn |= (((long) firstOperand) << Param64.FIRST_OPERAND_OFFSET) & Param64.FIRST_OPERAND_MASK;
+                insn |= (((long) secondOperand) << Param64.SECOND_OPERAND_OFFSET) & Param64.SECOND_OPERAND_MASK;
+                break;
+            case TRYOP:
+            case UNKNOWNOP:
+                break;
+            default:
+                throw new Error("Unknown instruction format");    
+            }
+            return insn;
         }
     }
 
@@ -438,8 +528,10 @@ public class OBCFileComposer extends OutputFileComposer {
     }
 
     List<OBCFunction> obcFunctions;
+    Info.Platform targetPlatform;
 
-    OBCFileComposer(BCBuilder compiledFunctions, int functionNumberOffset) {
+    OBCFileComposer(BCBuilder compiledFunctions, Info.Platform targetPlatform, int functionNumberOffset) {
+        this.targetPlatform = targetPlatform;
         List<BCBuilder.FunctionBCBuilder> fbs = compiledFunctions.getFunctionBCBuilders();
         obcFunctions = new ArrayList<OBCFunction>(fbs.size());
         for (BCBuilder.FunctionBCBuilder fb: fbs) {
@@ -488,7 +580,7 @@ public class OBCFileComposer extends OutputFileComposer {
 
                 /* Instructions */
                 for (OBCInstruction insn: fun.instructions)
-                    out.write(insn.getBytes());               
+                    out.write(insn.getBytes(targetPlatform));               
 
                 /* Constant pool */
                 for (Object v: fun.constants.getConstants()) {

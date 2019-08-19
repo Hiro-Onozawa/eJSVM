@@ -424,7 +424,7 @@ public class Main {
         bcBuilder.assignFunctionIndex(true);
 
         if (info.optOutOBC) {
-            OBCFileComposer obc = new OBCFileComposer(bcBuilder, info.baseFunctionNumber);
+            OBCFileComposer obc = new OBCFileComposer(bcBuilder, info.targetPlatform, info.baseFunctionNumber);
             obc.output(info.outputFileName);
         } else {
             SBCFileComposer sbc = new SBCFileComposer(bcBuilder, info.baseFunctionNumber);
