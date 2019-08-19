@@ -347,7 +347,20 @@ public class CodeGenerator extends IASTBaseVisitor {
 
     @Override
     public Object visitNumericLiteral(IASTNumericLiteral node) {
-        if (node.isInteger()) {
+        long FIXNUM_MIN, FIXNUM_MAX;
+        switch (info.targetPlatform) {
+            case BIT_32:
+                FIXNUM_MAX = (1L << (16 - 1)) - 1;
+                FIXNUM_MIN = -FIXNUM_MAX - 1;
+                break;
+            case BIT_64:
+            default:
+                FIXNUM_MAX = (1L << (32 - 1)) - 1;
+                FIXNUM_MIN = -FIXNUM_MAX - 1;
+                break;
+        }
+
+        if (node.isInteger() && (FIXNUM_MIN <= (int) node.value && (int) node.value <= FIXNUM_MAX)) {
             bcBuilder.push(new IFixnum(reg, (int) node.value));
         } else {
             bcBuilder.push(new INumber(reg, node.value));
