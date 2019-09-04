@@ -25,46 +25,258 @@ public class OBCFileComposer extends OutputFileComposer {
     static final int FIELD_VALUE_NULL      = 0x06;
     static final int FIELD_VALUE_UNDEFINED = 0x16;
 
+    static abstract class InsnBinaryFormatter {
+        abstract int GetBytes();
+        abstract long MakeSmallPrimitive(int opcode, int register, int immediate);
+        abstract long MakeBigPrimitive(int opcode, int register, int index);
+        abstract long MakeThreeOp(int opcode, int firstOperand, int secondOperand, int thirdOperand);
+        abstract long MakeTwoOp(int opcode, int firstOperand, int secondOperand);
+        abstract long MakeOneOp(int opcode, int firstOperand);
+        abstract long MakeZeroOp(int opcode);
+        abstract long MakeUncondJump(int opcode, int displacement);
+        abstract long MakeCondJump(int opcode, int register, int displacement);
+        abstract long MakeGetVar(int opcode, int link, int offset, int register);
+        abstract long MakeSetVar(int opcode, int link, int offset, int register);
+        abstract long MakeMakeClosureOp(int opcode, int register, int subscr);
+        abstract long MakeCallOp(int opcode, int register, int nargs);
+        abstract long MakeTryOp(int opcode);
+        abstract long MakeUnknownOp(int opcode);
+    }
+
+    static class Insn32bitFormatter extends InsnBinaryFormatter {
+        static final int OPCODE_BITS           = 8;
+        static final int OPCODE_OFFSET         = 32 - OPCODE_BITS;
+        static final long OPCODE_MASK          = ((1L << OPCODE_BITS) - 1) << OPCODE_OFFSET;
+        static final int FIRST_OPERAND_BITS    = 8;
+        static final int FIRST_OPERAND_OFFSET  = OPCODE_OFFSET - FIRST_OPERAND_BITS;
+        static final long FIRST_OPERAND_MASK   = ((1L << FIRST_OPERAND_BITS) - 1) << FIRST_OPERAND_OFFSET;
+        static final int SECOND_OPERAND_BITS   = 8;
+        static final int SECOND_OPERAND_OFFSET = FIRST_OPERAND_OFFSET - SECOND_OPERAND_BITS;
+        static final long SECOND_OPERAND_MASK  = ((1L << SECOND_OPERAND_BITS) - 1) << SECOND_OPERAND_OFFSET;
+        static final int THIRD_OPERAND_BITS    = 8;
+        static final int THIRD_OPERAND_OFFSET  = SECOND_OPERAND_OFFSET - THIRD_OPERAND_BITS;
+        static final long THIRD_OPERAND_MASK   = ((1L << THIRD_OPERAND_BITS) - 1) << THIRD_OPERAND_OFFSET;
+        static final int PRIMITIVE_BITS        = 16;
+        static final int PRIMITIVE_OFFSET      = 0;
+        static final long PRIMITIVE_MASK       = ((1L << PRIMITIVE_BITS) - 1) << PRIMITIVE_OFFSET;
+
+        int GetBytes()
+        {
+            return 4;
+        }
+        long MakeSmallPrimitive(int opcode, int register, int immediate)
+        {
+            long insn = ((long) opcode) << OPCODE_OFFSET;
+            insn |= (((long) register) << FIRST_OPERAND_OFFSET) & FIRST_OPERAND_MASK;
+            insn |= (((long) immediate) << PRIMITIVE_OFFSET) & PRIMITIVE_MASK;
+            return insn;
+        }
+        long MakeBigPrimitive(int opcode, int register, int index)
+        {
+            long insn = ((long) opcode) << OPCODE_OFFSET;
+            insn |= (((long) register) << FIRST_OPERAND_OFFSET) & FIRST_OPERAND_MASK;
+            insn |= (((long) index) << PRIMITIVE_OFFSET) & PRIMITIVE_MASK;
+            return insn;
+        }
+        long MakeThreeOp(int opcode, int firstOperand, int secondOperand, int thirdOperand)
+        {
+            long insn = ((long) opcode) << OPCODE_OFFSET;
+            insn |= (((long) firstOperand) << FIRST_OPERAND_OFFSET) & FIRST_OPERAND_MASK;
+            insn |= (((long) secondOperand) << SECOND_OPERAND_OFFSET) & SECOND_OPERAND_MASK;
+            insn |= (((long) thirdOperand) << THIRD_OPERAND_OFFSET) & THIRD_OPERAND_MASK;
+            return insn;
+        }
+        long MakeTwoOp(int opcode, int firstOperand, int secondOperand)
+        {
+            long insn = ((long) opcode) << OPCODE_OFFSET;
+            insn |= (((long) firstOperand) << FIRST_OPERAND_OFFSET) & FIRST_OPERAND_MASK;
+            insn |= (((long) secondOperand) << SECOND_OPERAND_OFFSET) & SECOND_OPERAND_MASK;
+            return insn;
+        }
+        long MakeOneOp(int opcode, int firstOperand)
+        {
+            long insn = ((long) opcode) << OPCODE_OFFSET;
+            insn |= (((long) firstOperand) << FIRST_OPERAND_OFFSET) & FIRST_OPERAND_MASK;
+            return insn;
+        }
+        long MakeZeroOp(int opcode)
+        {
+            long insn = ((long) opcode) << OPCODE_OFFSET;
+            return insn;
+        }
+        long MakeUncondJump(int opcode, int displacement)
+        {
+            long insn = ((long) opcode) << OPCODE_OFFSET;
+            insn |= (((long) displacement) << PRIMITIVE_OFFSET) & PRIMITIVE_MASK;
+            return insn;
+        }
+        long MakeCondJump(int opcode, int register, int displacement)
+        {
+            long insn = ((long) opcode) << OPCODE_OFFSET;
+            insn |= (((long) register) << FIRST_OPERAND_OFFSET) & FIRST_OPERAND_MASK;
+            insn |= (((long) displacement) << PRIMITIVE_OFFSET) & PRIMITIVE_MASK;
+            return insn;
+        }
+        long MakeGetVar(int opcode, int link, int offset, int register)
+        {
+            long insn = ((long) opcode) << OPCODE_OFFSET;
+            insn |= (((long) link) << FIRST_OPERAND_OFFSET) & FIRST_OPERAND_MASK;
+            insn |= (((long) offset) << SECOND_OPERAND_OFFSET) & SECOND_OPERAND_MASK;
+            insn |= (((long) register) << THIRD_OPERAND_OFFSET) & THIRD_OPERAND_MASK;
+            return insn;
+        }
+        long MakeSetVar(int opcode, int link, int offset, int register)
+        {
+            long insn = ((long) opcode) << OPCODE_OFFSET;
+            insn |= (((long) link) << FIRST_OPERAND_OFFSET) & FIRST_OPERAND_MASK;
+            insn |= (((long) offset) << SECOND_OPERAND_OFFSET) & SECOND_OPERAND_MASK;
+            insn |= (((long) register) << THIRD_OPERAND_OFFSET) & THIRD_OPERAND_MASK;
+            return insn;
+        }
+        long MakeMakeClosureOp(int opcode, int register, int subscr)
+        {
+            long insn = ((long) opcode) << OPCODE_OFFSET;
+            insn |= (((long) register) << FIRST_OPERAND_OFFSET) & FIRST_OPERAND_MASK;
+            insn |= (((long) subscr) << SECOND_OPERAND_OFFSET) & SECOND_OPERAND_MASK;
+            return insn;
+        }
+        long MakeCallOp(int opcode, int register, int nargs)
+        {
+            long insn = ((long) opcode) << OPCODE_OFFSET;
+            insn |= (((long) register) << FIRST_OPERAND_OFFSET) & FIRST_OPERAND_MASK;
+            insn |= (((long) nargs) << SECOND_OPERAND_OFFSET) & SECOND_OPERAND_MASK;
+            return insn;
+        }
+        long MakeTryOp(int opcode)
+        {
+            long insn = ((long) opcode) << OPCODE_OFFSET;
+            return insn;
+        }
+        long MakeUnknownOp(int opcode)
+        {
+            long insn = ((long) opcode) << OPCODE_OFFSET;
+            return insn;
+        }
+    }
+
+    static class Insn64bitFormatter extends InsnBinaryFormatter {
+        static final int OPCODE_BITS           = 16;
+        static final int OPCODE_OFFSET         = 64 - OPCODE_BITS;
+        static final long OPCODE_MASK          = ((1L << OPCODE_BITS) - 1) << OPCODE_OFFSET;
+        static final int FIRST_OPERAND_BITS    = 16;
+        static final int FIRST_OPERAND_OFFSET  = OPCODE_OFFSET - FIRST_OPERAND_BITS;
+        static final long FIRST_OPERAND_MASK   = ((1L << FIRST_OPERAND_BITS) - 1) << FIRST_OPERAND_OFFSET;
+        static final int SECOND_OPERAND_BITS   = 16;
+        static final int SECOND_OPERAND_OFFSET = FIRST_OPERAND_OFFSET - SECOND_OPERAND_BITS;
+        static final long SECOND_OPERAND_MASK  = ((1L << SECOND_OPERAND_BITS) - 1) << SECOND_OPERAND_OFFSET;
+        static final int THIRD_OPERAND_BITS    = 16;
+        static final int THIRD_OPERAND_OFFSET  = SECOND_OPERAND_OFFSET - THIRD_OPERAND_BITS;
+        static final long THIRD_OPERAND_MASK   = ((1L << THIRD_OPERAND_BITS) - 1) << THIRD_OPERAND_OFFSET;
+        static final int PRIMITIVE_BITS        = 32;
+        static final int PRIMITIVE_OFFSET      = 0;
+        static final long PRIMITIVE_MASK       = ((1L << PRIMITIVE_BITS) - 1) << PRIMITIVE_OFFSET;
+
+        int GetBytes()
+        {
+            return 8;
+        }
+        long MakeSmallPrimitive(int opcode, int register, int immediate)
+        {
+            long insn = ((long) opcode) << OPCODE_OFFSET;
+            insn |= (((long) register) << FIRST_OPERAND_OFFSET) & FIRST_OPERAND_MASK;
+            insn |= (((long) immediate) << PRIMITIVE_OFFSET) & PRIMITIVE_MASK;
+            return insn;
+        }
+        long MakeBigPrimitive(int opcode, int register, int index)
+        {
+            long insn = ((long) opcode) << OPCODE_OFFSET;
+            insn |= (((long) register) << FIRST_OPERAND_OFFSET) & FIRST_OPERAND_MASK;
+            insn |= (((long) index) << PRIMITIVE_OFFSET) & PRIMITIVE_MASK;
+            return insn;
+        }
+        long MakeThreeOp(int opcode, int firstOperand, int secondOperand, int thirdOperand)
+        {
+            long insn = ((long) opcode) << OPCODE_OFFSET;
+            insn |= (((long) firstOperand) << FIRST_OPERAND_OFFSET) & FIRST_OPERAND_MASK;
+            insn |= (((long) secondOperand) << SECOND_OPERAND_OFFSET) & SECOND_OPERAND_MASK;
+            insn |= (((long) thirdOperand) << THIRD_OPERAND_OFFSET) & THIRD_OPERAND_MASK;
+            return insn;
+        }
+        long MakeTwoOp(int opcode, int firstOperand, int secondOperand)
+        {
+            long insn = ((long) opcode) << OPCODE_OFFSET;
+            insn |= (((long) firstOperand) << FIRST_OPERAND_OFFSET) & FIRST_OPERAND_MASK;
+            insn |= (((long) secondOperand) << SECOND_OPERAND_OFFSET) & SECOND_OPERAND_MASK;
+            return insn;
+        }
+        long MakeOneOp(int opcode, int firstOperand)
+        {
+            long insn = ((long) opcode) << OPCODE_OFFSET;
+            insn |= (((long) firstOperand) << FIRST_OPERAND_OFFSET) & FIRST_OPERAND_MASK;
+            return insn;
+        }
+        long MakeZeroOp(int opcode)
+        {
+            long insn = ((long) opcode) << OPCODE_OFFSET;
+            return insn;
+        }
+        long MakeUncondJump(int opcode, int displacement)
+        {
+            long insn = ((long) opcode) << OPCODE_OFFSET;
+            insn |= (((long) displacement) << PRIMITIVE_OFFSET) & PRIMITIVE_MASK;
+            return insn;
+        }
+        long MakeCondJump(int opcode, int register, int displacement)
+        {
+            long insn = ((long) opcode) << OPCODE_OFFSET;
+            insn |= (((long) register) << FIRST_OPERAND_OFFSET) & FIRST_OPERAND_MASK;
+            insn |= (((long) displacement) << PRIMITIVE_OFFSET) & PRIMITIVE_MASK;
+            return insn;
+        }
+        long MakeGetVar(int opcode, int link, int offset, int register)
+        {
+            long insn = ((long) opcode) << OPCODE_OFFSET;
+            insn |= (((long) link) << FIRST_OPERAND_OFFSET) & FIRST_OPERAND_MASK;
+            insn |= (((long) offset) << SECOND_OPERAND_OFFSET) & SECOND_OPERAND_MASK;
+            insn |= (((long) register) << THIRD_OPERAND_OFFSET) & THIRD_OPERAND_MASK;
+            return insn;
+        }
+        long MakeSetVar(int opcode, int link, int offset, int register)
+        {
+            long insn = ((long) opcode) << OPCODE_OFFSET;
+            insn |= (((long) link) << FIRST_OPERAND_OFFSET) & FIRST_OPERAND_MASK;
+            insn |= (((long) offset) << SECOND_OPERAND_OFFSET) & SECOND_OPERAND_MASK;
+            insn |= (((long) register) << THIRD_OPERAND_OFFSET) & THIRD_OPERAND_MASK;
+            return insn;
+        }
+        long MakeMakeClosureOp(int opcode, int register, int subscr)
+        {
+            long insn = ((long) opcode) << OPCODE_OFFSET;
+            insn |= (((long) register) << FIRST_OPERAND_OFFSET) & FIRST_OPERAND_MASK;
+            insn |= (((long) subscr) << SECOND_OPERAND_OFFSET) & SECOND_OPERAND_MASK;
+            return insn;
+        }
+        long MakeCallOp(int opcode, int register, int nargs)
+        {
+            long insn = ((long) opcode) << OPCODE_OFFSET;
+            insn |= (((long) register) << FIRST_OPERAND_OFFSET) & FIRST_OPERAND_MASK;
+            insn |= (((long) nargs) << SECOND_OPERAND_OFFSET) & SECOND_OPERAND_MASK;
+            return insn;
+        }
+        long MakeTryOp(int opcode)
+        {
+            long insn = ((long) opcode) << OPCODE_OFFSET;
+            return insn;
+        }
+        long MakeUnknownOp(int opcode)
+        {
+            long insn = ((long) opcode) << OPCODE_OFFSET;
+            return insn;
+        }
+    }
+
     static class OBCInstruction {
         static final int CHAR_BITS             = 8;
-        static final class Param32 {
-            static final int INSTRUCTION_BYTES     = 4;
-            static final int INSTRUCTION_BITS      = INSTRUCTION_BYTES * CHAR_BITS;
-            static final int OPCODE_BITS           = 8;
-            static final int OPCODE_OFFSET         = INSTRUCTION_BITS - OPCODE_BITS;
-            static final long OPCODE_MASK          = ((1L << OPCODE_BITS) - 1) << OPCODE_OFFSET;
-            static final int FIRST_OPERAND_BITS    = 8;
-            static final int FIRST_OPERAND_OFFSET  = OPCODE_OFFSET - FIRST_OPERAND_BITS;
-            static final long FIRST_OPERAND_MASK   = ((1L << FIRST_OPERAND_BITS) - 1) << FIRST_OPERAND_OFFSET;
-            static final int SECOND_OPERAND_BITS   = 8;
-            static final int SECOND_OPERAND_OFFSET = FIRST_OPERAND_OFFSET - SECOND_OPERAND_BITS;
-            static final long SECOND_OPERAND_MASK  = ((1L << SECOND_OPERAND_BITS) - 1) << SECOND_OPERAND_OFFSET;
-            static final int THIRD_OPERAND_BITS    = 8;
-            static final int THIRD_OPERAND_OFFSET  = SECOND_OPERAND_OFFSET - THIRD_OPERAND_BITS;
-            static final long THIRD_OPERAND_MASK   = ((1L << THIRD_OPERAND_BITS) - 1) << THIRD_OPERAND_OFFSET;
-            static final int PRIMITIVE_BITS        = 16;
-            static final int PRIMITIVE_OFFSET      = 0;
-            static final long PRIMITIVE_MASK       = ((1L << PRIMITIVE_BITS) - 1) << PRIMITIVE_OFFSET;
-        }
-        static final class Param64 {
-            static final int INSTRUCTION_BYTES     = 8;
-            static final int INSTRUCTION_BITS      = INSTRUCTION_BYTES * CHAR_BITS;
-            static final int OPCODE_BITS           = 16;
-            static final int OPCODE_OFFSET         = INSTRUCTION_BITS - OPCODE_BITS;
-            static final long OPCODE_MASK          = ((1L << OPCODE_BITS) - 1) << OPCODE_OFFSET;
-            static final int FIRST_OPERAND_BITS    = 16;
-            static final int FIRST_OPERAND_OFFSET  = OPCODE_OFFSET - FIRST_OPERAND_BITS;
-            static final long FIRST_OPERAND_MASK   = ((1L << FIRST_OPERAND_BITS) - 1) << FIRST_OPERAND_OFFSET;
-            static final int SECOND_OPERAND_BITS   = 16;
-            static final int SECOND_OPERAND_OFFSET = FIRST_OPERAND_OFFSET - SECOND_OPERAND_BITS;
-            static final long SECOND_OPERAND_MASK  = ((1L << SECOND_OPERAND_BITS) - 1) << SECOND_OPERAND_OFFSET;
-            static final int THIRD_OPERAND_BITS    = 16;
-            static final int THIRD_OPERAND_OFFSET  = SECOND_OPERAND_OFFSET - THIRD_OPERAND_BITS;
-            static final long THIRD_OPERAND_MASK   = ((1L << THIRD_OPERAND_BITS) - 1) << THIRD_OPERAND_OFFSET;
-            static final int PRIMITIVE_BITS        = 32;
-            static final int PRIMITIVE_OFFSET      = 0;
-            static final long PRIMITIVE_MASK       = ((1L << PRIMITIVE_BITS) - 1) << PRIMITIVE_OFFSET;
-        }
 
         enum Format {
             SMALLPRIMITIVE,
@@ -149,22 +361,54 @@ public class OBCFileComposer extends OutputFileComposer {
          * Returns binary representation of the instruction.
          * @return binary representation of this instruction.
          */
-        byte[] getBytes(Info.Platform targetPlatform) {
+        byte[] getBytes(InsnBinaryFormatter formatter) {
             long insn;
-            int instsBytes;
-            switch(targetPlatform) {
-            case BIT_32:
-                insn = makeInstructionAs32();
-                instsBytes = Param32.INSTRUCTION_BYTES;
+            int instsBytes = formatter.GetBytes();
+            switch (format) {
+            case SMALLPRIMITIVE:
+                insn = formatter.MakeBigPrimitive(opcode, firstOperand, secondOperand);
                 break;
-            case BIT_64:
-                insn = makeInstructionAs64();
-                instsBytes = Param64.INSTRUCTION_BYTES;
+            case BIGPRIMITIVE:
+                insn = formatter.MakeBigPrimitive(opcode, firstOperand, secondOperand);
+                break;
+            case THREEOP:
+                insn = formatter.MakeThreeOp(opcode, firstOperand, secondOperand, thirdOperand);
+                break;
+            case TWOOP:
+                insn = formatter.MakeTwoOp(opcode, firstOperand, secondOperand);
+                break;
+            case ONEOP:
+                insn = formatter.MakeOneOp(opcode, firstOperand);
+                break;
+            case ZEROOP:
+                insn = formatter.MakeZeroOp(opcode);
+                break;
+            case UNCONDJUMP:
+                insn = formatter.MakeUncondJump(opcode, secondOperand);
+                break;
+            case CONDJUMP:
+                insn = formatter.MakeCondJump(opcode, firstOperand, secondOperand);
+                break;
+            case GETVAR:
+                insn = formatter.MakeGetVar(opcode, firstOperand, secondOperand, thirdOperand);
+                break;
+            case SETVAR:
+                insn = formatter.MakeSetVar(opcode, firstOperand, secondOperand, thirdOperand);
+                break;
+            case MAKECLOSUREOP:
+                insn = formatter.MakeMakeClosureOp(opcode, firstOperand, secondOperand);
+                break;
+            case CALLOP:
+                insn = formatter.MakeCallOp(opcode, firstOperand, secondOperand);
+                break;
+            case TRYOP:
+                insn = formatter.MakeTryOp(opcode);
+                break;
+            case UNKNOWNOP:
+                insn = formatter.MakeUnknownOp(opcode);
                 break;
             default:
-                insn = makeInstructionAs64();
-                instsBytes = Param64.INSTRUCTION_BYTES;
-                break;
+                throw new Error("Unknown instruction format");    
             }
             
             if (DEBUG)
@@ -179,104 +423,6 @@ public class OBCFileComposer extends OutputFileComposer {
                 bytes[i] = (byte) (insn >> (CHAR_BITS * i));
 
             return bytes;
-        }
-
-        long makeInstructionAs32() {
-            long insn = ((long) opcode) << Param32.OPCODE_OFFSET;
-            switch (format) {
-            case SMALLPRIMITIVE:
-            case BIGPRIMITIVE:
-                insn |= (((long) firstOperand) << Param32.FIRST_OPERAND_OFFSET) & Param32.FIRST_OPERAND_MASK;
-                insn |= (((long) secondOperand) << Param32.PRIMITIVE_OFFSET) & Param32.PRIMITIVE_MASK;
-                break;
-            case THREEOP:
-                insn |= (((long) firstOperand) << Param32.FIRST_OPERAND_OFFSET) & Param32.FIRST_OPERAND_MASK;
-                insn |= (((long) secondOperand) << Param32.SECOND_OPERAND_OFFSET) & Param32.SECOND_OPERAND_MASK;
-                insn |= (((long) thirdOperand) << Param32.THIRD_OPERAND_OFFSET) & Param32.THIRD_OPERAND_MASK;
-                break;
-            case TWOOP:
-                insn |= (((long) firstOperand) << Param32.FIRST_OPERAND_OFFSET) & Param32.FIRST_OPERAND_MASK;
-                insn |= (((long) secondOperand) << Param32.SECOND_OPERAND_OFFSET) & Param32.SECOND_OPERAND_MASK;
-                break;
-            case ONEOP:
-                insn |= (((long) firstOperand) << Param32.FIRST_OPERAND_OFFSET) & Param32.FIRST_OPERAND_MASK;
-                break;
-            case ZEROOP:
-                break;
-            case UNCONDJUMP:
-                insn |= (((long) secondOperand) << Param32.PRIMITIVE_OFFSET) & Param32.PRIMITIVE_MASK;
-                break;
-            case CONDJUMP:
-                insn |= (((long) firstOperand) << Param32.FIRST_OPERAND_OFFSET) & Param32.FIRST_OPERAND_MASK;
-                insn |= (((long) secondOperand) << Param32.PRIMITIVE_OFFSET) & Param32.PRIMITIVE_MASK;
-                break;
-            case GETVAR:
-            case SETVAR:
-                insn |= (((long) firstOperand) << Param32.FIRST_OPERAND_OFFSET) & Param32.FIRST_OPERAND_MASK;
-                insn |= (((long) secondOperand) << Param32.SECOND_OPERAND_OFFSET) & Param32.SECOND_OPERAND_MASK;
-                insn |= (((long) thirdOperand) << Param32.THIRD_OPERAND_OFFSET) & Param32.THIRD_OPERAND_MASK;
-                break;
-            case MAKECLOSUREOP:
-            case CALLOP:
-                insn |= (((long) firstOperand) << Param32.FIRST_OPERAND_OFFSET) & Param32.FIRST_OPERAND_MASK;
-                insn |= (((long) secondOperand) << Param32.SECOND_OPERAND_OFFSET) & Param32.SECOND_OPERAND_MASK;
-                break;
-            case TRYOP:
-            case UNKNOWNOP:
-                break;
-            default:
-                throw new Error("Unknown instruction format");    
-            }
-            return insn;
-        }
-
-        long makeInstructionAs64() {
-            long insn = ((long) opcode) << Param64.OPCODE_OFFSET;
-            switch (format) {
-            case SMALLPRIMITIVE:
-            case BIGPRIMITIVE:
-                insn |= (((long) firstOperand) << Param64.FIRST_OPERAND_OFFSET) & Param64.FIRST_OPERAND_MASK;
-                insn |= (((long) secondOperand) << Param64.PRIMITIVE_OFFSET) & Param64.PRIMITIVE_MASK;
-                break;
-            case THREEOP:
-                insn |= (((long) firstOperand) << Param64.FIRST_OPERAND_OFFSET) & Param64.FIRST_OPERAND_MASK;
-                insn |= (((long) secondOperand) << Param64.SECOND_OPERAND_OFFSET) & Param64.SECOND_OPERAND_MASK;
-                insn |= (((long) thirdOperand) << Param64.THIRD_OPERAND_OFFSET) & Param64.THIRD_OPERAND_MASK;
-                break;
-            case TWOOP:
-                insn |= (((long) firstOperand) << Param64.FIRST_OPERAND_OFFSET) & Param64.FIRST_OPERAND_MASK;
-                insn |= (((long) secondOperand) << Param64.SECOND_OPERAND_OFFSET) & Param64.SECOND_OPERAND_MASK;
-                break;
-            case ONEOP:
-                insn |= (((long) firstOperand) << Param64.FIRST_OPERAND_OFFSET) & Param64.FIRST_OPERAND_MASK;
-                break;
-            case ZEROOP:
-                break;
-            case UNCONDJUMP:
-                insn |= (((long) secondOperand) << Param64.PRIMITIVE_OFFSET) & Param64.PRIMITIVE_MASK;
-                break;
-            case CONDJUMP:
-                insn |= (((long) firstOperand) << Param64.FIRST_OPERAND_OFFSET) & Param64.FIRST_OPERAND_MASK;
-                insn |= (((long) secondOperand) << Param64.PRIMITIVE_OFFSET) & Param64.PRIMITIVE_MASK;
-                break;
-            case GETVAR:
-            case SETVAR:
-                insn |= (((long) firstOperand) << Param64.FIRST_OPERAND_OFFSET) & Param64.FIRST_OPERAND_MASK;
-                insn |= (((long) secondOperand) << Param64.SECOND_OPERAND_OFFSET) & Param64.SECOND_OPERAND_MASK;
-                insn |= (((long) thirdOperand) << Param64.THIRD_OPERAND_OFFSET) & Param64.THIRD_OPERAND_MASK;
-                break;
-            case MAKECLOSUREOP:
-            case CALLOP:
-                insn |= (((long) firstOperand) << Param64.FIRST_OPERAND_OFFSET) & Param64.FIRST_OPERAND_MASK;
-                insn |= (((long) secondOperand) << Param64.SECOND_OPERAND_OFFSET) & Param64.SECOND_OPERAND_MASK;
-                break;
-            case TRYOP:
-            case UNKNOWNOP:
-                break;
-            default:
-                throw new Error("Unknown instruction format");    
-            }
-            return insn;
         }
     }
 
@@ -564,7 +710,20 @@ public class OBCFileComposer extends OutputFileComposer {
      */
     void output(String fileName) {
         try {
-            FileOutputStream out = new FileOutputStream(fileName);            
+            FileOutputStream out = new FileOutputStream(fileName);
+            InsnBinaryFormatter formatter;
+
+            switch(targetPlatform) {
+                case BIT_32:
+                    formatter = new Insn32bitFormatter();
+                    break;
+                case BIT_64:
+                    formatter = new Insn64bitFormatter();
+                    break;
+                default:
+                    formatter = new Insn64bitFormatter();
+                    break;
+            }
 
             /* File header */
             outputShort(out, obcFunctions.size());
@@ -580,7 +739,7 @@ public class OBCFileComposer extends OutputFileComposer {
 
                 /* Instructions */
                 for (OBCInstruction insn: fun.instructions)
-                    out.write(insn.getBytes(targetPlatform));               
+                    out.write(insn.getBytes(formatter));               
 
                 /* Constant pool */
                 for (Object v: fun.constants.getConstants()) {
