@@ -20,10 +20,10 @@ public class OBCFileComposer extends OutputFileComposer {
 
     static final boolean BIG_ENDIAN        = true;
 
-    static final int FIELD_VALUE_TRUE      = 0x1e;
-    static final int FIELD_VALUE_FALSE     = 0x0e;
-    static final int FIELD_VALUE_NULL      = 0x06;
-    static final int FIELD_VALUE_UNDEFINED = 0x16;
+    static final int FIELD_VALUE_TRUE      = 0x03;
+    static final int FIELD_VALUE_FALSE     = 0x01;
+    static final int FIELD_VALUE_NULL      = 0x00;
+    static final int FIELD_VALUE_UNDEFINED = 0x02;
 
     static abstract class InsnBinaryFormatter {
         abstract int GetBytes();
@@ -479,13 +479,13 @@ public class OBCFileComposer extends OutputFileComposer {
                 SpecialOperand.V v = ((SpecialOperand) src).get();
                 switch (v) {
                 case TRUE:
-                    return FIELD_VALUE_TRUE;
+                    return (FIELD_VALUE_TRUE << Info.specPTAGSize) | Info.specPTAGValue;
                 case FALSE:
-                    return FIELD_VALUE_FALSE;
+                    return (FIELD_VALUE_FALSE << Info.specPTAGSize) | Info.specPTAGValue;
                 case NULL:
-                    return FIELD_VALUE_NULL;
+                    return (FIELD_VALUE_NULL << Info.specPTAGSize) | Info.specPTAGValue;
                 case UNDEFINED:
-                    return FIELD_VALUE_UNDEFINED;
+                    return (FIELD_VALUE_UNDEFINED << Info.specPTAGSize) | Info.specPTAGValue;
                 default:
                     throw new Error("Unknown special");
                 }
@@ -525,13 +525,13 @@ public class OBCFileComposer extends OutputFileComposer {
             int b;
             switch (v) {
             case TRUE:
-                b = FIELD_VALUE_TRUE; break;
+                b = (FIELD_VALUE_TRUE << Info.specPTAGSize) | Info.specPTAGValue; break;
             case FALSE:
-                b = FIELD_VALUE_FALSE; break;
+                b = (FIELD_VALUE_FALSE << Info.specPTAGSize) | Info.specPTAGValue; break;
             case NULL:
-                b = FIELD_VALUE_NULL; break;
+                b = (FIELD_VALUE_NULL << Info.specPTAGSize) | Info.specPTAGValue; break;
             case UNDEFINED:
-                b = FIELD_VALUE_UNDEFINED; break;
+                b = (FIELD_VALUE_UNDEFINED << Info.specPTAGSize) | Info.specPTAGValue; break;
             default:
                 throw new Error("Unknown special");
             }
