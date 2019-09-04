@@ -5,7 +5,7 @@ compiler : ../ejsc/newejsc.jar
 [x86]
 vm : ../ejsvm/build/ejsvm_32
 compiler : ../ejsc/newejsc.jar
-compile-opt : -O
+compile-opt : -O --platform 32
 
 [x64]
 vm : ../ejsvm/build/ejsvm_64
@@ -19,3 +19,28 @@ compiler : ../ejsc/newejsc.jar
 [x64_no_opt]
 vm : ../ejsvm/build/ejsvm_64
 compiler : ../ejsc/newejsc.jar
+
+[x64code_x86]
+vm : ../ejsvm/build/ejsvm_64code_32target
+compiler : ../ejsc/newejsc.jar
+compile-opt : -O
+
+[x64code_x64]
+vm : ../ejsvm/build/ejsvm_64code_64target
+compiler : ../ejsc/newejsc.jar
+compile-opt : -O
+
+[x86code_x86]
+vm : ../ejsvm/build/ejsvm_32code_32target
+compiler : ../ejsc/newejsc.jar
+compile-opt : -O --platform 32
+
+[x64code_x64_obc]
+vm : ../ejsvm/build/ejsvm_64code_64target_obc
+compiler : ../ejsc/newejsc.jar
+compile-opt : -O --out-obc /home/onozawa/eJS_Main/ejsvm/instructions.def
+
+[x86code_x86_obc]
+vm : ../ejsvm/build/ejsvm_32code_32target_obc
+compiler : ../ejsc/newejsc.jar
+compile-opt : -O --platform 32 --specPTAG 01 --out-obc /home/onozawa/eJS_Main/ejsvm/instructions.def
