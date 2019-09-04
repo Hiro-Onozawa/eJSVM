@@ -338,7 +338,7 @@ endif
 endif
 
 cell-header.h: $(EJSVM_DIR)/cell-header.def
-	$(RUBY) $< > $@
+	$(RUBY) $< $(USEBIT) > $@
 
 instructions.h: instructions-opcode.h instructions-table.h
 

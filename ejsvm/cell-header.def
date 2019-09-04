@@ -15,6 +15,19 @@ header_def = [
   [16, 23, "MAGIC",  nil,    "magic"],
   [32, 63, "SIZE",   :param, "number of words of this chunk including header"]
 ];
+if (ARGV.size >= 1 && ARGV[0] == "32") then
+  header_type   = "uint32_t"
+  bytes_in_word = 4
+  header_def = [
+    [ 0,  4, "TYPE",   :param, "type of memory chunk"],
+    [ 5,  5, "GC",     nil,     "GC mark bit"],
+    [ 6,  7, "EXTRA",  :param, "number of unused words attached at the bottom"+
+                               " of this chunk"],
+    [8,  7, "GEN",    nil,    "generation"],
+    [8,  7, "MAGIC",  nil,    "magic"],
+    [8, 31, "SIZE",   :param, "number of words of this chunk including header"]
+  ];
+end
 
 ####################################################################
 
