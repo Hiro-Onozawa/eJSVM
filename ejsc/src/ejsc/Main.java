@@ -38,6 +38,8 @@ public class Main {
         String insnsDefFile;    // instructions.def
         InsnsDef insnsdef;
         Platform targetPlatform = Platform.Default;
+        static int specPTAGValue = 0b110;
+        static int specPTAGSize = 3;
         SISpecInfo sispecInfo;
         int baseFunctionNumber = 0;
         enum OptLocals {
@@ -149,6 +151,15 @@ public class Main {
                         default:
                             throw new Error("unknown platform: " + args[i]);
                         }
+                        break;
+
+                    case "--specPTAG":
+                        i++;
+                        if (i >= args.length) {
+                            throw new Error("failed to parse arguments: --specPTAG");
+                        }
+                        Info.specPTAGValue = Integer.parseInt(args[i], 2);
+                        Info.specPTAGSize = args[i].length();
                         break;
 
 
