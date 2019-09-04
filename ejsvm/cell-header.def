@@ -81,7 +81,7 @@ define("__HEADER0_SET(hdr, val, off, msk)",
 define("__HEADER0_SET_MASK(hdr, val, off, msk)",
        "(hdr) = (((((header_t) (val)) << (off)) & (msk)) | ((hdr) & ~(msk)))");
 define("__HEADER0_GET(hdr, off, msk)",
-       "(((uint64_t) ((hdr) & (msk))) >> (off))");
+       "(((header_t) ((hdr) & (msk))) >> (off))");
 
 
 section_start("field definition");

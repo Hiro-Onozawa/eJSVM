@@ -75,7 +75,7 @@
  *  Types
  */
 
-#define HTAG_FREE          (0xff)
+#define HTAG_FREE          ((1 << HEADER0_TYPE_BITS) - 1)
 
 struct free_chunk {
   header_t header;
@@ -577,7 +577,7 @@ STATIC void trace_FunctionFrame(FunctionFrame **ptrp)
     trace_FunctionFrame(&ptr->prev_frame);
   trace_slot(&ptr->arguments);
   /* locals */
-  header = *(((uint64_t *) ptr) - HEADER_JSVALUES);
+  header = *(((header_t *) ptr) - HEADER_JSVALUES);
   length = HEADER0_GET_SIZE(header);
   length -= HEADER_JSVALUES;
   length -= sizeof(FunctionFrame) >> LOG_BYTES_IN_JSVALUE;
@@ -912,7 +912,7 @@ STATIC void sweep_space(struct space *space)
     free_start = scan;
     while (scan < space->addr + space->bytes &&
 	   !is_marked_cell_header((void *) scan)) {
-      uint64_t header = *(uint64_t *) scan;
+      header_t header = *(header_t *) scan;
       uint32_t size = HEADER0_GET_SIZE(header);
 #ifdef GC_DEBUG
       assert(HEADER0_GET_MAGIC(header) == HEADER0_MAGIC);
@@ -921,13 +921,13 @@ STATIC void sweep_space(struct space *space)
     }
     if (free_start < scan) {
       if (last_used != 0) {
-	uint64_t last_header = *(uint64_t *) last_used;
+	header_t last_header = *(header_t *) last_used;
 	uint32_t extra = HEADER0_GET_EXTRA(last_header);
 	uint32_t size = HEADER0_GET_SIZE(last_header);
 	free_start -= extra << LOG_BYTES_IN_JSVALUE;
 	size -= extra;
-	HEADER0_SET_SIZE(*(uint64_t *) last_used, size);
-	HEADER0_SET_EXTRA(*(uint64_t *) last_used, 0);
+	HEADER0_SET_SIZE(*(header_t *) last_used, size);
+	HEADER0_SET_EXTRA(*(header_t *) last_used, 0);
       }
       if (scan - free_start >=
 	  MINIMUM_FREE_CHUNK_JSVALUES << LOG_BYTES_IN_JSVALUE) {
