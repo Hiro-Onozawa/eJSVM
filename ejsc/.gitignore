@@ -1,6 +1,12 @@
 
 # Created by https://www.gitignore.io/api/vim,macos,emacs,eclipse
 
+### jar ###
+*.jar
+
+### classpath ###
+*.classpath
+
 ### Eclipse ###
 
 .metadata
