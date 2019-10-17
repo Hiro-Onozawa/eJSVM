@@ -14,6 +14,11 @@
 #define type_error_exception(s)  LOG_EXIT("Type error exception: " s "\n")
 #define type_error(s)  LOG_EXIT("Type error: " s "\n")
 
+#define invoke_function0(ctx, receiver, fn, sendp)              \
+  invoke_function(ctx, receiver, fn, sendp, JS_UNDEFINED, 0)
+#define invoke_builtin0(ctx, receiver, fn, sendp)               \
+  invoke_builtin(ctx, receiver, fn, sendp, JS_UNDEFINED, 0)
+
 /*
  * Data conversion rules of JavaScript
  *
@@ -323,7 +328,7 @@ JSValue object_to_string(Context *context, JSValue v) {
       != JS_UNDEFINED) {
     GC_PUSH(v);
     if (is_function(f)) f = invoke_function0(context, v, f, TRUE);
-    else if (is_builtin(f)) f = call_builtin0(context, v, f, TRUE);
+    else if (is_builtin(f)) f = invoke_builtin0(context, v, f, TRUE);
     else {
       GC_POP(v);
       goto NEXT0;
@@ -338,7 +343,7 @@ JSValue object_to_string(Context *context, JSValue v) {
   if ((f = get_prop_prototype_chain(v, gconsts.g_string_valueof))
       != JS_UNDEFINED) {
     if (is_function(f)) f = invoke_function0(context, v, f, TRUE);
-    else if (is_builtin(f)) f = call_builtin0(context, v, f, TRUE);
+    else if (is_builtin(f)) f = invoke_builtin0(context, v, f, TRUE);
     else goto NEXT1;
     if (is_string(f)) return f;
     if (is_fixnum(f)) return fixnum_to_string(f);
@@ -354,7 +359,7 @@ JSValue object_to_string(Context *context, JSValue v) {
  * converts an object to a number
  */
 JSValue object_to_number(Context *context, JSValue v) {
-  JSValue f;
+  JSValue f = JS_NULL;
 
   if (!is_object(v)) {
     type_error("object expected in object_to_number");
@@ -363,7 +368,7 @@ JSValue object_to_number(Context *context, JSValue v) {
   if (get_prop(v, gconsts.g_string_valueof, &f) == SUCCESS) {
     GC_PUSH(v);
     if (is_function(f)) f = invoke_function0(context, v, f, TRUE);
-    else if (is_builtin(f)) f = call_builtin0(context, v, f, TRUE);
+    else if (is_builtin(f)) f = invoke_builtin0(context, v, f, TRUE);
     else {
       GC_POP(v);
       goto NEXT0;
@@ -377,7 +382,7 @@ JSValue object_to_number(Context *context, JSValue v) {
   if (get_prop(v, gconsts.g_string_tostring, &f) == SUCCESS) {
     GC_PUSH(v);
     if (is_function(f)) f = invoke_function0(context, v, f, TRUE);
-    else if (is_builtin(f)) f = call_builtin0(context, v, f, TRUE);
+    else if (is_builtin(f)) f = invoke_builtin0(context, v, f, TRUE);
     else {
       GC_POP(v);
       goto NEXT1;
@@ -388,7 +393,7 @@ JSValue object_to_number(Context *context, JSValue v) {
     if (is_boolean(f)) return special_to_number(f);
   }
  NEXT1:
-  GC_PUSH(f); /* All right: MissingInit */
+  GC_PUSH(f);
   print_value_simple(context, v); putchar('\n');
   print_value_simple(context, f); putchar('\n');
   GC_POP(f);
@@ -435,7 +440,7 @@ JSValue object_to_primitive(Context *context, JSValue v, int hint) {
   if ((f = get_prop_prototype_chain(v, fst)) != JS_UNDEFINED) {
     GC_PUSH2(v, snd);
     if (is_function(f)) f = invoke_function0(context, v, f, TRUE);
-    else if (is_builtin(f)) f = call_builtin0(context, v, f, TRUE);
+    else if (is_builtin(f)) f = invoke_builtin0(context, v, f, TRUE);
     else {
       GC_POP2(snd, v);
       goto NEXT0;
@@ -446,7 +451,7 @@ JSValue object_to_primitive(Context *context, JSValue v, int hint) {
  NEXT0:
   if ((f = get_prop_prototype_chain(v, snd)) != JS_UNDEFINED) {
     if (is_function(f)) f = invoke_function0(context, v, f, TRUE);
-    else if (is_builtin(f)) f = call_builtin0(context, v, f, TRUE);
+    else if (is_builtin(f)) f = invoke_builtin0(context, v, f, TRUE);
     else goto NEXT1;
     if (is_primitive(f)) return f;
   }
@@ -672,3 +677,9 @@ JSValue cint_to_string(cint n) {
   snprintf(buf, BUFSIZE, "%"PRIcint, n);
   return cstr_to_string(NULL, buf);
 }
+
+/* Local Variables:      */
+/* mode: c               */
+/* c-basic-offset: 2     */
+/* indent-tabs-mode: nil */
+/* End:                  */

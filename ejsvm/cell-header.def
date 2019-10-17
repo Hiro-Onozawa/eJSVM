@@ -1,9 +1,8 @@
 #!/usr/bin/ruby
 
 header_type   = "uint64_t"
-bytes_in_word = 8
 bits_in_byte  = 8
-header_words  = 1
+header_bytes  = 8
 header_magic  = 0x18
 header_def = [
   [ 0,  7, "TYPE",   :param, "type of memory chunk"],
@@ -17,7 +16,7 @@ header_def = [
 ];
 if (ARGV.size >= 1 && ARGV[0] == "32") then
   header_type   = "uint32_t"
-  bytes_in_word = 4
+  header_bytes  = 4
   header_def = [
     [ 0,  4, "TYPE",   :param, "type of memory chunk"],
     [ 5,  5, "GC",     nil,     "GC mark bit"],
@@ -81,9 +80,8 @@ compose_params = []
 
 section_start("general definition")
 print "typedef #{header_type} header_t;\n"
-define("HEADER_JSVALUES", header_words)
-define("HEADER_BYTES",    header_words * bytes_in_word)
-define("HEADER0_BITS",    bytes_in_word * bits_in_byte)
+define("HEADER_BYTES",    header_bytes)
+define("HEADER0_BITS",    header_bytes * bits_in_byte)
 define("HEADER0_MAGIC", sprintf("0x%x", header_magic))
 
 section_start("internal macros")

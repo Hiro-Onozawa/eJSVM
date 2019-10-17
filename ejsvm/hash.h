@@ -8,10 +8,13 @@
  */
 
 typedef JSValue HashKey;
-#ifdef BIT_64
-typedef uint64_t HashData;
-#else
+#define PRIHashKey PRIJSValue
+#ifdef BIT_32
 typedef uint32_t HashData;
+#define PRIHashData PRIu32
+#else
+typedef uint64_t HashData;
+#define PRIHashData PRIu64
 #endif
 typedef uint16_t Attribute;
 
@@ -85,3 +88,9 @@ typedef struct str_table {
 #define HASH_PUT_SUCCESS  (0)
 #define HASH_PUT_FAILED   (1)
 
+
+/* Local Variables:      */
+/* mode: c               */
+/* c-basic-offset: 2     */
+/* indent-tabs-mode: nil */
+/* End:                  */

@@ -13,6 +13,8 @@
 
 #define CPU_LITTLE_ENDIAN
 
+#define OBC_FILE_MAGIC 0xec
+
 #if !defined(USE_SBC) && !defined(USE_OBC)
 #error Either USE_SBC or USE_OBC should be defined.
 #endif
@@ -20,6 +22,19 @@
 #if !defined(USE_SBC) && defined(PROFILE)
 #error PROFILE can be defined only when USE_SBC is defined.
 #endif
+
+/*
+ * OBC file header (magic + fingerprint).
+ * The second byte is shared with SBC file.
+ */
+unsigned char obc_file_header[] = {
+  OBC_FILE_MAGIC,
+#include "specfile-fingerprint.h"
+};
+unsigned char obc_file_header_wildcard[] = {
+  OBC_FILE_MAGIC,
+  0xff
+};
 
 /*
  * information of instructions
@@ -56,7 +71,7 @@ typedef struct {
 #define LOADBUFLEN 1024
 
 #ifdef USE_SBC
-extern int insn_load_sbc(Context *, Instruction *, int, int, int);
+extern int insn_load_sbc(Context *, Instruction *, int, int, int, int);
 #endif
 
 #ifdef USE_OBC
@@ -64,7 +79,7 @@ extern void init_constant_info(CItable *citable, int nconsts, int i);
 extern void add_constant_info(CItable *ci, Opcode oc, unsigned int index,
                               InsnOperandType type);
 extern void const_load(Context *, int, JSValue *, CItable *);
-extern int insn_load_obc(Context *, Instruction *, int, int, CItable *);
+extern int insn_load_obc(Context *, Instruction *, int, int, CItable *, int);
 #endif
 
 extern uint32_t decode_escape_char(char *);
@@ -80,8 +95,8 @@ FILE *file_pointer;
 /*
  * reads the next line from the input stream
  */
-inline void step_load_code(char *buf, int buflen) {
-  fgets(buf, buflen, file_pointer == NULL? stdin: file_pointer);
+inline char *step_load_code(char *buf, int buflen) {
+  return fgets(buf, buflen, file_pointer == NULL? stdin: file_pointer);
 }
 
 #define DELIM " \n\r"
@@ -116,12 +131,12 @@ int code_loader(Context *ctx, FunctionTable *ftable, int ftbase) {
 #endif
 
 #ifdef USE_SBC
-#define next_buf_sbc()      step_load_code(buf, LOADBUFLEN)
+#define next_buf_sbc() (step_load_code(buf, LOADBUFLEN) != NULL)
 #define buf_to_int_sbc(s)   check_read_token(buf, s)
 #endif
 
 #ifdef USE_OBC
-#define next_buf_obc()      fread(b, sizeof(unsigned char), 2, file_pointer)
+#define next_buf_obc() (fread(b, sizeof(unsigned char), 2, file_pointer) > 0)
 #ifdef CPU_LITTLE_ENDIAN
 #define buf_to_int_obc(s)   (b[0] * 256 + b[1])
 #else
@@ -131,22 +146,57 @@ int code_loader(Context *ctx, FunctionTable *ftable, int ftbase) {
 
 #if defined(USE_OBC) && defined(USE_SBC)
 
-#define next_buf()    (obcsbc == FILE_OBC? next_buf_obc(): next_buf_sbc())
+#define next_buf()                                                   \
+  if ((obcsbc == FILE_OBC? next_buf_obc(): next_buf_sbc()) == 0) return 0
 #define buf_to_int(s)                                                \
   (obcsbc == FILE_OBC? buf_to_int_obc(s): buf_to_int_sbc(s))
 
 #else
 
 #ifdef USE_OBC
-#define next_buf()      next_buf_obc()
+#define next_buf()      if (next_buf_obc() == 0) return 0
 #define buf_to_int(s)   buf_to_int_obc(s)
 #endif
 
 #ifdef USE_SBC
-#define next_buf()      next_buf_sbc()
+#define next_buf()      if (next_buf_sbc() == 0) return 0
 #define buf_to_int(s)   buf_to_int_sbc(s)
 #endif
 
+#endif
+
+  /*
+   * check file header
+   */
+#if defined(USE_SBC) && defined(USE_OBC)
+  {
+    int header_value;
+    next_buf();
+    header_value = buf_to_int("fingerprint");
+    if (obcsbc == FILE_SBC) {
+      if (header_value != obc_file_header[1] &&
+          header_value != obc_file_header_wildcard[1])
+        LOG_EXIT("file header mismatch.");
+    } else {
+      if (*(unsigned short *)b != *(unsigned short *)obc_file_header &&
+          *(unsigned short *)b != *(unsigned short *)obc_file_header_wildcard)
+        LOG_EXIT("file header mismatch.");
+    }
+  }
+#elif defined(USE_OBC)
+  next_buf_obc();
+  if (*(unsigned short *)b != *(unsigned short *)obc_file_header &&
+      *(unsigned short *)b != *(unsigned short *)obc_file_header_wildcard)
+    LOG_EXIT("file header mismatch.");
+#else
+  {
+    int header_value;
+    next_buf();
+    header_value = buf_to_int("fingerprint");
+    if (header_value != obc_file_header[1] &&
+        header_value != obc_file_header_wildcard[1])
+      LOG_EXIT("file header mismatch.");
+  }
 #endif
 
   /*
@@ -207,14 +257,14 @@ int code_loader(Context *ctx, FunctionTable *ftable, int ftbase) {
     for (j = 0; j < ninsns; j++) {
 #if defined(USE_OBC) && defined(USE_SBC)
       ret = (obcsbc == FILE_OBC?
-             insn_load_obc(ctx, insns, ninsns, j, &citable):
-             insn_load_sbc(ctx, insns, ninsns, nconsts, j));
+             insn_load_obc(ctx, insns, ninsns, j, &citable, ftbase):
+             insn_load_sbc(ctx, insns, ninsns, nconsts, j, ftbase));
 #else
 #ifdef USE_OBC
-      ret = insn_load_obc(ctx, insns, ninsns, j, &citable);
+      ret = insn_load_obc(ctx, insns, ninsns, j, &citable, ftbase);
 #endif
 #ifdef USE_SBC
-      ret = insn_load_sbc(ctx, insns, ninsns, nconsts, j);
+      ret = insn_load_sbc(ctx, insns, ninsns, nconsts, j, ftbase);
 #endif
 #endif
       if (ret == LOAD_FAIL)
@@ -343,6 +393,8 @@ void const_load(Context *ctx, int nconsts, JSValue *ctop, CItable *citable) {
       ctop[i] = v;
     }
   }
+#undef next_buf
+#undef buf_to_int
 }
 #endif
 
@@ -550,7 +602,7 @@ int load_regexp_sbc(Context *ctx, char *src, JSValue *ctop,
 #endif /* USE_REGEXP */
 
 int insn_load_sbc(Context *ctx, Instruction *insns, int ninsns,
-                  int nconsts, int pc) {
+                  int nconsts, int pc, int ftbase) {
   char buf[LOADBUFLEN];
   char *tokp;
   Opcode oc;
@@ -622,9 +674,9 @@ int insn_load_sbc(Context *ctx, Instruction *insns, int ninsns,
           src = next_token();
           index = load_number_sbc(src, ctop, ninsns, nconsts);
           if (index < 0) return LOAD_FAIL;
-          disp = calc_displacement(ninsns, pc, index);
-          if (maxval_primitive_displacement() < disp)
-            LOG_EXIT("NUMBER DISP IS GREATER THAN VALID RANGE");
+          load_primitive_displacement(&disp,
+            calc_displacement(ninsns, pc, index),
+            "NUMBER DISP");
           insns[pc].code = makecode_number(dst, disp);
         }
         break;
@@ -634,9 +686,9 @@ int insn_load_sbc(Context *ctx, Instruction *insns, int ninsns,
           src = next_token();
           index = load_string_sbc(src, ctop, ninsns, nconsts);
           if (index < 0) return LOAD_FAIL;
-          disp = calc_displacement(ninsns, pc, index);
-          if (maxval_primitive_displacement() < disp)
-            LOG_EXIT("STRING/ERROR DISP IS GREATER THAN VALID RANGE");
+          load_primitive_displacement(&disp,
+            calc_displacement(ninsns, pc, index),
+            "STRING/ERROR DISP");
           insns[pc].code = (oc == STRING? makecode_string(dst, disp):
                             makecode_error(dst, disp));
         }
@@ -649,9 +701,9 @@ int insn_load_sbc(Context *ctx, Instruction *insns, int ninsns,
           src = next_token();
           index = load_regexp_sbc(ctx, src, ctop, ninsns, nconsts, flag);
           if (index < 0) return LOAD_FAIL;
-          disp = calc_displacement(ninsns, pc, index);
-          if (maxval_primitive_displacement() < disp)
-            LOG_EXIT("REGEXP DISP IS GREATER THAN VALID RANGE");
+          load_primitive_displacement(&disp,
+            calc_displacement(ninsns, pc, index),
+            "REGEXP DISP");
           insns[pc].code = makecode_regexp(dst, disp);
         }
         break;
@@ -666,9 +718,9 @@ int insn_load_sbc(Context *ctx, Instruction *insns, int ninsns,
   case THREEOP:
     {
       Register op0, op1, op2;
-      load_register(&op0, atoi(next_token()), "THREEOP OP0");
-      load_register(&op1, atoi(next_token()), "THREEOP OP1");
-      load_register(&op2, atoi(next_token()), "THREEOP OP2");
+      load_op(insn_info_table[oc].op0, op0);
+      load_op(insn_info_table[oc].op1, op1);
+      load_op(insn_info_table[oc].op2, op2);
       insns[pc].code = makecode_three_operands(oc, op0, op1, op2);
       return LOAD_OK;
     }
@@ -710,7 +762,7 @@ int insn_load_sbc(Context *ctx, Instruction *insns, int ninsns,
       InstructionDisplacement disp;
       load_register(&src, atoi(next_token()), "CONDJUNP SRC");
       load_instruction_displacement(&disp, atoi(next_token()), "CONDJUNP OFFSET");
-      insns[pc].code = makecode_cond_jump(oc, src, disp);
+      insns[pc].code = makecode_condjump(oc, src, disp);
       return LOAD_OK;
     }
 
@@ -742,14 +794,13 @@ int insn_load_sbc(Context *ctx, Instruction *insns, int ninsns,
       Subscript index;
       load_register(&dst, atoi(next_token()), "MAKECLOSUREOP DST");
       load_subscript(&index, atoi(next_token()), "MAKECLOSUREOP INDEX");
-      insns[pc].code = makecode_makeclosure(oc, dst, index);
+      insns[pc].code = makecode_makeclosure(oc, dst, index + ftbase);
       return LOAD_OK;
     }
 
   case CALLOP:
     {
-      Register closure;
-      Register argc;
+      Register closure, argc;
       load_register(&closure, atoi(next_token()), "CALLOP CLOSURE");
       load_register(&argc, atoi(next_token()), "CALLOP ARGC");
       insns[pc].code = makecode_call(oc, closure, argc);
@@ -767,7 +818,7 @@ int insn_load_sbc(Context *ctx, Instruction *insns, int ninsns,
 
 #ifdef USE_OBC
 int insn_load_obc(Context *ctx, Instruction *insns, int ninsns, int pc,
-                  CItable *citable) {
+                  CItable *citable, int ftbase) {
   unsigned char buf[sizeof(Bytecode)];
   Opcode oc;
   Subscript index;
@@ -794,15 +845,25 @@ int insn_load_obc(Context *ctx, Instruction *insns, int ninsns, int pc,
     case REGEXP:
 #endif
 #endif
-      index = get_big_subscr(bc);
-      add_constant_info(citable, oc, index, NONE);
-      disp = calc_displacement(ninsns, pc, index);
-      insns[pc].code = update_displacement(bc, disp);
+      {
+        BigPrimitiveId id = get_big_subscr(bc);
+        add_constant_info(citable, oc, id, NONE);
+        disp = calc_displacement(ninsns, pc, id);
+        insns[pc].code = update_displacement(bc, disp);
+      }
       return LOAD_OK;
     default:
       return LOAD_FAIL;
     }
     break;
+
+  case MAKECLOSUREOP:
+    if (ftbase > 0) {
+      index = get_second_operand_subscr(bc) + ftbase;
+      bc = makecode_makeclosure(oc, get_first_operand_reg(bc), index);
+    }
+    insns[pc].code = bc;
+    return LOAD_OK;
 
   case THREEOP:
     for (i = 0; i < 3; i++) {
@@ -902,14 +963,14 @@ int print_function_table(FunctionTable *ftable, int nfuncs) {
     printf("n_constants: %d\n", ftable[i].n_constants);
     printf("body_size: %d\n", ftable[i].body_size);
     for (j = 0; j < ftable[i].n_insns; j++) {
-      printf("%03d: %016" PRIByteCode " --- ", j, ftable[i].insns[j].code);
+      printf("%03d: %016"PRIByteCode" --- ", j, ftable[i].insns[j].code);
       print_bytecode(ftable[i].insns, j);
     }
     lit = (JSValue *)&(ftable[i].insns[ftable[i].n_insns]);
     for (j = 0; j < ftable[i].n_constants; j++) {
       JSValue o;
       o = lit[j];
-      printf("%03d: %016" PRIByteCode " --- ", j, o);
+      printf("%03d: %016"PRIJSValue" --- ", j, o);
       if (is_flonum(o))
         printf("FLONUM %lf\n", flonum_value(o));
       else if (is_string(o))
@@ -984,7 +1045,7 @@ void print_bytecode(Instruction *insns, int pc) {
   case BIGPRIMITIVE:
     {
       printf(" %d", get_first_operand_reg(code));
-      print_constant(insns, pc, get_big_disp(code));
+      print_constant(insns, pc, get_big_primitive_disp(code));
     }
     break;
   case THREEOP:
@@ -1148,3 +1209,9 @@ uint32_t decode_escape_char(char *str) {
   *dst = '\0';
   return (uint32_t)(dst - str);
 }
+
+/* Local Variables:      */
+/* mode: c               */
+/* c-basic-offset: 2     */
+/* indent-tabs-mode: nil */
+/* End:                  */

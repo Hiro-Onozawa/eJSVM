@@ -32,16 +32,14 @@
 #define __USE_GNU
 #endif /* __USE_GNU */
 
-#ifdef BIT_64
-typedef uint64_t JSValue;
-#define LOG_BYTES_IN_JSVALUE   3
-
-#define PRIJSValue PRIx64
-#else
+#ifdef BIT_32
 typedef uint32_t JSValue;
-#define LOG_BYTES_IN_JSVALUE   2
-
+#define LOG_BYTES_IN_JSVALUE 2
 #define PRIJSValue PRIx32
+#else
+typedef uint64_t JSValue;
+#define LOG_BYTES_IN_JSVALUE 3
+#define PRIJSValue PRIx64
 #endif
 
 #define BYTES_IN_JSVALUE (sizeof(JSValue))
@@ -80,3 +78,9 @@ typedef uint32_t JSValue;
 #include "extern.h"
 
 #endif /* HEADER_H_ */
+
+/* Local Variables:      */
+/* mode: c               */
+/* c-basic-offset: 2     */
+/* indent-tabs-mode: nil */
+/* End:                  */

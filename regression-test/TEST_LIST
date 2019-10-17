@@ -74,6 +74,7 @@ testcases/array-intensive.js
 testcases/chk-save-spreg.js
 testcases/chk-invoke-func.js
 testcases/chk-array-trace.js
+testcases/chk-object-prototype.js
 compiler/sample.js
 compiler/sample1.js
 compiler/sample2.js

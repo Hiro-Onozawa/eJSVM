@@ -77,20 +77,6 @@ int hash_get(HashTable *table, HashKey key, HashData *data) {
    *  printf("hash_get: fail\n");
    */
   return r;
-#if 0
-  uint32_t hval;
-  HashCell *cell;
-
-  hval = string_hash(key) % table->size;
-  for (cell = table->body[hval]; cell != NULL; cell = cell->next)
-    if ((JSValue)(cell->entry.key) == key) {
-      /* found */
-      if (data != NULL ) *data = cell->entry.data;
-      return HASH_GET_SUCCESS;
-    }
-  /* not found */
-  return HASH_GET_FAILED;
-#endif
 }
 
 /*
@@ -193,7 +179,7 @@ int hash_copy(Context *ctx, HashTable *from, HashTable *to) {
 
 HashCell** __hashMalloc(int size) {
   HashCell** ret = (HashCell**)gc_malloc_critical(sizeof(HashCell*) * size,
-						  HTAG_HASH_BODY);
+                                                  HTAG_HASH_BODY);
   memset(ret, 0, sizeof(HashCell*) * size);
   return ret;
 }
@@ -274,18 +260,6 @@ int nextHashCell(HashTable *table, HashIterator *iter, HashCell **p) {
   return SUCCESS;
 }
 
-#if 0
-int nextHashEntry(HashTable *table, HashIterator *iter, HashEntry *ep) {
-  HashCell *p;
-  int r;
-
-  if ((r = nextHashCell(table, iter, &p)) == SUCCESS) {
-    *ep = p->entry;
-  }
-  return r;
-}
-#endif
-
 void hashBodyFree(HashCell** body) {
 #if !defined(USE_BOEHMGC) && !defined(USE_NATIVEGC)
   free(body);
@@ -339,7 +313,7 @@ void print_object_properties(JSValue o) {
 #else
   tab = obj_map(o);
 #endif
-  printf("Object %016"PRIx64": (type = %x, n_props = %"PRIu64", map = %p)\n",
+  printf("Object %016"PRIJSValue": (type = %x, n_props = %"PRIJSObjectSize", map = %p)\n",
          o, obj_header_tag(o), obj_n_props(o), tab);
   ec = 0;
   for (i = 0; i < tab->size; i++) {
@@ -347,12 +321,12 @@ void print_object_properties(JSValue o) {
     do {
       ec++;
       printf(" (%d: (", i);
-      printf("%016"PRIx64" = ", p->entry.key); simple_print(p->entry.key);
+      printf("%016"PRIHashKey" = ", p->entry.key); simple_print(p->entry.key);
       printf(", ");
-      printf("%016"PRIx64" = ", p->entry.data); simple_print(p->entry.data);
+      printf("%016"PRIHashData" = ", p->entry.data); simple_print(p->entry.data);
       printf(", ");
       v = obj_prop_index(o, (int)p->entry.data);
-      printf("%016"PRIx64" = ", v); simple_print(v);
+      printf("%016"PRIJSValue" = ", v); simple_print(v);
       printf("))");
     } while ((p = p->next) != NULL);
     if (ec >= tab->entry_count) break;
@@ -367,3 +341,9 @@ char* ststrdup(const char* str) {
   strcpy(dst, str);
   return dst;
 }
+
+/* Local Variables:      */
+/* mode: c               */
+/* c-basic-offset: 2     */
+/* indent-tabs-mode: nil */
+/* End:                  */

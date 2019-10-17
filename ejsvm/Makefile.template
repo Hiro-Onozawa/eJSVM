@@ -1,15 +1,17 @@
+EJSVM_DIR = ../ejsvm
+
 .PRECIOUS: %.c %.h %.o
 
 ##
 ## configuration files
 ##
 
-DATATYPES = ../datatypes/default.def
-# DATATYPES = ../datatypes/default_32.def
-OPERANDSPEC = ../operand-spec/any.spec
-# OPERANDSPEC = ../operand-spec/fixnum-unspec.spec
-SUPERINSNSPEC = ../superinsn-spec/all.si
-SUPERINSNTYPE = 3
+DATATYPES = $(EJSVM_DIR)/datatypes/default.def
+# DATATYPES = $(EJSVM_DIR)/datatypes/default_32.def
+OPERANDSPEC = $(EJSVM_DIR)/operand-spec/any.spec
+# OPERANDSPEC = $(EJSVM_DIR)/operand-spec/fixnum-unspec.spec
+SUPERINSNSPEC = $(EJSVM_DIR)/superinsn-spec/all.si
+SUPERINSNTYPE = 4
 
 ##
 ## compile flags
@@ -46,6 +48,8 @@ LIBS =
 ## options
 ## 
 
+OPT_BASEBIT   = 64
+# OPT_BASEBIT   = 32
 OPT_REGEXP    = none
 # OPT_REGEXP    = oniguruma
 OPT_GC        = native
@@ -55,9 +59,6 @@ HEAPSIZE      = -DJS_SPACE_BYTES=10485760
 
 CFLAGS       += -DUSE_SBC
 
-# USEBIT = 64
-USEBIT = 32
-
 # CFLAGS       += -DPROFILE
 
-include ../common.mk
+include $(EJSVM_DIR)/common.mk

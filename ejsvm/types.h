@@ -18,29 +18,31 @@
 
 /*
  * First-class data in JavaScript is represented as a JSValue.
- * JSValue has 64 bits, where least sifnificat three bits is its tag.
+ * JSValue has 64 (or 32) bits, where least significant three
+ * (or two) bits is its tag.
  *
  *  ---------------------------------------------------
  *  |  pointer / immediate value                  |tag|
  *  ---------------------------------------------------
- *  63                                             210
+ *  63                                             210 (default)
+ *  31                                             1 0 (defined BIT_32)
  */
-#ifdef BIT_64
-#define TAGOFFSET (3)
-#define TAGMASK   (0x7)  /* 111 */
-
-#define get_tag(p)      (((Tag)(p)) & TAGMASK)
-#define put_tag(p,t)    ((JSValue)((uint64_t)(p) + (t)))
-#define clear_tag(p)    ((uint64_t)(p) & ~TAGMASK)
-#define remove_tag(p,t) (clear_tag(p))
-#define equal_tag(p,t)  (get_tag((p)) == (t))
-#else
+#ifdef BIT_32
 #define TAGOFFSET (2)
 #define TAGMASK   (0x3)  /* 11 */
 
 #define get_tag(p)      (((Tag)(p)) & TAGMASK)
 #define put_tag(p,t)    ((JSValue)((uint32_t)(p) + (t)))
 #define clear_tag(p)    ((uint32_t)(p) & ~TAGMASK)
+#define remove_tag(p,t) (clear_tag(p))
+#define equal_tag(p,t)  (get_tag((p)) == (t))
+#else
+#define TAGOFFSET (3)
+#define TAGMASK   (0x7)  /* 111 */
+
+#define get_tag(p)      (((Tag)(p)) & TAGMASK)
+#define put_tag(p,t)    ((JSValue)((uint64_t)(p) + (t)))
+#define clear_tag(p)    ((uint64_t)(p) & ~TAGMASK)
 #define remove_tag(p,t) (clear_tag(p))
 #define equal_tag(p,t)  (get_tag((p)) == (t))
 #endif
@@ -77,24 +79,7 @@
 #define TP_FIXSPE TAG_PAIR(T_FIXNUM, T_SPECIAL)
 #define TP_FIXFIX TAG_PAIR(T_FIXNUM, T_FIXNUM)
 
-#ifdef BIT_64
-typedef uint16_t Register;
-typedef int32_t  InstructionDisplacement;
-typedef uint32_t  PrimitiveDisplacement;
-typedef uint16_t Subscript;
-typedef uint16_t Tag;
-
-#define minval_register() (0)
-#define maxval_register() (UINT16_MAX)
-#define minval_instruction_displacement() (INT32_MIN)
-#define maxval_instruction_displacement() (INT32_MAX)
-#define minval_primitive_displacement() (0)
-#define maxval_primitive_displacement() (UINT32_MAX)
-#define minval_subscript() (0)
-#define maxval_subscript() (UINT16_MAX)
-#define minval_tag() (0)
-#define maxval_tag() (UINT16_MAX)
-#else
+#ifdef BIT_32
 typedef uint8_t Register;
 typedef int16_t  InstructionDisplacement;
 typedef uint16_t  PrimitiveDisplacement;
@@ -111,58 +96,67 @@ typedef uint8_t Tag;
 #define maxval_subscript() (UINT8_MAX)
 #define minval_tag() (0)
 #define maxval_tag() (UINT8_MAX)
+#else
+typedef uint16_t Register;
+typedef int32_t  InstructionDisplacement;
+typedef uint32_t  PrimitiveDisplacement;
+typedef uint16_t Subscript;
+typedef uint16_t Tag;
+
+#define minval_register() (0)
+#define maxval_register() (UINT16_MAX)
+#define minval_instruction_displacement() (INT32_MIN)
+#define maxval_instruction_displacement() (INT32_MAX)
+#define minval_primitive_displacement() (0)
+#define maxval_primitive_displacement() (UINT32_MAX)
+#define minval_subscript() (0)
+#define maxval_subscript() (UINT16_MAX)
+#define minval_tag() (0)
+#define maxval_tag() (UINT16_MAX)
 #endif
 
-#define load_small_primitive(pvar, val, message)            \
-do {                                                        \
-  int _val_tmp;                                             \
-  _val_tmp = (val);                                         \
-  if (_val_tmp < minval_small_primitive())                  \
-    LOG_EXIT((message " IS LESS THAN VALID RANGE"));        \
-  if (maxval_small_primitive() < _val_tmp)                  \
-    LOG_EXIT((message " IS GREATER THAN VALID RANGE"));     \
-  *(pvar) = (SmallPrimitive)_val_tmp;                       \
+#define load_value(pvar, val, min, max, type, msg)    \
+do {                                                  \
+  int _val_tmp;                                       \
+  _val_tmp = (val);                                   \
+  if (_val_tmp < (min))                               \
+    LOG_EXIT("%s : %d IS LESS THAN MIN VALUE %d.",    \
+             msg, _val_tmp, (min));                   \
+  if ((max) < _val_tmp)                               \
+    LOG_EXIT("%s : %d IS GREATER THAN MAX VALUE %d.", \
+             msg, _val_tmp, (max));                   \
+  *(pvar) = type _val_tmp;                            \
 } while(0)
-#define load_register(pvar, val, message)                   \
-do {                                                        \
-  int _val_tmp;                                             \
-  _val_tmp = (val);                                         \
-  if (_val_tmp < minval_register())                         \
-    LOG_EXIT((message " IS LESS THAN VALID RANGE"));        \
-  if (maxval_register() < _val_tmp)                         \
-    LOG_EXIT((message " IS GREATER THAN VALID RANGE"));     \
-  *(pvar) = (Register)_val_tmp;                             \
-} while(0)
-#define load_instruction_displacement(pvar, val, message)   \
-do {                                                        \
-  int _val_tmp;                                             \
-  _val_tmp = (val);                                         \
-  if (_val_tmp < minval_instruction_displacement())         \
-    LOG_EXIT((message " IS LESS THAN VALID RANGE"));        \
-  if (maxval_instruction_displacement() < _val_tmp)         \
-    LOG_EXIT((message " IS GREATER THAN VALID RANGE"));     \
-  *(pvar) = (InstructionDisplacement)_val_tmp;              \
-} while(0)
-#define load_primitive_displacement(pvar, val, message)     \
-do {                                                        \
-  int _val_tmp;                                             \
-  _val_tmp = (val);                                         \
-  if (_val_tmp < minval_primitive_displacement())           \
-    LOG_EXIT((message " IS LESS THAN VALID RANGE"));        \
-  if (maxval_primitive_displacement() < _val_tmp)           \
-    LOG_EXIT((message " IS GREATER THAN VALID RANGE"));     \
-  *(pvar) = (PrimitiveDisplacement)_val_tmp;                \
-} while(0)
-#define load_subscript(pvar, val, message)                  \
-do {                                                        \
-  int _val_tmp;                                             \
-  _val_tmp = (val);                                         \
-  if (_val_tmp < minval_subscript())                        \
-    LOG_EXIT((message " IS LESS THAN VALID RANGE"));        \
-  if (maxval_subscript() < _val_tmp)                        \
-    LOG_EXIT((message " IS GREATER THAN VALID RANGE"));     \
-  *(pvar) = (Subscript)_val_tmp;                            \
-} while(0)
+
+#define load_small_primitive(pvar, val, msg) \
+  load_value(pvar, val,                      \
+             minval_small_primitive(),       \
+             maxval_small_primitive(),       \
+             (SmallPrimitive), msg)
+
+#define load_register(pvar, val, msg) \
+  load_value(pvar, val,               \
+             minval_register(),       \
+             maxval_register(),       \
+             (Register), msg)
+
+#define load_instruction_displacement(pvar, val, msg) \
+  load_value(pvar, val,                               \
+             minval_instruction_displacement(),       \
+             maxval_instruction_displacement(),       \
+             (InstructionDisplacement), msg)
+
+#define load_primitive_displacement(pvar, val, msg) \
+  load_value(pvar, val,                             \
+             minval_primitive_displacement(),       \
+             maxval_primitive_displacement(),       \
+             (PrimitiveDisplacement), msg)
+
+#define load_subscript(pvar, val, msg) \
+  load_value(pvar, val,                \
+             minval_subscript(),       \
+             maxval_subscript(),       \
+             (Subscript), msg)
 
 /*
  * Object
@@ -204,14 +198,18 @@ typedef struct hidden_class {
  */
 #endif
 
-#ifdef BIT_64
-typedef uint64_t JSObjectSize;
-#else
+#ifdef BIT_32
 typedef uint32_t JSObjectSize;
+
+#define PRIJSObjectSize PRIu32
+#else
+typedef uint64_t JSObjectSize;
+
+#define PRIJSObjectSize PRIu64
 #endif
 
 typedef struct object_cell {
-  JSObjectSize n_props;       /* number of properties */
+  JSObjectSize n_props;   /* number of properties */
   JSObjectSize limit_props;
 #ifdef HIDDEN_CLASS
   HiddenClass *class;     /* Hidden class for this object */
@@ -262,8 +260,8 @@ typedef struct object_cell {
 #define new_normal_predef_object(ctx)                   \
   new_simple_object(ctx, HSIZE_NORMAL, PSIZE_NORMAL)
 #define new_big_predef_object(ctx) new_simple_object(ctx, HSIZE_BIG, PSIZE_BIG)
-#define new_big_predef_object_without_prototype(ctx)                    \
-  new_simple_object_without_prototype(ctx, HSIZE_BIG, PSIZE_BIG)
+#define new_big_predef_object_without___proto__(ctx)                    \
+  new_simple_object_without___proto__(ctx, HSIZE_BIG, PSIZE_BIG)
 
 #define new_normal_function(ctx, s) new_function(ctx, s, HHH, PSIZE_NORMAL)
 
@@ -296,16 +294,20 @@ typedef struct object_cell {
  * Array
  * tag == T_GENERIC
  */
-#ifdef BIT_64
-typedef uint64_t JSArraySize;
-#else
+#ifdef BIT_32
 typedef uint32_t JSArraySize;
+
+#define PRIJSArraySize PRIu32
+#else
+typedef uint64_t JSArraySize;
+
+#define PRIJSArraySize PRIu64
 #endif
 
 typedef struct array_cell {
   Object o;
-  JSArraySize size;        /* size of the C array pointed from `body' field */
-  JSArraySize length;      /* length of the array, i.e., max subscript - 1 */
+  JSArraySize size;     /* size of the C array pointed from `body' field */
+  JSArraySize length;   /* length of the array, i.e., max subscript - 1 */
   JSValue *body;        /* pointer to a C array */
 } ArrayCell;
 
@@ -320,7 +322,7 @@ typedef struct array_cell {
 #define ASIZE_INIT   10       /* default initial size of the C array */
 #define ASIZE_DELTA  10       /* delta when expanding the C array */
 #define ASIZE_LIMIT  100      /* limit size of the C array */
-#ifdef BIT_64
+#ifdef BIT_32
 #define MAX_ARRAY_LENGTH  ((JSArraySize)(0x00000000ffffffff))
 #else
 #define MAX_ARRAY_LENGTH  ((JSArraySize)(0x03ffffff))
@@ -381,14 +383,19 @@ typedef struct builtin_cell {
  * Iterator
  * tag == T_GENERIC
  */
-#ifdef BIT_64
-typedef uint64_t JSIteratorSize;
-#else
+#ifdef BIT_32
 typedef uint32_t JSIteratorSize;
+
+#define PRIJSIteratorSize PRIu32
+#else
+typedef uint64_t JSIteratorSize;
+
+#define PRIJSIteratorSize PRIu64
 #endif
+
 typedef struct iterator {
-  JSIteratorSize size;        /* array size */
-  JSIteratorSize index;       /* array index */
+  JSIteratorSize size;  /* array size */
+  JSIteratorSize index; /* array index */
   JSValue *body;        /* pointer to a C array */
 } Iterator;
 
@@ -572,12 +579,12 @@ typedef struct string_cell {
  */
 
 /* change name: OBJECT_xxx -> HEADER_xxx (ugawa) */
-#define HEADER_SIZE_OFFSET   (32)
+/* #define HEADER_SIZE_OFFSET   (32) */
 /* #define HEADER_TYPE_MASK     ((uint64_t)0x000000ff) */
 /* #define HEADER_SHARED_MASK   ((uint64_t)0x80000000) */
 /* #define FUNCTION_ATOMIC_MASK ((uint64_t)0x40000000) */
 
-#define make_header(s, t) (((uint64_t)(s) << HEADER_SIZE_OFFSET) | (t))
+#define make_header(s, t) (((header_t)(s) << HEADER0_SIZE_OFFSET) | (t))
 
 /*
  * header tags for non-JS objects
@@ -603,120 +610,26 @@ typedef struct string_cell {
  * So we use `cint' to represent a fixnum value.
  */
 
-#ifdef BIT_64
-typedef int64_t cint;
-typedef uint64_t cuint;
-
-
-#define PRIcint PRId64
-
-/* #define fixnum_to_int(p) (((int64_t)(p)) >> TAGOFFSET) */
-#define fixnum_to_cint(p) (((cint)(p)) >> TAGOFFSET)
-#define fixnum_to_int(p)  ((int)fixnum_to_cint(p))
-#define fixnum_to_double(p) ((double)(fixnum_to_cint(p)))
-
-/*
- * #define int_to_fixnum(f) \
- * ((JSValue)(put_tag((((uint64_t)(f)) << TAGOFFSET), T_FIXNUM)))
- */
-#define int_to_fixnum(f)    cint_to_fixnum(((cint)(f)))
-#define cint_to_fixnum(f)   put_tag(((uint64_t)(f) << TAGOFFSET), T_FIXNUM)
-
-/* #define double_to_fixnum(f) int_to_fixnum((int64_t)(f)) */
-#define double_to_fixnum(f) cint_to_fixnum((cint)(f))
-
-#define is_fixnum_range_cint(n)                                 \
-  ((MIN_FIXNUM_CINT <= (n)) && ((n) <= MAX_FIXNUM_CINT))
-
-#define is_integer_value_double(d) ((d) == (double)((cint)(d)))
-
-#define is_fixnum_range_double(d)                                       \
-  (is_integer_value_double(d) && is_fixnum_range_cint((cint)(d)))
-
-#define in_fixnum_range(dval)                           \
-  ((((double)(dval)) == ((double)((int64_t)(dval))))    \
-   && ((((int64_t)(dval)) <= MAX_FIXNUM_INT)            \
-       && (((int64_t)(dval)) >= MIN_FIXNUM_INT)))
-
-#define in_flonum_range(ival)                           \
-  ((ival ^ (ival << 1))                                 \
-   & ((int64_t)1 << (BITS_IN_JSVALUE - TAGOFFSET)))
-
-#define half_fixnum_range(ival)                                         \
-  (((MIN_FIXNUM_CINT / 2) <= (ival)) && ((ival) <= (MAX_FIXNUM_CINT / 2)))
-
-#define FIXNUM_ZERO (cint_to_fixnum((cint)0))
-#define FIXNUM_ONE  (cint_to_fixnum((cint)1))
-#define FIXNUM_TEN  (cint_to_fixnum((cint)10))
-
-#define MAX_FIXNUM_CINT (((cint)(1) << (BITS_IN_JSVALUE - TAGOFFSET - 1)) - 1)
-#define MIN_FIXNUM_CINT (-MAX_FIXNUM_CINT-1)
-
-
-#define cint_to_number(n)                                               \
-  (is_fixnum_range_cint((n))? cint_to_fixnum((n)): cint_to_flonum((n)))
-
-#define number_to_double(p)                                     \
-  ((is_fixnum(p)? fixnum_to_double(p): flonum_to_double(p)))
-#define double_to_number(d)                                             \
-  ((is_fixnum_range_double(d))? double_to_fixnum(d): double_to_flonum(d))
-
-/*
- * Special
- * tag == T_SPECIAL
- */
-#define SPECIALOFFSET           (TAGOFFSET + 1)
-#define SPECIALMASK             ((uint64_t)(1 << SPECIALOFFSET) - 1)
-
-#define make_special(spe,t)     ((JSValue)((spe) << SPECIALOFFSET | (t)))
-#define special_tag(p)          ((uint64_t)(p) & SPECIALMASK)
-#define special_equal_tag(p,t)  (special_tag((p)) == (t))
-
-/*
- * Special - Boolean
- */
-#define T_BOOLEAN         ((0x1 << TAGOFFSET) | T_SPECIAL)
-#define JS_TRUE           make_special(1, T_BOOLEAN)
-#define JS_FALSE          make_special(0, T_BOOLEAN)
-
-#define is_boolean(p)     (special_tag((p)) == T_BOOLEAN)
-#define is_true(p)        ((p) == JS_TRUE)
-#define is_false(p)       ((p) == JS_FALSE)
-#define int_to_boolean(e) ((e) ? JS_TRUE : JS_FALSE)
-
-#define true_false(e)     ((e) ? JS_TRUE : JS_FALSE)
-#define false_true(e)     ((e) ? JS_FALSE : JS_TRUE)
-
-/*
- * Special - Others
- */
-#define T_OTHER           ((0x0 << TAGOFFSET) | T_SPECIAL)
-#define JS_NULL           make_special(0, T_OTHER)
-#define JS_UNDEFINED      make_special(1, T_OTHER)
-
-#define is_null_or_undefined(p)  (special_tag((p)) == T_OTHER)
-#define is_null(p)               ((p) == JS_NULL)
-#define is_undefined(p)          ((p) == JS_UNDEFINED)
-#else
+#ifdef BIT_32
 typedef int32_t cint;
 typedef uint32_t cuint;
 
 #define PRIcint PRId32
+#else
+typedef int64_t cint;
+typedef uint64_t cuint;
+
+#define PRIcint PRId64
+#endif
 
 
-/* #define fixnum_to_int(p) (((int64_t)(p)) >> TAGOFFSET) */
-#define fixnum_to_cint(p) ((cint)(((int32_t)(p)) >> TAGOFFSET))
+#define fixnum_to_cint(p) (((cint)(p)) >> TAGOFFSET)
 #define fixnum_to_int(p)  ((int)fixnum_to_cint(p))
 #define fixnum_to_double(p) ((double)(fixnum_to_cint(p)))
 
-/*
- * #define int_to_fixnum(f) \
- * ((JSValue)(put_tag((((uint64_t)(f)) << TAGOFFSET), T_FIXNUM)))
- */
 #define int_to_fixnum(f)    cint_to_fixnum(((cint)(f)))
-#define cint_to_fixnum(f)   put_tag(((uint32_t)(f) << TAGOFFSET), T_FIXNUM)
+#define cint_to_fixnum(f)   put_tag(((cuint)(f) << TAGOFFSET), T_FIXNUM)
 
-/* #define double_to_fixnum(f) int_to_fixnum((int64_t)(f)) */
 #define double_to_fixnum(f) cint_to_fixnum((cint)(f))
 
 #define is_fixnum_range_cint(n)                                 \
@@ -728,13 +641,13 @@ typedef uint32_t cuint;
   (is_integer_value_double(d) && is_fixnum_range_cint((cint)(d)))
 
 #define in_fixnum_range(dval)                           \
-  ((((double)(dval)) == ((double)((int32_t)(dval))))    \
-   && ((((int32_t)(dval)) <= MAX_FIXNUM_INT)            \
-       && (((int32_t)(dval)) >= MIN_FIXNUM_INT)))
+  ((((double)(dval)) == ((double)((cint)(dval))))    \
+   && ((((cint)(dval)) <= MAX_FIXNUM_INT)            \
+       && (((cint)(dval)) >= MIN_FIXNUM_INT)))
 
 #define in_flonum_range(ival)                           \
   ((ival ^ (ival << 1))                                 \
-   & ((int32_t)1 << (BITS_IN_JSVALUE - TAGOFFSET)))
+   & ((cint)1 << (BITS_IN_JSVALUE - TAGOFFSET)))
 
 #define half_fixnum_range(ival)                                         \
   (((MIN_FIXNUM_CINT / 2) <= (ival)) && ((ival) <= (MAX_FIXNUM_CINT / 2)))
@@ -760,10 +673,10 @@ typedef uint32_t cuint;
  * tag == T_SPECIAL
  */
 #define SPECIALOFFSET           (TAGOFFSET + 1)
-#define SPECIALMASK             ((uint32_t)(1 << SPECIALOFFSET) - 1)
+#define SPECIALMASK             ((cuint)(1 << SPECIALOFFSET) - 1)
 
 #define make_special(spe,t)     ((JSValue)((spe) << SPECIALOFFSET | (t)))
-#define special_tag(p)          ((uint32_t)(p) & SPECIALMASK)
+#define special_tag(p)          ((cuint)(p) & SPECIALMASK)
 #define special_equal_tag(p,t)  (special_tag((p)) == (t))
 
 /*
@@ -791,7 +704,6 @@ typedef uint32_t cuint;
 #define is_null_or_undefined(p)  (special_tag((p)) == T_OTHER)
 #define is_null(p)               ((p) == JS_NULL)
 #define is_undefined(p)          ((p) == JS_UNDEFINED)
-#endif
 
 /*
  * Primitive is either number, boolean, or string.
@@ -807,6 +719,8 @@ typedef uint32_t cuint;
   set_prop_with_attribute(c, o, s, v, ATTR_NONE)
 #define set_prop_all(c, o, s, v) set_prop_with_attribute(c, o, s, v, ATTR_ALL)
 #define set_prop_de(c, o, s, v) set_prop_with_attribute(c, o, s, v, ATTR_DE)
+#define set_prop_ddde(c, o, s, v)                       \
+  set_prop_with_attribute(c, o, s, v, ATTR_DDDE)
 
 #define set___proto___none(c, o, v)                     \
   set_prop_none(c, o, gconsts.g_string___proto__, v)
@@ -828,3 +742,9 @@ typedef uint32_t cuint;
 
 #define get___proto__(o, r) get_prop(o, gconsts.g_string___proto__, r)
 #endif
+
+/* Local Variables:      */
+/* mode: c               */
+/* c-basic-offset: 2     */
+/* indent-tabs-mode: nil */
+/* End:                  */

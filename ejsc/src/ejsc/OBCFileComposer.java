@@ -9,16 +9,24 @@
 package ejsc;
 
 import java.io.FileOutputStream;
+
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.List;
+
+import specfile.SpecFile;
+
 import ejsc.Main.Info;
+import ejsc.Main.Info.BaseBit;
+
 
 public class OBCFileComposer extends OutputFileComposer {
     static final boolean DEBUG = false;
 
     static final boolean BIG_ENDIAN        = true;
+
+    static final byte OBC_FILE_MAGIC       = (byte) 0xec;
 
     static final int FIELD_VALUE_TRUE      = 0x03;
     static final int FIELD_VALUE_FALSE     = 0x01;
@@ -410,7 +418,7 @@ public class OBCFileComposer extends OutputFileComposer {
             default:
                 throw new Error("Unknown instruction format");    
             }
-            
+
             if (DEBUG)
                 System.out.println(String.format("insn: %016x  %s", insn, insnName));
 
@@ -454,9 +462,9 @@ public class OBCFileComposer extends OutputFileComposer {
         int getOpcode(String insnName, SrcOperand... srcs) {
             String decorated = OBCFileComposer.decorateInsnName(insnName, srcs);
             if (decorated == null)
-                return Info.getOpcodeIndex(insnName);
+                return spec.getOpcodeIndex(insnName);
             else
-                return Main.Info.SISpecInfo.getOpcodeIndex(decorated);
+                return spec.getOpcodeIndex(decorated);
         }
 
         int fieldBitsOf(SrcOperand src) {
@@ -479,13 +487,13 @@ public class OBCFileComposer extends OutputFileComposer {
                 SpecialOperand.V v = ((SpecialOperand) src).get();
                 switch (v) {
                 case TRUE:
-                    return (FIELD_VALUE_TRUE << Info.specPTAGSize) | Info.specPTAGValue;
+                    return (FIELD_VALUE_TRUE << Info.PTAGSize) | Info.SpecPTAGValue;
                 case FALSE:
-                    return (FIELD_VALUE_FALSE << Info.specPTAGSize) | Info.specPTAGValue;
+                    return (FIELD_VALUE_FALSE << Info.PTAGSize) | Info.SpecPTAGValue;
                 case NULL:
-                    return (FIELD_VALUE_NULL << Info.specPTAGSize) | Info.specPTAGValue;
+                    return (FIELD_VALUE_NULL << Info.PTAGSize) | Info.SpecPTAGValue;
                 case UNDEFINED:
-                    return (FIELD_VALUE_UNDEFINED << Info.specPTAGSize) | Info.specPTAGValue;
+                    return (FIELD_VALUE_UNDEFINED << Info.PTAGSize) | Info.SpecPTAGValue;
                 default:
                     throw new Error("Unknown special");
                 }
@@ -525,13 +533,13 @@ public class OBCFileComposer extends OutputFileComposer {
             int b;
             switch (v) {
             case TRUE:
-                b = (FIELD_VALUE_TRUE << Info.specPTAGSize) | Info.specPTAGValue; break;
+                b =  (FIELD_VALUE_TRUE << Info.PTAGSize) | Info.SpecPTAGValue; break;
             case FALSE:
-                b = (FIELD_VALUE_FALSE << Info.specPTAGSize) | Info.specPTAGValue; break;
+                b =  (FIELD_VALUE_FALSE << Info.PTAGSize) | Info.SpecPTAGValue; break;
             case NULL:
-                b = (FIELD_VALUE_NULL << Info.specPTAGSize) | Info.specPTAGValue; break;
+                b =  (FIELD_VALUE_NULL << Info.PTAGSize) | Info.SpecPTAGValue; break;
             case UNDEFINED:
-                b = (FIELD_VALUE_UNDEFINED << Info.specPTAGSize) | Info.specPTAGValue; break;
+                b =  (FIELD_VALUE_UNDEFINED << Info.PTAGSize) | Info.SpecPTAGValue; break;
             default:
                 throw new Error("Unknown special");
             }
@@ -639,7 +647,8 @@ public class OBCFileComposer extends OutputFileComposer {
         public void addMakeClosureOp(String insnName, boolean log, Register dst, int index) {
             int opcode = getOpcode(insnName);
             int a = dst.getRegisterNumber();
-            int b = index + functionNumberOffset;
+            // int b = index + functionNumberOffset;
+            int b = index;
             OBCInstruction insn = OBCInstruction.createMakeClosureOp(insnName, opcode, a, b);
             instructions.add(insn);
         }
@@ -674,16 +683,23 @@ public class OBCFileComposer extends OutputFileComposer {
     }
 
     List<OBCFunction> obcFunctions;
-    Info.Platform targetPlatform;
+    BaseBit basebit;
 
-    OBCFileComposer(BCBuilder compiledFunctions, Info.Platform targetPlatform, int functionNumberOffset) {
-        this.targetPlatform = targetPlatform;
+    OBCFileComposer(BCBuilder compiledFunctions, int functionNumberOffset, SpecFile spec, BaseBit basebit) {
+        super(spec);
+        this.basebit = basebit;
         List<BCBuilder.FunctionBCBuilder> fbs = compiledFunctions.getFunctionBCBuilders();
         obcFunctions = new ArrayList<OBCFunction>(fbs.size());
         for (BCBuilder.FunctionBCBuilder fb: fbs) {
             OBCFunction out = new OBCFunction(fb, functionNumberOffset);
             obcFunctions.add(out);
         }
+    }
+
+    private void outputByte(OutputStream out, byte v) throws IOException {
+        if (DEBUG)
+            System.out.println(String.format("byte: %02x", v));
+        out.write(v);
     }
 
     private void outputShort(OutputStream out, int v) throws IOException {
@@ -711,18 +727,19 @@ public class OBCFileComposer extends OutputFileComposer {
     void output(String fileName) {
         try {
             FileOutputStream out = new FileOutputStream(fileName);
-            InsnBinaryFormatter formatter;
 
-            switch(targetPlatform) {
-                case BIT_32:
-                    formatter = new Insn32bitFormatter();
-                    break;
-                case BIT_64:
-                    formatter = new Insn64bitFormatter();
-                    break;
-                default:
-                    formatter = new Insn64bitFormatter();
-                    break;
+            outputByte(out, OBC_FILE_MAGIC);
+            outputByte(out, spec.getFingerprint());
+            InsnBinaryFormatter formatter;
+            switch(this.basebit) {
+            case BIT_32:
+                formatter = new Insn32bitFormatter();
+                break;
+            case BIT_64:
+                formatter = new Insn64bitFormatter();
+                break;
+            default:
+                throw(new Error("Unknown basebit option"));
             }
 
             /* File header */

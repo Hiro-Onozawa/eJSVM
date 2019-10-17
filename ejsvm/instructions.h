@@ -151,26 +151,26 @@ typedef struct insn_info {
 /*
  * bytecode
  */
-#ifdef BIT_64
-typedef uint64_t Bytecode;
-typedef uint32_t Counter;
-typedef int32_t  SmallPrimitive;
-typedef int32_t  BigPrimitiveId;
-
-#define minval_small_primitive() (INT32_MIN)
-#define maxval_small_primitive() (INT32_MAX)
-
-#define PRIByteCode PRIx64
-#else
+#ifdef BIT_32
 typedef uint32_t Bytecode;
 typedef uint32_t Counter;
 typedef int16_t  SmallPrimitive;
-typedef int16_t  BigPrimitiveId;
+typedef uint16_t BigPrimitiveId;
 
 #define minval_small_primitive() (INT16_MIN)
 #define maxval_small_primitive() (INT16_MAX)
 
-#define PRIByteCode PRIx32
+#define PRIByteCode PRIu32
+#else
+typedef uint64_t Bytecode;
+typedef uint32_t Counter;
+typedef int32_t  SmallPrimitive;
+typedef uint32_t BigPrimitiveId;
+
+#define minval_small_primitive() (INT32_MIN)
+#define maxval_small_primitive() (INT32_MAX)
+
+#define PRIByteCode PRIu64
 #endif
 
 /*
@@ -196,24 +196,7 @@ typedef struct instruction {
  */
 #define get_literal(insns, disp)  (((JSValue *)(insns))[disp])
 
-#ifdef BIT_64
-#define OPCODE_OFFSET         (48)
-#define FIRST_OPERAND_OFFSET  (32)
-#define SECOND_OPERAND_OFFSET (16)
-#define CONST_SUBSCR_OFFSET   SECOND_OPERAND_OFFSET
-
-#define OPCODE_MASK             ((Bytecode)(0xffff000000000000))
-#define OPERAND_MASK            (0xffff)
-#define FIRST_OPERAND_MASK      ((Bytecode)(0x0000ffff00000000))
-#define SECOND_OPERAND_MASK     ((Bytecode)(0x00000000ffff0000))
-#define THIRD_OPERAND_MASK      ((Bytecode)(0x000000000000ffff))
-
-#define SMALLPRIMITIVE_IMMMASK  ((Bytecode)(0x00000000ffffffff))
-#define BIGPRIMITIVE_SUBSCRMASK ((Bytecode)(0x00000000ffffffff))
-#define INSTRUCTION_DISP_MASK   ((Bytecode)(0x00000000ffffffff))
-
-#define CONST_SUBSCR_MASK       ((Bytecode)(0x00000000ffff0000))
-#else
+#ifdef BIT_32
 #define OPCODE_OFFSET         (24)
 #define FIRST_OPERAND_OFFSET  (16)
 #define SECOND_OPERAND_OFFSET (8)
@@ -227,9 +210,26 @@ typedef struct instruction {
 
 #define SMALLPRIMITIVE_IMMMASK  ((Bytecode)(0x0000ffff))
 #define BIGPRIMITIVE_SUBSCRMASK ((Bytecode)(0x0000ffff))
-#define INSTRUCTION_DISP_MASK   ((Bytecode)(0x0000ffff))
+#define INSTRUCTION_DISPMASK    ((Bytecode)(0x0000ffff))
 
 #define CONST_SUBSCR_MASK       ((Bytecode)(0x0000ff00))
+#else
+#define OPCODE_OFFSET         (48)
+#define FIRST_OPERAND_OFFSET  (32)
+#define SECOND_OPERAND_OFFSET (16)
+#define CONST_SUBSCR_OFFSET   SECOND_OPERAND_OFFSET
+
+#define OPCODE_MASK             ((Bytecode)(0xffff000000000000))
+#define OPERAND_MASK            (0xffff)
+#define FIRST_OPERAND_MASK      ((Bytecode)(0x0000ffff00000000))
+#define SECOND_OPERAND_MASK     ((Bytecode)(0x00000000ffff0000))
+#define THIRD_OPERAND_MASK      ((Bytecode)(0x000000000000ffff))
+
+#define SMALLPRIMITIVE_IMMMASK  ((Bytecode)(0x00000000ffffffff))
+#define BIGPRIMITIVE_SUBSCRMASK ((Bytecode)(0x00000000ffffffff))
+#define INSTRUCTION_DISPMASK    ((Bytecode)(0x00000000ffffffff))
+
+#define CONST_SUBSCR_MASK       ((Bytecode)(0x00000000ffff0000))
 #endif
 
 #define three_operands(op1, op2, op3)           \
@@ -252,12 +252,17 @@ typedef struct instruction {
 #define makecode_smallprimitive(oc, op, imm)            \
   (((Bytecode)(oc) << OPCODE_OFFSET) |                  \
    ((Bytecode)(op) << FIRST_OPERAND_OFFSET) |           \
-   (((Bytecode)(imm) & SMALLPRIMITIVE_IMMMASK)))
+   ((Bytecode)((SmallPrimitive)(imm) & SMALLPRIMITIVE_IMMMASK)))
 
 #define makecode_bigprimitive(oc, op, index)            \
   (((Bytecode)(oc) << OPCODE_OFFSET) |                  \
    ((Bytecode)(op) << FIRST_OPERAND_OFFSET) |           \
-   (((Bytecode)(index) & BIGPRIMITIVE_SUBSCRMASK)))
+   ((Bytecode)((BigPrimitiveId)(index) & BIGPRIMITIVE_SUBSCRMASK)))
+
+#define makecode_condjump(oc, src, disp)                \
+  (((Bytecode)(oc) << OPCODE_OFFSET) |                  \
+   ((Bytecode)(src) << FIRST_OPERAND_OFFSET) |          \
+   ((Bytecode)((InstructionDisplacement)(disp) & INSTRUCTION_DISPMASK)))
 
 /*
  * macros for making various instructions
@@ -313,20 +318,8 @@ typedef struct instruction {
 #define makecode_slowsetglobal(op1, op2, op3)           \
   makecode_three_operands(SLOWSETGLOBAL, op1, op2, op3)
 
-#define makecode_jump(opcode, disp)                 \
-  (makecode_cond_jump(opcode, 0, disp))
-
-#ifdef BIT_64
-#define makecode_cond_jump(opcode, src, disp)       \
-  ( ((Bytecode)(opcode) << OPCODE_OFFSET)         | \
-    ((Bytecode)(src)    << FIRST_OPERAND_OFFSET)  | \
-    (Bytecode)((uint32_t)((InstructionDisplacement)(disp))) )
-#else
-#define makecode_cond_jump(opcode, src, disp)       \
-  ( ((Bytecode)(opcode) << OPCODE_OFFSET)         | \
-    ((Bytecode)(src)    << FIRST_OPERAND_OFFSET)  | \
-    (Bytecode)((uint16_t)((InstructionDisplacement)(disp))) )
-#endif
+#define makecode_jump(opcode, disp)                     \
+  makecode_condjump(opcode, 0, disp)
 
 #define makecode_getvar(opcode, op1, op2, op3)          \
   makecode_three_operands(opcode, op1, op2, op3)
@@ -366,34 +359,23 @@ typedef struct instruction {
 
 #define get_third_operand_value(code)  (regbase[get_third_operand_reg(code)])
 
-#define get_first_operand_primitive_disp(code)            \
+#define get_first_operand_primitive_disp(code)  \
   ((PrimitiveDisplacement)(get_first_operand(code)))
-#define get_second_operand_primitive_disp(code)           \
+
+#define get_second_operand_primitive_disp(code) \
   ((PrimitiveDisplacement)(get_second_operand(code)))
-#define get_third_operand_primitive_disp(code)            \
+
+#define get_third_operand_primitive_disp(code)  \
   ((PrimitiveDisplacement)(get_third_operand(code)))
 
-#ifdef BIT_64
-#define get_instruction_disp(code) \
-  ((InstructionDisplacement)((uint32_t)((Bytecode)(code) & INSTRUCTION_DISP_MASK)))
-
 #define get_first_operand_instruction_disp(code)  \
-  (get_instruction_disp((code)))
-#define get_second_operand_instruction_disp(code) \
-  (get_instruction_disp((code)))
-#define get_third_operand_instruction_disp(code)  \
-  (get_instruction_disp((code)))
-#else
-#define get_instruction_disp(code) \
-  ((InstructionDisplacement)((uint16_t)((Bytecode)(code) & INSTRUCTION_DISP_MASK)))
+  ((InstructionDisplacement)(get_first_operand(code)))
 
-#define get_first_operand_instruction_disp(code)  \
-  (get_instruction_disp((code)))
 #define get_second_operand_instruction_disp(code) \
-  (get_instruction_disp((code)))
+  ((InstructionDisplacement)(get_second_operand(code)))
+
 #define get_third_operand_instruction_disp(code)  \
-  (get_instruction_disp((code)))
-#endif
+  ((InstructionDisplacement)(get_third_operand(code)))
 
 #define get_first_operand_subscr(code) ((Subscript)(get_first_operand(code)))
 
@@ -407,7 +389,15 @@ typedef struct instruction {
  */
 
 #define get_small_immediate(code)                                       \
-  ((SmallPrimitive)(((Bytecode)(code)) & SMALLPRIMITIVE_IMMMASK))
+  ((SmallPrimitive)((Bytecode)(code) & SMALLPRIMITIVE_IMMMASK))
+
+#define get_big_subscr(code) ((Bytecode)(code) & BIGPRIMITIVE_SUBSCRMASK)
+
+#define get_big_primitive_disp(code)                                    \
+  ((PrimitiveDisplacement)((Bytecode)(code) & BIGPRIMITIVE_SUBSCRMASK))
+
+#define get_jump_instruction_disp(code)                                 \
+  ((InstructionDisplacement)((Bytecode)(code) & INSTRUCTION_DISPMASK))
 
 #define update_first_operand_disp(code, disp)           \
   makecode_three_operands(get_opcode(code), disp,       \
@@ -422,33 +412,22 @@ typedef struct instruction {
   makecode_three_operands(get_opcode(code), get_first_operand_reg(code), \
                           get_second_operand_reg(code), disp)
 
-#define get_big_subscr(code) (((Bytecode)(code)) & BIGPRIMITIVE_SUBSCRMASK)
-
-#ifdef BIT_64
-#define get_big_disp(code)                                              \
-  ((PrimitiveDisplacement)((uint32_t)(((Bytecode)(code)) & BIGPRIMITIVE_SUBSCRMASK)))
-#else
-#define get_big_disp(code)                                              \
-  ((PrimitiveDisplacement)((uint16_t)(((Bytecode)(code)) & BIGPRIMITIVE_SUBSCRMASK)))
-#endif
-
 /* #define get_small_immediate(code) ((int)(get_second_operand(code))) */
 
-#ifdef BIT_64
-#define get_first_operand_int(code) ((int)((int16_t)(get_first_operand(code))))
-
-#define get_second_operand_int(code)            \
-  ((int)((int16_t)(get_second_operand(code))))
-
-#define get_third_operand_int(code) ((int)((int16_t)(get_third_operand(code))))
+#ifdef BIT_32
+#define operand_to_int(op) ((int)((int8_t)(op)))
 #else
-#define get_first_operand_int(code) ((int)((int8_t)(get_first_operand(code))))
-
-#define get_second_operand_int(code)            \
-  ((int)((int8_t)(get_second_operand(code))))
-
-#define get_third_operand_int(code) ((int)((int8_t)(get_third_operand(code))))
+#define operand_to_int(op) ((int)((int16_t)(op)))
 #endif
+
+#define get_first_operand_int(code)        \
+  operand_to_int(get_first_operand(code))
+
+#define get_second_operand_int(code)       \
+  operand_to_int(get_second_operand(code))
+
+#define get_third_operand_int(code)        \
+  operand_to_int(get_third_operand(code))
 
 /*
  * #define calc_displacement(numOfInst, codeIndex, constIndex) \
@@ -490,3 +469,9 @@ typedef struct instruction {
 #define LOAD_FAIL  (-1)
 
 #endif /* INSTRUCTIONS_H_ */
+
+/* Local Variables:      */
+/* mode: c               */
+/* c-basic-offset: 2     */
+/* indent-tabs-mode: nil */
+/* End:                  */

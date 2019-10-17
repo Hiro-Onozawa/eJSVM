@@ -1,0 +1,60 @@
+[default]
+build: builds/sbc
+vm: %(build)s/ejsvm
+compiler: %(build)s/ejsc.jar
+compile-opt: -O
+
+[sbc]
+build: builds/sbc
+vm: %(build)s/ejsvm
+compiler: %(build)s/ejsc.jar
+compile-opt: -O
+
+[sbc_alloc]
+build: builds/sbc_alloc
+vm: %(build)s/ejsvm
+compiler: %(build)s/ejsc.jar
+compile-opt: -O
+
+[sbc_alloc_inl]
+build: builds/sbc_alloc_inl
+vm: %(build)s/ejsvm
+compiler: %(build)s/ejsc.jar
+compile-opt: -O
+
+[vmld_sbc]
+build: builds/vmdl_sbc
+vm: %(build)s/ejsvm
+compiler: %(build)s/ejsc.jar
+compile-opt: -O
+
+[vmdl_sbc_alloc_inl_si3]
+build: builds/vmdl_sbc_alloc_inl_si3
+vm: %(build)s/ejsvm
+compiler: %(build)s/ejsc.jar
+compile-opt: -O
+
+[vmdl_sbc_alloc_inl_si4]
+build: builds/vmdl_sbc_alloc_inl_si4
+vm: %(build)s/ejsvm
+compiler: %(build)s/ejsc.jar
+compile-opt: -O
+
+[vmdl_sbc_fixnum]
+build: builds/vmdl_sbc_fixnum
+vm: %(build)s/ejsvm
+compiler: %(build)s/ejsc.jar
+compile-opt: -O
+
+[obc_alloc_inl]
+build: builds/obc_alloc_inl
+vm: %(build)s/ejsvm
+compiler: %(build)s/ejsc.jar
+compile-opt: -O --out-obc
+bytecode: obc
+
+[hand_alloc_inl]
+build: builds/hand_alloc_inl
+vm: %(build)s/ejsvm
+compiler: %(build)s/ejsc.jar
+compile-opt: -O

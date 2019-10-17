@@ -62,7 +62,7 @@ def var_prefix(kind)
     "v"
   when "Subscript" then
     "s"
-  when "PrimitiveDisplacement" then
+  when "PrimitiveDisplacement", "InstructionDisplacement" then
     "d"
   when "int" then
     "i"

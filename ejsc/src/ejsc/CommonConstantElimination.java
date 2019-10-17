@@ -15,9 +15,18 @@ public class CommonConstantElimination {
     List<BCode> bcodes;
     AvailableExpressionAnalyser aea;
 
-    CommonConstantElimination(List<BCode> bcodes) {
+    CommonConstantElimination(List<BCode> bcodes, Main.Info info) {
         this.bcodes = bcodes;
         aea = new AvailableExpressionAnalyser(bcodes); 
+    }
+
+    Register min(Set<Register> rs) {
+        Register result = null;
+        for (Register r: rs) {
+            if (result == null || r.n < result.n)
+                result = r;
+        }
+        return result;
     }
 
     public List<BCode> exec() {
@@ -27,7 +36,7 @@ public class CommonConstantElimination {
             if (v != null) {
                 Set<Register> rs = aea.getRegisterForValue(bc, v);
                 if (rs != null && !rs.isEmpty()) {
-                    Register src = rs.iterator().next();
+                    Register src = min(rs);
                     Register dst = bc.getDestRegister();
                     BCode newBC = new IMove(dst, src);
                     newBC.addLabels(bc.getLabels());

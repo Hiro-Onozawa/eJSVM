@@ -1,0 +1,2 @@
+print({}.prototype)
+

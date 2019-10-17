@@ -11,27 +11,6 @@
 #define EXTERN
 #include "header.h"
 
-#define BUILD_BUG_ON(condition) typedef char _dummy_type[1 - 2*!!(condition)];
-#if !defined(BIT_64) && !defined(BIT_32)
-#error Either BIT_64 or BIT_32 must be defined.
-#endif
-#if (defined BIT_64) && (defined BIT_32)
-#error Both BIT_64 and BIT_32 are defined.
-#endif
-#if defined BIT_32
-//#if sizeof void * != 4
-//#error BIT_32 is defined, but size of pointer is not 32bit.
-//#endif
-BUILD_BUG_ON(sizeof (void *) != 4);
-#endif
-#if defined BIT_64
-//#if sizeof void * != 8
-//#error BIT_64 is defined, but size of pointer is not 64bit.
-//#endif
-BUILD_BUG_ON(sizeof (void *) != 8);
-#endif
-#undef BUILD_BUG_ON
-
 /*
  *  phase
  */
@@ -56,10 +35,10 @@ int coverage_flag;     /* print the coverage */
 int icount_flag;       /* print instruction count */
 int forcelog_flag;     /* treat every instruction as ``_log'' one */
 #endif
-#ifdef GC_PROFILE_SIZE
-unsigned int g_malloced_size_overflow;
-uintptr_t g_malloced_size;
-#endif
+
+/*
+#define DEBUG_TESTTEST
+*/
 
 #if defined(USE_OBC) && defined(USE_SBC)
 int obcsbc;
@@ -84,8 +63,8 @@ static uint64_t callcount = 0;
 /*
  * Debug function
  */
-void testtest(Context *cxt) {
-#if 0
+#ifdef DEBUG_TESTTEST
+static void testtest(Context *cxt) {
   JSValue v, p;
   printf("Testtest: cxt->global = %016lx, gconsts.g_global = %016lx\n",
          cxt->global, gconsts.g_global);
@@ -146,8 +125,8 @@ void testtest(Context *cxt) {
    *  v = string_to_boolean(cstr_to_boolean("one"));
    *  printf("\"one\" -> boolean: "); pp(v);
    */
-#endif
 }
+#endif
 
 /*
  * processes command line options
@@ -268,50 +247,6 @@ void print_icount(FunctionTable *ft, int n) {
 }
 #endif
 
-#ifdef GC_PROFILE_SIZE
-void print_malloced_size() {
-#define DIG_SIZE 5
-  unsigned int bytes[DIG_SIZE];
-  uintptr_t i;
-
-  for (i = 0; i < DIG_SIZE; ++i) 
-    bytes[i] = 0;
-
-  for (i = 0; i <= g_malloced_size_overflow; ++i) {
-    unsigned int j, tmp;
-    uintptr_t size;
-
-    size = (i == g_malloced_size_overflow) ? g_malloced_size : UINTPTR_MAX;
-    for (j = 0; j < DIG_SIZE - 1; ++j) {
-      tmp = bytes[j] + size % 1000;
-      size = size / 1000;
-      bytes[j + 1] = bytes[j + 1] + tmp / 1000;
-      bytes[j] = tmp % 1000;
-      if (size == 0) break;
-    }
-  }
-
-  {
-    int flag;
-
-    printf("malloced size : ");
-    for (i = 0, flag = 0; i < DIG_SIZE; ++i) {
-      unsigned int tmp = bytes[DIG_SIZE - 1 - i];
-      if (flag == 0) {
-        if (tmp == 0) continue;
-
-        flag = 1;
-        printf("%u", tmp);
-      } else {
-        printf(",%03u", tmp);
-      }
-    }
-    printf(" bytes\n");
-  }
-#undef DIG_SIZE
-}
-#endif /* GC_PROFILE_SIZE */
-
 #ifndef NDEBUG
 void **stack_start;
 #endif /* NDEBUG */
@@ -339,7 +274,7 @@ int main(int argc, char *argv[]) {
   FILE *fp = NULL;
   struct rusage ru0, ru1;
   int base_function = 0;
-  int k, iter;
+  int k, iter, nf;
   int n = 0;
   Context *context;
 
@@ -432,8 +367,15 @@ int main(int argc, char *argv[]) {
     }
     init_code_loader(fp);
     base_function = n;
-    n += code_loader(context, function_table, n);
+    nf = code_loader(context, function_table, n);
     end_code_loader();
+    if (nf > 0) n += nf;
+    else if (fp != stdin) {
+        LOG_ERR("code_loader returns %d\n", nf);
+        continue;
+    } else
+      /* stdin is closed possibly by pressing ctrl-D */
+      break;
 
     /* obtains the time before execution */
 #ifdef USE_PAPI
@@ -471,17 +413,8 @@ int main(int argc, char *argv[]) {
 #ifndef CALC_TIME
 #ifndef CALC_CALL
 
-    if (lastprint_flag == TRUE) {
-#ifdef USE_FFI
-      if (isErr(context)) {
-        printf("Exception!\n");
-        printJSValue(getErr(context));
-      } else
-        debug_print(context, n);
-#else
+    if (lastprint_flag == TRUE)
       debug_print(context, n);
-#endif  /* USE_FFI */
-    }
 
 #endif /* CALC_CALL */
 #endif /* CALC_TIME */
@@ -523,25 +456,22 @@ int main(int argc, char *argv[]) {
       print_cputime(sec, usec);
     }
     
-    if (repl_flag == TRUE)
+    if (repl_flag == TRUE) {
+      printf("\xff");
       fflush(stdout);
+    }
   }
+#ifdef PROFILE
 #ifdef HIDDEN_CLASS
   if (hcprint_flag == TRUE)
     print_all_hidden_class();
 #endif
-
-#ifdef PROFILE
   if (coverage_flag == TRUE)
     print_coverage(function_table, n);
   if (icount_flag == TRUE)
     print_icount(function_table, n);
   if (prof_stream != NULL)
     fclose(prof_stream);
-#endif
-
-#ifdef GC_PROFILE_SIZE
-  print_malloced_size();
 #endif
 
   return 0;
@@ -560,7 +490,7 @@ void print_value_verbose(Context *context, JSValue v) {
 
 void print_value(Context *context, JSValue v, int verbose) {
   if (verbose)
-    printf("%016"PRIJSValue" (tag = %d, type = %s): ", v, get_tag(v), type_name(v));
+    printf("%016"PRIx64" (tag = %d, type = %s): ", v, get_tag(v), type_name(v));
 
   if (is_string(v))
     /* do nothing */;
@@ -630,3 +560,9 @@ void debug_print(Context *context, int n) {
   simple_print(res);
   printf("\n");
 }
+
+/* Local Variables:      */
+/* mode: c               */
+/* c-basic-offset: 2     */
+/* indent-tabs-mode: nil */
+/* End:                  */

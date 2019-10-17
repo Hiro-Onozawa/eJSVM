@@ -13,6 +13,8 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.List;
+import specfile.SpecFile;
+
 
 public class SBCFileComposer extends OutputFileComposer {
     static class SBCInstruction {
@@ -265,7 +267,8 @@ public class SBCFileComposer extends OutputFileComposer {
         public void addMakeClosureOp(String insnName, boolean log, Register dst, int index) {
             insnName = decorateInsnName(insnName, log);
             String a = Integer.toString(dst.getRegisterNumber());
-            String b = Integer.toString(index + functionNumberOffset);
+            // String b = Integer.toString(index + functionNumberOffset);
+            String b = Integer.toString(index);
             SBCInstruction insn = new SBCInstruction(insnName, a, b);
             instructions.add(insn);
         }
@@ -304,7 +307,8 @@ public class SBCFileComposer extends OutputFileComposer {
 
     List<SBCFunction> obcFunctions;
 
-    SBCFileComposer(BCBuilder compiledFunctions, int functionNumberOffset) {
+    SBCFileComposer(BCBuilder compiledFunctions, int functionNumberOffset, SpecFile spec) {
+        super(spec);
         List<BCBuilder.FunctionBCBuilder> fbs = compiledFunctions.getFunctionBCBuilders();
         obcFunctions = new ArrayList<SBCFunction>(fbs.size());
         for (BCBuilder.FunctionBCBuilder fb: fbs) {
@@ -321,6 +325,9 @@ public class SBCFileComposer extends OutputFileComposer {
         try {
             FileOutputStream outs = new FileOutputStream(fileName);
             PrintWriter out = new PrintWriter(outs);
+
+            /* Specfile fingerprint */
+            out.println("fingerprint "+spec.getFingerprint());
 
             /* File header */
             out.println("funcLength "+obcFunctions.size());

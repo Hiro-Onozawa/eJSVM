@@ -12,25 +12,53 @@ import platform
 import re
 
 TEST_LIST = 'TEST_LIST'
-CONFIG_FILE_PATH = './config'
+DEFAULT_CONFIG_FILE_PATH = './config'
 BC_DIR_NAME = 'bc'
 EXE_RESULT_DIR_NAME = 'vm_result'
 SCRIPT_PATH = os.path.dirname(os.path.abspath(__file__))
+WORK_PATH = ''
 REPORT_FILE = 'REPORT.txt'
 SYSTEM = platform.uname().system
 
-def to_abs_path(path):
-    _path = os.path.expanduser(path)
-    if os.path.isabs(_path):
-        return _path
+def abs_system_path(path):
+    path = os.path.expanduser(path)
+    if os.path.isabs(path):
+        return path
     else:
-        return os.path.normpath(os.path.join(SCRIPT_PATH, _path))
+        return os.path.normpath(os.path.join(SCRIPT_PATH, path))
 
+def abs_path(path):
+    path = os.path.expanduser(path)
+    if os.path.isabs(path):
+        return path
+    else:
+        return os.path.normpath(path)
+
+def abs_work_path(path):
+    path = os.path.expanduser(path)
+    if os.path.isabs(path):
+        return path
+    else:
+        return os.path.normpath(os.path.join(WORK_PATH, path))
+
+def change_extension(path, ext):
+    base, _ = os.path.splitext(path)
+    return base + "." + ext;
+    
 def make_parser():
     parser = argparse.ArgumentParser(description='This is a test runner for eJS.')
+    parser.add_argument('--config-file',
+                        default=DEFAULT_CONFIG_FILE_PATH,
+                        help='path to config file')
+    parser.add_argument('--work-dir',
+                        default=None,
+                        help='working path')
+    parser.add_argument('--exit0',
+                        action='store_true',
+                        help='always return exit status 0')
     parser.add_argument('-c',
             default='default',
-            help='...')
+            help='name of test configuration')
     parser.add_argument('--vm-path',
             default=None,
             help='specify eJSVM path')
@@ -47,30 +75,27 @@ def make_parser():
 
 def get_test_list(file_path):
     test_list = []
-    _file_path = to_abs_path(file_path)
+    _file_path = abs_system_path(file_path)
     for line in open(_file_path, 'r'):
         test_list.append(line.replace('\n',''))
     return test_list
 
 def get_file_path_from_test_name(test_name, dirname, ext):
-    target_dir = os.path.join(SCRIPT_PATH, dirname)
-    bname, _ext = os.path.splitext(test_name)
-    path = os.path.normpath(os.path.join(target_dir, bname + ext))
-    path_dir = os.path.dirname(path)
-    if not os.path.exists(path_dir):
-        os.makedirs(path_dir)
+    path = os.path.join(dirname, change_extension(test_name, ext))
+    path = abs_work_path(path)
+    dirname = os.path.dirname(path)
+    if not os.path.exists(dirname):
+        os.makedirs(dirname)
     return path
 
-def get_sbc_path(conf, f):
-    return get_file_path_from_test_name(f, BC_DIR_NAME, '.'+conf['bytecode'])
+def get_bc_path(conf, f):
+    return get_file_path_from_test_name(f, BC_DIR_NAME, conf['bytecode'])
 
 def get_result_path(f):
-    return get_file_path_from_test_name(f, EXE_RESULT_DIR_NAME, '.txt')
+    return get_file_path_from_test_name(f, EXE_RESULT_DIR_NAME, 'txt')
 
 def get_ans_path_list(f):
-    js_path = os.path.join(SCRIPT_PATH, f)
-    ans_path = get_file_path_from_test_name(js_path, EXE_RESULT_DIR_NAME, '.txt')
-    basename = os.path.basename(js_path)
+    js_path = abs_system_path(f)
     bname, _ext = os.path.splitext(js_path)
     result_list = glob.glob(bname+'.*') # `ls bname.*`
 
@@ -99,9 +124,9 @@ def get_ans_path_list(f):
                 ans_path_list.append(txtpath)
     return ans_path_list
 
-def run_ejsc(compiler_path, opt, js_path, sbc_path):
+def run_ejsc(compiler_path, opt, js_path, bc_path):
     opt = ' ' + opt if opt else ''
-    cmd = 'java -jar ' + compiler_path + ' ' + js_path + ' -o ' + sbc_path + opt
+    cmd = 'java -jar ' + compiler_path + ' ' + js_path + ' -o ' + bc_path + opt
     return subprocess.call(cmd.split())
 
 def run_ejsvm(ejsvm_path, opt, sbc_path, exec_result_path):
@@ -118,7 +143,7 @@ def str_color_red(s):
 
 class Report:
     def __init__(self, n, should_print_stdout):
-        self.file_name = to_abs_path(REPORT_FILE)
+        self.file_name = abs_work_path(REPORT_FILE)
         if os.path.exists(self.file_name):
             os.remove(self.file_name)
         self.n = n
@@ -135,14 +160,14 @@ class Report:
             print('['+str(self.i)+'/'+str(self.n)+']')
 
     def report_pass(self, test_name):
-        with open(to_abs_path(REPORT_FILE), 'w') as f:
+        with open(abs_work_path(REPORT_FILE), 'w') as f:
             f.write(test_name+self.STR_SEP+'PASS'+'\n')
         if self.should_print_stdout:
             print(CSI_ESC+'2F', end='') # corsor UP 2
             print(test_name+': '+str_color_green('PASS'), end='\n\n')
 
     def report_fail(self, test_name, text):
-        with open(to_abs_path(REPORT_FILE), 'w') as f:
+        with open(abs_work_path(REPORT_FILE), 'w') as f:
             f.write(test_name+self.STR_SEP+text+'\n')
         if self.should_print_stdout:
             print(CSI_ESC+'2F', end='') # corsor UP 2
@@ -163,18 +188,16 @@ def run_tests(conf, test_list):
     rep = Report(len(test_list), True)
     for t in test_list:
         rep.next(t)
-        js_path = to_abs_path(t)
-        sbc_path = get_sbc_path(conf, t)
+        js_path = abs_system_path(t)
+        bc_path = get_bc_path(conf, t)
         exec_result_path = get_result_path(t)
         ans_path_list = get_ans_path_list(t)
-        bname, ext = os.path.splitext(js_path)
-        ans_path = bname + '.txt'
-        r1 = run_ejsc(to_abs_path(conf['compiler']), conf['compile-opt'],  js_path, sbc_path)
+        r1 = run_ejsc(abs_path(conf['compiler']), conf['compile-opt'],  js_path, bc_path)
         if r1 != 0:
             result = 1
             rep.report_compile_fail(t)
             continue
-        r2 = run_ejsvm(to_abs_path(conf['vm']), conf['vm-opt'], sbc_path, exec_result_path)
+        r2 = run_ejsvm(abs_path(conf['vm']), conf['vm-opt'], bc_path, exec_result_path)
         if r2 != 0:
             result = 1
             rep.report_exec_fail(t)
@@ -193,13 +216,13 @@ def run_tests(conf, test_list):
     return result
 
 
-def read_config_file(config, conf_name):
+def read_config_file(config, config_file_path, conf_name):
     c = configparser.ConfigParser()
-    c.read(to_abs_path(CONFIG_FILE_PATH))
+    c.read(config_file_path)
     if 'vm' in c[conf_name]:
-        config['vm'] = to_abs_path(c[conf_name]['vm'])
+        config['vm'] = abs_path(c[conf_name]['vm'])
     if 'compiler' in c[conf_name]:
-        config['compiler'] = to_abs_path(c[conf_name]['compiler'])
+        config['compiler'] = abs_path(c[conf_name]['compiler'])
     if 'vm-opt' in c[conf_name]:
         config['vm-opt'] = c[conf_name]['vm-opt']
     if 'compile-opt' in c[conf_name]:
@@ -216,19 +239,22 @@ if __name__ == '__main__':
             'bytecode' : 'sbc', # 'sbc'|'obc'
             }
     args = parser.parse_args()
-    read_config_file(config, args.c)
+    read_config_file(config, args.config_file, args.c)
 
     # get arguments
     if args.vm_path is not None:
-        config['vm'] = to_abs_path(args.vm_path)
+        config['vm'] = abs_path(args.vm_path)
     if args.compiler_path is not None:
-        config['compiler'] = to_abs_path(args.compiler_path)
+        config['compiler'] = abs_path(args.compiler_path)
     if args.vm_opt is not None:
         config['vm-opt'] = args.vm_opt
     if args.compile_opt is not None:
         config['compile-opt'] = args.compile_opt
-        if re.match(r'.*--out-obc.*', args.compile_opt):
-            config['bytecode'] = 'obc'
+    if args.work_dir is not None:
+        WORK_PATH = args.work_dir
+
+    if re.match(r'.*--out-obc.*', config['compile-opt']):
+        config['bytecode'] = 'obc'
 
     # checking arguments
     if config['vm'] is None or config['compiler'] is None:
@@ -245,7 +271,12 @@ if __name__ == '__main__':
     print('vm-opt:      ' + config['vm-opt'])
     print('compiler:    ' + config['compiler'])
     print('compile-opt: ' + config['compile-opt'])
+    print('bytecode:    ' + config['bytecode'])
     print('--------------')
 
     test_list = get_test_list(TEST_LIST)
-    sys.exit(run_tests(config, test_list))
+    if args.exit0:
+        run_tests(config, test_list)
+        sys.exit(0)
+    else:
+        sys.exit(run_tests(config, test_list))

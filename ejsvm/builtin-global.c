@@ -170,7 +170,7 @@ BUILTIN_FUNCTION(builtin_address)
 
   builtin_prologue();
   obj = args[1];
-  printf("0x%"PRIx64"\n", obj);
+  printf("0x%"PRIJSValue"\n", obj);
   set_a(context, JS_UNDEFINED);
 }
 
@@ -269,3 +269,9 @@ void init_builtin_global(Context *ctx)
   }
   GC_POP(g);
 }
+
+/* Local Variables:      */
+/* mode: c               */
+/* c-basic-offset: 2     */
+/* indent-tabs-mode: nil */
+/* End:                  */

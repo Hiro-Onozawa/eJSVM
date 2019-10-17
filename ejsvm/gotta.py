@@ -114,7 +114,7 @@ def gen_var_assignment(n, kind, jsv_kind = None):
     elif jsv_kind in ["special"]:
       right = "get_" + ord + "_operand_int(insn)"
     elif jsv_kind in ["string", "flonum"]:
-      right = "get_literal(insns, get_" + ord + "_operand_disp(insn))"
+      right = "get_literal(insns, get_" + ord + "_operand_primitive_disp(insn))"
     else:
       sys.stderr.write(">>>"+kind+","+jsv_kind+"<<<\n")
   else:
@@ -136,11 +136,16 @@ def gen_assignment(kind, n):
 
 def gen_assignment_smallprimitive(kind):
   gen_indent(2)
-  ofile.write("int64_t i1 = get_small_immediate(insn);\n")
+  ofile.write("SmallPrimitive i1 = get_small_immediate(insn);\n")
 
 def gen_assignment_bigprimitive(kind):
   gen_indent(2)
-  ofile.write("PrimitiveDisplacement d1 = get_big_disp(insn);\n")
+  ofile.write("PrimitiveDisplacement d1 = get_big_primitive_disp(insn);\n")
+
+def gen_assignment_instruction_displacement(kind, n):
+  vname = var_name(kind, n)
+  gen_indent(2)
+  ofile.write("InstructionDisplacement " + vname + " = get_jump_instruction_disp(insn);\n")
 
 def gen_include(insn, *, uselabel = None, deflabel = None):
   if not uselabel: uselabel = insn
@@ -228,13 +233,13 @@ def anyop(insninfo, sinsns, sitype):
 
 def uncondjump(insn, op0):
   gen_prologue(insn)
-  gen_assignment(op0, 0)
+  gen_assignment_instruction_displacement(op0, 0)
   gen_epilogue(insn, insn == "pushhandler")
 
 def condjump(insn, op0, op1):
   gen_prologue(insn)
   gen_assignment(op0, 0)
-  gen_assignment(op1, 1)
+  gen_assignment_instruction_displacement(op1, 1)
   gen_epilogue(insn, True)
 
 def getvar(insn, op0, op1, op2):

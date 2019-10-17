@@ -60,12 +60,19 @@ void init_global_malloc_objects(void) {
  */
 void init_global_objects(void) {
   /*
-   * It is necessary to make the object that will be set as Object.prototype,
-   * because this object is referred to in new_simple_object.
-   * Its `prototype' property is null.
+   * g_object_proto: Object.prototype, which is set to __proto__ property
+   *                 when an object is created.
+   *   Object.prototype === {}.__proto__
+   *   Object.prototype.__proto__ === null
+   *   Object.prototype.prototype is not defined.
+   *                   (Object.prototype is not used as a constructor)
    */
-  gconsts.g_object_proto = new_big_predef_object_without_prototype(NULL);
-  set_prototype_de(NULL, gconsts.g_object_proto, JS_NULL);
+  gconsts.g_object_proto = new_big_predef_object_without___proto__(NULL);
+  set___proto___all(NULL, gconsts.g_object_proto, JS_NULL);
+  /*
+   * g_blobal: The global object, which contains global variables.
+   * g_math:   The "Math" object.
+   */
   gconsts.g_global = new_big_predef_object(NULL);
   gconsts.g_math = new_big_predef_object(NULL);
 
@@ -84,9 +91,9 @@ void init_global_objects(void) {
  * initializes builtin
  */
 void init_builtin(Context *ctx) {
+  init_builtin_function(ctx);  /* must be called first */
   init_builtin_object(ctx);
   init_builtin_array(ctx);
-  init_builtin_function(ctx);
   init_builtin_number(ctx);
   init_builtin_string(ctx);
   init_builtin_boolean(ctx);
@@ -102,3 +109,9 @@ void init_builtin(Context *ctx) {
   /* calls init_buitin_global after gconsts is properly set up */
   init_builtin_global(ctx);
 }
+
+/* Local Variables:      */
+/* mode: c               */
+/* c-basic-offset: 2     */
+/* indent-tabs-mode: nil */
+/* End:                  */

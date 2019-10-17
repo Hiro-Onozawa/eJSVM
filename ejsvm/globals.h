@@ -27,6 +27,8 @@ EXTERN struct global_constant_objects {
   JSValue g_string_proto;
   JSValue g_function;
   JSValue g_function_proto;
+  JSValue g_builtin;
+  JSValue g_builtin_proto;
   JSValue g_boolean;
   JSValue g_boolean_proto;
   JSValue g_date;
@@ -68,3 +70,9 @@ EXTERN struct global_malloced_objects {
   HiddenClass *g_hidden_class_0;
 #endif
 } gobjects;
+
+/* Local Variables:      */
+/* mode: c               */
+/* c-basic-offset: 2     */
+/* indent-tabs-mode: nil */
+/* End:                  */

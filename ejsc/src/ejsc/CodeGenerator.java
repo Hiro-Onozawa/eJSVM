@@ -348,16 +348,17 @@ public class CodeGenerator extends IASTBaseVisitor {
     @Override
     public Object visitNumericLiteral(IASTNumericLiteral node) {
         long FIXNUM_MIN, FIXNUM_MAX;
-        switch (info.targetPlatform) {
-            case BIT_32:
-                FIXNUM_MAX = (1L << (16 - 1)) - 1;
-                FIXNUM_MIN = -FIXNUM_MAX - 1;
-                break;
-            case BIT_64:
-            default:
-                FIXNUM_MAX = (1L << (32 - 1)) - 1;
-                FIXNUM_MIN = -FIXNUM_MAX - 1;
-                break;
+        switch (info.basebit) {
+        case BIT_32:
+            FIXNUM_MAX = (1L << (16 - 1)) - 1;
+            FIXNUM_MIN = -FIXNUM_MAX - 1;
+            break;
+        case BIT_64:
+            FIXNUM_MAX = (1L << (32 - 1)) - 1;
+            FIXNUM_MIN = -FIXNUM_MAX - 1;
+            break;
+        default:
+            throw new Error("Unknown basebit");
         }
 
         if (node.isInteger() && (FIXNUM_MIN <= (int) node.value && (int) node.value <= FIXNUM_MAX)) {

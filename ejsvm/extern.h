@@ -76,7 +76,7 @@ extern RegexpCell *allocate_regexp(void);
 #endif
 extern BoxedCell *allocate_boxed(Context *,uint32_t);
 
-#define allocate_array_data_critical(a,s,l)	\
+#define allocate_array_data_critical(a,s,l)        \
   allocate_array_data(NULL,(a),(s),(l))
 /*
  * builtin.c
@@ -135,10 +135,8 @@ extern void call_function(Context *, JSValue, int, int);
 extern void call_builtin(Context *, JSValue, int, int, int);
 extern void tailcall_function(Context *, JSValue, int, int);
 extern void tailcall_builtin(Context *, JSValue, int, int, int);
-extern JSValue invoke_function0(Context *, JSValue, JSValue, int);
-extern JSValue invoke_function(Context *, JSValue, JSValue, int, JSValue *, int);
-JSValue call_builtin0(Context *, JSValue, JSValue, int);
-
+extern JSValue invoke_function(Context *, JSValue, JSValue, int, JSValue, int);
+extern JSValue invoke_builtin(Context *, JSValue, JSValue, int, JSValue, int);
 
 /*
  * codeloader.c
@@ -267,7 +265,7 @@ extern int iterator_get_next_propname(JSValue, JSValue *);
 extern int regexp_flag(JSValue);
 #endif /* need_regexp */
 #endif
-extern JSValue new_simple_object_without_prototype(Context *, int, int);
+extern JSValue new_simple_object_without___proto__(Context *, int, int);
 extern JSValue new_simple_object(Context *, int, int);
 extern JSValue new_array(Context *, int, int);
 extern JSValue new_array_with_size(Context *, int, int, int);
@@ -329,3 +327,9 @@ extern void init_builtin_regexp(Context *);
 #ifdef __cplusplus
 }
 #endif
+
+/* Local Variables:      */
+/* mode: c               */
+/* c-basic-offset: 2     */
+/* indent-tabs-mode: nil */
+/* End:                  */
