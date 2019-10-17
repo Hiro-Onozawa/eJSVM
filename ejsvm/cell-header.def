@@ -1,30 +1,45 @@
 #!/usr/bin/ruby
 
 header_type   = "uint64_t"
+bytes_in_word = 8
 bits_in_byte  = 8
-header_bytes  = 8
 header_magic  = 0x18
 header_def = [
-  [ 0,  7, "TYPE",   :param, "type of memory chunk"],
-  [ 8,  8, "GC",     nil,     "GC mark bit"],
-  [ 9, 11, "EXTRA",  :param, "number of unused words attached at the bottom"+
-                             " of this chunk"],
-  [12, 15, "GEN",    nil,    "generation"],
-#  [16, 23, "MAGIC",  "HEADER0_MAGIC",    "magic"],
-  [16, 23, "MAGIC",  nil,    "magic"],
-  [32, 63, "SIZE",   :param, "number of words of this chunk including header"]
+  [
+    [ 0,  7, "TYPE",   :param, "type of memory chunk"],
+    [ 8,  8, "GC",     nil,     "GC mark bit"],
+    [ 9, 11, "EXTRA",  :param, "number of unused words attached at the bottom"+
+                               " of this chunk"],
+    [12, 15, "GEN",    nil,    "generation"],
+  #  [16, 23, "MAGIC",  "HEADER0_MAGIC",    "magic"],
+    [16, 23, "MAGIC",  nil,    "magic"],
+    [32, 63, "SIZE",   :param, "number of words of this chunk including header"]
+  ],
+  [
+    [ 0, 63, "FWD",    nil, "fowarding pointer"]
+  ]
 ];
 if (ARGV.size >= 1 && ARGV[0] == "32") then
   header_type   = "uint32_t"
-  header_bytes  = 4
+  bytes_in_word = 4
+  bits_in_byte  = 8
+  header_magic  = 0x18
   header_def = [
-    [ 0,  4, "TYPE",   :param, "type of memory chunk"],
-    [ 5,  5, "GC",     nil,     "GC mark bit"],
-    [ 6,  7, "EXTRA",  :param, "number of unused words attached at the bottom"+
-                               " of this chunk"],
-    [8,  7, "GEN",    nil,    "generation"],
-    [8,  7, "MAGIC",  nil,    "magic"],
-    [8, 31, "SIZE",   :param, "number of words of this chunk including header"]
+    [
+      [ 0,  4, "TYPE",   :param, "type of memory chunk"],
+      [ 5,  5, "GC",     nil,     "GC mark bit"],
+      [ 6, 7, "EXTRA",  :param, "number of unused words attached at the bottom"+
+                                 " of this chunk"],
+      [8, 31, "SIZE",   :param, "number of words of this chunk including header"]
+    ],
+    [
+      [0, 3, "GEN",    nil,    "generation"],
+    #  [16, 23, "MAGIC",  "HEADER0_MAGIC",    "magic"],
+      [4, 11, "MAGIC",  nil,    "magic"],
+    ],
+    [
+      [ 0, 31, "FWD",    nil, "fowarding pointer"]
+    ]
   ];
 end
 
@@ -41,7 +56,7 @@ print <<END
  * HEADER  : The entire header.
  * HEADER0 : The primary word of the header.
  *
- * header_t: The type of HEADER0.
+ * header_word_t: The type of HEADER0.
  *
  * field definition
  *   HEADER0_xxx_OFFSET
@@ -79,52 +94,80 @@ compose = []
 compose_params = []
 
 section_start("general definition")
-print "typedef #{header_type} header_t;\n"
-define("HEADER_BYTES",    header_bytes)
-define("HEADER0_BITS",    header_bytes * bits_in_byte)
-define("HEADER0_MAGIC", sprintf("0x%x", header_magic))
+print "typedef #{header_type} header_word_t;\n"
+print "typedef struct header_cell {\n"
+header_def.size.times do |cnt|
+  print "  header_word_t header#{cnt};\n"
+end
+print "} HeaderCell;\n"
+define("HEADER_BYTES",  bytes_in_word * header_def.size)
+define("HEADER_WORD_BITS",  bytes_in_word * bits_in_byte)
+define("HEADER_BITS",  bytes_in_word * bits_in_byte)
+define("HEADER_MAGIC", sprintf("0x%x", header_magic))
+
+section_start("general macros")
+define("VALPTR_TO_HEADERPTR(valptr)", "((HeaderCell *)((uintptr_t)(valptr) - HEADER_BYTES))")
+header_def.size.times do |cnt|
+  define("VALPTR_TO_HEADER#{cnt}(valptr)", "(*(((header_word_t *)(VALPTR_TO_HEADERPTR(valptr))) + #{cnt}))")
+end
+define("HEADERPTR_TO_VALPTR(headerptr)", "((void *)((uintptr_t)(headerptr) + HEADER_BYTES))")
 
 section_start("internal macros")
 define("__MKMSK(l, o, b)\\\n",
-       "((((header_t) -1) << ((l) - (b))) >> ((l) - (o) - (b)))")
-define("__HEADER0_SET(hdr, val, off, msk)",
-       "(hdr) = ((((header_t) (val)) << (off)) | ((hdr) & ~(msk)))");
-define("__HEADER0_SET_MASK(hdr, val, off, msk)",
-       "(hdr) = (((((header_t) (val)) << (off)) & (msk)) | ((hdr) & ~(msk)))");
-define("__HEADER0_GET(hdr, off, msk)",
-       "(((header_t) ((hdr) & (msk))) >> (off))");
+       "((((header_word_t) -1) << ((l) - (b))) >> ((l) - (o) - (b)))")
+define("__HEADER_SET(hdr, val, off, msk)",
+       "(hdr) = ((((header_word_t) (val)) << (off)) | ((hdr) & ~(msk)))");
+define("__HEADER_SET_MASK(hdr, val, off, msk)",
+       "(hdr) = (((((header_word_t) (val)) << (off)) & (msk)) | ((hdr) & ~(msk)))");
+define("__HEADER_GET(hdr, off, msk)",
+       "(((header_word_t) ((hdr) & (msk))) >> (off))");
 
 
 section_start("field definition");
-header_def.each do |s, e, name, c, desc|
-  offset = "HEADER0_#{name}_OFFSET"
-  bits   = "HEADER0_#{name}_BITS"
-  mask   = "HEADER0_#{name}_MASK"
-  setter = "HEADER0_SET_#{name}(hdr,val)"
-  setterm= "HEADER0_SET_#{name}_MASK(hdr,val)"
-  getter = "HEADER0_GET_#{name}(hdr)"
-  # bit field
-  define(offset, s.to_s);
-  define(bits, (e - s + 1).to_s);
-  # mask
-  define(mask, "__MKMSK(HEADER0_BITS, #{offset}, #{bits})")
-  # accessor
-  define(setter, "__HEADER0_SET((hdr), (val), #{offset}, #{mask})")
-  define(setterm, "__HEADER0_SET_MASK((hdr), (val), #{offset}, #{mask})")
-  define(getter, "__HEADER0_GET((hdr), #{offset}, #{mask})")
+header_def.each_with_index do |fields, index|
+  compose.push([]);
+  compose_params.push([]);
+  fields.each do |s, e, name, c, desc|
+    word    = "HEADER_#{name}_GET_WORD(hdrp)"
+    offset  = "HEADER_#{name}_OFFSET"
+    bits    = "HEADER_#{name}_BITS"
+    mask    = "HEADER_#{name}_MASK"
+    wsetter = "HEADER_WORD_SET_#{name}(hdrw,val)"
+    wsetterm= "HEADER_WORD_SET_#{name}_MASK(hdrw,val)"
+    wgetter = "HEADER_WORD_GET_#{name}(hdrw)"
+    setter  = "HEADER_SET_#{name}(hdrp,val)"
+    setterm = "HEADER_SET_#{name}_MASK(hdrp,val)"
+    getter  = "HEADER_GET_#{name}(hdrp)"
 
-  if c then
-    if c == :param then
-      param_name = name.downcase
-      compose_params.unshift(param_name)
-      compose.unshift("(((header_t) (#{param_name})) << #{offset})")
-    else
-      compose.unshift("(((header_t) (#{c})) << #{offset})")
+    define(word, "(hdrp)->header#{index}");
+    # bit field
+    define(offset, s.to_s);
+    define(bits, (e - s + 1).to_s);
+    # mask
+    define(mask, "__MKMSK(HEADER_WORD_BITS, #{offset}, #{bits})")
+    # accessor
+    define(wsetter, "__HEADER_SET((hdrw), (val), #{offset}, #{mask})")
+    define(wsetterm, "__HEADER_SET_MASK((hdrw), (val), #{offset}, #{mask})")
+    define(wgetter, "__HEADER_GET((hdrw), #{offset}, #{mask})")
+    define(setter, "__HEADER_SET(HEADER_#{name}_GET_WORD((hdrp)), (val), #{offset}, #{mask})")
+    define(setterm, "__HEADER_SET_MASK(HEADER_#{name}_GET_WORD((hdrp)), (val), #{offset}, #{mask})")
+    define(getter, "__HEADER_GET(HEADER_#{name}_GET_WORD((hdrp)), #{offset}, #{mask})")
+
+    if c then
+      if c == :param then
+        param_name = name.downcase
+        compose_params[index].unshift(param_name)
+        compose[index].unshift("(((header_word_t) (#{param_name})) << #{offset})")
+      else
+        compose[index].unshift("(((header_word_t) (#{c})) << #{offset})")
+      end
     end
   end
 end
 
 section_start("initialisation")
-params = compose_params.join(",")
-define("HEADER0_COMPOSE(#{params}) \\\n",
-       compose.join(" | \\\n  "))
+header_def.size.times do |index|
+  params = compose_params[index].join(",")
+  define("HEADER#{index}_COMPOSE(#{params}) \\\n",
+        compose[index].join(" | \\\n  "))
+end
