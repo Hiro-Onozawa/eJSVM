@@ -137,6 +137,7 @@ STATIC void scan_stack(JSValue* stack, int sp, int fp);
 STATIC void weak_clear_StrTable(StrTable *table);
 STATIC void weak_clear(void);
 STATIC void sweep(void);
+STATIC void fill_free_cell(struct free_chunk *p, JSValue val);
 #ifdef GC_DEBUG
 STATIC void check_invariant(void);
 STATIC void print_memory_status(void);
@@ -380,6 +381,7 @@ STATIC void garbage_collect(Context *ctx)
   scan_roots(ctx);
   weak_clear();
   sweep();
+  fill_free_cell(js_space.freelist, 0);
   GCLOG("After Garbage Collection\n");
   /* print_memory_status(); */
   /* print_heap_stat(); */
@@ -943,6 +945,22 @@ STATIC void sweep(void)
   check_invariant();
 #endif /* GC_DEBUG */
   sweep_space(&js_space);
+}
+
+STATIC void fill_free_cell(struct free_chunk *p, JSValue val)
+{
+  while(p != NULL) {
+    struct free_chunk *chunk = p;
+    p = p->next;
+
+    size_t size = HEADER_GET_SIZE(&(chunk->header));
+    JSValue *head = (JSValue *)(chunk + 1);
+    JSValue *end = ((JSValue *)chunk) + size;
+    while(head < end) {
+      *head = val;
+      ++head;
+    }
+  }
 }
 
 #ifdef GC_DEBUG
