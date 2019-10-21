@@ -1120,7 +1120,6 @@ STATIC void set_fwdptr(void)
 {
   uintptr_t scan = js_space.addr;
   uintptr_t fwd = js_space.addr;
-  size_t i;
 
   while (scan < js_space.addr + js_space.bytes) {
     HeaderCell* header = (HeaderCell *) scan;
@@ -1140,16 +1139,21 @@ STATIC void set_fwdptr(void)
 
 STATIC void update_JSValue(JSValue *jsvp);
 STATIC void update_JSValue_array(JSValue *jsvarr, size_t len);
+STATIC void update_ObjectCell(Object *obj);
+STATIC void update_ArrayCell(ArrayCell *arr);
+STATIC void update_FunctionCell(FunctionCell *func);
+STATIC void update_FunctionFrame(FunctionFrame **pframe);
+STATIC void update_Iterator(Iterator* itr);
+STATIC void update_BoxedCell(BoxedCell *boxed);
+STATIC void update_HiddenClass(HiddenClass **phc);
+STATIC void update_HashTable(HashTable **pmap);
+STATIC void update_HashBody(HashCell ***pbody, size_t len);
+STATIC void update_HashCell(HashCell **phash);
 STATIC void update_Context(Context *ctx);
 STATIC void update_FunctionTable(FunctionTable *table);
 STATIC void update_FunctionTable_array(FunctionTable *table, size_t len);
-STATIC void update_heap(struct space *space);
-STATIC void update_HashCell(HashCell **ptrp);
 STATIC void update_StrCons(StrCons **ptrp);
 STATIC void update_StrCons_ptr_array(StrCons ***ptrp, size_t length);
-#ifdef HIDDEN_CLASS
-STATIC void update_HiddenClass(HiddenClass **ptrp);
-#endif
 STATIC void update_root_ptr(void **ptrp);
 STATIC void update_stack(JSValue** stack, int sp, int fp);
 
@@ -1173,8 +1177,7 @@ STATIC void update_roots(Context *ctx)
    * registered in the gobjects.
    */
 #ifdef HIDDEN_CLASS
-  HiddenClass **tmp = &(gobjects.g_hidden_class_0);
-  *tmp = HEADER_GET_FWD(VALPTR_TO_HEADERPTR(*tmp));
+  update_HiddenClass(&(gobjects.g_hidden_class_0));
 #endif
 
   /* function table: do not trace.
@@ -1200,8 +1203,6 @@ STATIC void update_roots(Context *ctx)
   /* new gc root stack */
   for (i = 0; i < gc_root_stack_ptr; i++)
     update_root_ptr((void **)gc_root_stack[i]);
-
-  update_heap(&js_space);
 }
 
 STATIC void update_regbase(size_t diff)
@@ -1210,7 +1211,7 @@ STATIC void update_regbase(size_t diff)
   for (i = 0; i < gc_regbase_stack_ptr; i++) {
     JSValue **pregbase = gc_regbase_stack[i];
     uintptr_t regbase = (uintptr_t)*pregbase;
-    *pregbase = regbase - diff;
+    *pregbase = (JSValue *)(regbase - diff);
   }
 }
 
@@ -1257,12 +1258,71 @@ STATIC void move_heap_object(void)
 
 STATIC void update_JSValue(JSValue *jsvp)
 {
-  if (is_pointer(*jsvp)) {
-    if (in_js_space(*jsvp)) {
-      Tag tag = get_tag(*jsvp);
-      HeaderCell* hdrp = VALPTR_TO_HEADERPTR(clear_tag(*jsvp));
-      *jsvp = put_tag(HEADER_GET_FWD(hdrp), tag);
-    }
+  JSValue jsv = *jsvp;
+  if (!is_pointer(jsv))
+    return;
+
+  void *ptr = (void *)clear_tag(jsv);
+  Tag tag = get_tag(jsv);
+  if (!in_js_space(ptr))
+    return;
+
+  HeaderCell* hdrp = VALPTR_TO_HEADERPTR(ptr);
+  *jsvp = put_tag(HEADER_GET_FWD(hdrp), tag);
+
+  switch(HEADER_GET_TYPE(hdrp)) {
+    case HTAG_FREE:
+      LOG_EXIT("update_JSValue : htag is HTAG_FREE\n");
+      return;
+
+    case HTAG_STRING:
+    case HTAG_FLONUM:
+      // Nothing to do
+      break;
+
+    case HTAG_SIMPLE_OBJECT:
+      update_ObjectCell((Object *)ptr);
+      break;
+    case HTAG_ARRAY:
+      update_ArrayCell((ArrayCell *)ptr);
+      break;
+    case HTAG_FUNCTION:
+      update_FunctionCell((FunctionCell *)ptr);
+      break;
+    case HTAG_BUILTIN:
+      // Same as ObjectCell
+      update_ObjectCell((Object *)ptr);
+      break;
+    case HTAG_ITERATOR:
+      update_Iterator((Iterator *)ptr);
+      break;
+#ifdef use_regexp
+    case HTAG_REGEXP:
+      LOG_EXIT("Not implemented\n");
+      return;
+#endif
+    case HTAG_BOXED_STRING:
+    case HTAG_BOXED_NUMBER:
+    case HTAG_BOXED_BOOLEAN:
+      update_BoxedCell((BoxedCell *)ptr);
+      break;
+
+
+    case HTAG_PROP:
+    case HTAG_ARRAY_DATA:
+    case HTAG_FUNCTION_FRAME:
+    case HTAG_HASH_BODY:
+    case HTAG_STR_CONS:
+    case HTAG_CONTEXT:
+    case HTAG_STACK:
+    case HTAG_HIDDEN_CLASS:
+      LOG_EXIT("Unreachable Code\n");
+      abort();
+      break;
+    
+    default:
+     LOG_EXIT("Unknown tag : 0x%04"PRIJSValue"\n", HEADER_GET_TYPE(hdrp));
+     abort();
   }
 }
 
@@ -1274,25 +1334,195 @@ STATIC void update_JSValue_array(JSValue *jsvarr, size_t len)
   }
 }
 
-STATIC void update_StrCons(StrCons **consp)
+STATIC void update_ObjectCell(Object *obj)
 {
-  if (test_and_mark_cell(*consp)) return;
+  assert(in_js_space(obj));
+  if (is_marked_cell(obj)) return;
 
-  JSValue *jsvp = &((*consp)->str);
-  update_JSValue(jsvp);
+  mark_cell(obj);
 
-  if ((*consp)->next != NULL) {
-    assert(in_js_space((*consp)->next));
-    StrCons **next = &((*consp)->next);
-    update_StrCons(next);
+  update_HiddenClass(&(obj->class));
+
+  JSValue **prop = &(obj->prop);
+  update_JSValue_array(*prop, obj->limit_props);
+  assert(in_js_space(*prop));
+  *prop = (JSValue *)HEADER_GET_FWD(VALPTR_TO_HEADERPTR(*prop));
+}
+
+STATIC void update_ArrayCell(ArrayCell *arr)
+{
+  assert(in_js_space(arr));
+  if (is_marked_cell(arr)) return;
+
+  // Note: marked in update_ObjectCell
+  // mark_cell(arr);
+  
+  update_ObjectCell(&(arr->o));
+
+  JSValue **body = &(arr->body);
+  if (*body != NULL) {
+    assert(in_js_space(*body));
+    if (!is_marked_cell(*body)) {
+      update_JSValue_array(*body, arr->size);
+      mark_cell(*body);
+    }
+    *body = (JSValue *)HEADER_GET_FWD(VALPTR_TO_HEADERPTR(*body));
+  }
+}
+
+STATIC void update_FunctionCell(FunctionCell *func)
+{
+  assert(in_js_space(func));
+  if (is_marked_cell(func)) return;
+
+  // Note: marked in update_ObjectCell
+  // mark_cell(func);
+
+  update_ObjectCell(&(func->o));
+
+  // All FunctionTable objects are updated
+  // by calling update_FunctionTable_array
+  // at update_roots.
+  // Nothing to do
+  assert(!in_js_space(func->func_table_entry));
+
+  update_FunctionFrame(&(func->environment));
+}
+
+STATIC void update_FunctionFrame(FunctionFrame **pframe)
+{
+  FunctionFrame *frame = *pframe;
+  HeaderCell *hdrp = VALPTR_TO_HEADERPTR(frame);
+  assert(in_js_space(frame));
+  if (is_marked_cell(frame)) {
+    *pframe = (FunctionFrame *)HEADER_GET_FWD(hdrp);
+    return;
+  }
+  mark_cell(frame);
+
+  FunctionFrame **prev = &(frame->prev_frame);
+  if (*prev != NULL) {
+    update_FunctionFrame(prev);
   }
 
-  *consp = (StrCons *)HEADER_GET_FWD(VALPTR_TO_HEADERPTR(*consp));
+  header_word_t size = HEADER_GET_SIZE(hdrp);
+  JSValue *vals = &(frame->arguments);
+  JSValue *end = ((JSValue *)hdrp) + size;
+  size_t len = ((uintptr_t)end - (uintptr_t)vals) / sizeof(JSValue);
+  update_JSValue_array(vals, len);
+
+  *pframe = (FunctionFrame *)HEADER_GET_FWD(hdrp);
+}
+
+STATIC void update_Iterator(Iterator *itr)
+{
+  assert(in_js_space(itr));
+  if (is_marked_cell(itr)) return;
+
+  mark_cell(itr);
+
+  JSValue **body = &(itr->body);
+  if (*body != NULL) {
+    assert(in_js_space(*body));
+    if (!is_marked_cell(*body)) {
+      update_JSValue_array(*body, itr->size);
+      mark_cell(*body);
+    }
+    *body = (JSValue *)HEADER_GET_FWD(VALPTR_TO_HEADERPTR(*body));
+  }
+}
+
+STATIC void update_BoxedCell(BoxedCell *boxed)
+{
+  assert(in_js_space(boxed));
+  if (is_marked_cell(boxed)) return;
+
+  // Note: marked in update_ObjectCell
+  // mark_cell(boxed);
+
+  update_ObjectCell(&(boxed->o));
+
+  update_JSValue(&(boxed->value));
+}
+
+STATIC void update_HiddenClass(HiddenClass **phc)
+{
+  HiddenClass *hc = *phc;
+  assert(in_js_space(hc));
+  if (is_marked_cell(hc)) {
+    *phc = (HiddenClass *)HEADER_GET_FWD(VALPTR_TO_HEADERPTR(hc));
+    return;
+  }
+  mark_cell(hc);
+
+  update_HashTable(&hidden_map(hc));
+
+  *phc = (HiddenClass *)HEADER_GET_FWD(VALPTR_TO_HEADERPTR(hc));
+}
+
+STATIC void update_HashTable(HashTable **pmap)
+{
+  HashTable *map = *pmap;
+  assert(!in_js_space(map));
+  
+  update_HashBody(&(map->body), map->size);
+}
+
+STATIC void update_HashBody(HashCell ***pbody, size_t len)
+{
+  HashCell **body = *pbody;
+  assert(in_js_space(body));
+  if (is_marked_cell(body)) {
+    *pbody = (HashCell **)HEADER_GET_FWD(VALPTR_TO_HEADERPTR(body));
+    return;
+  }
+  mark_cell(body);
+
+  size_t i;
+  for (i = 0; i < len; ++i) {
+    if (body[i] != NULL) update_HashCell(&body[i]);
+  }
+
+  *pbody = (HashCell **)HEADER_GET_FWD(VALPTR_TO_HEADERPTR(body));
+}
+
+STATIC void update_HashCell(HashCell **phash)
+{
+  HashCell *hash = *phash;
+  assert(!in_js_space(phash));
+
+  update_JSValue((JSValue *)&(hash->entry.key));
+
+  if (is_transition(hash->entry.attr)) {
+    update_HiddenClass((HiddenClass **)&(hash->entry.data));
+  }
+
+  if (hash->next != NULL) {
+    update_HashCell(&(hash->next));
+  }
+}
+
+STATIC void update_StrCons(StrCons **pcons)
+{
+  StrCons *cons = *pcons;
+  assert(in_js_space(cons));
+  if (is_marked_cell(cons)) {
+    *pcons = (StrCons *)HEADER_GET_FWD(VALPTR_TO_HEADERPTR(cons));
+    return;
+  }
+  mark_cell(cons);
+
+  update_JSValue(&(cons->str));
+
+  if (cons->next != NULL) {
+    update_StrCons(&(cons->next));
+  }
+
+  *pcons = (StrCons *)HEADER_GET_FWD(VALPTR_TO_HEADERPTR(cons));
 }
 
 STATIC void update_StrCons_ptr_array(StrCons ***ptrp, size_t length)
 {
-  assert(!in_js_space(ptrp));
   StrCons **ptr = *ptrp;
   assert(!in_js_space(ptr));
   size_t i;
@@ -1305,305 +1535,31 @@ STATIC void update_StrCons_ptr_array(StrCons ***ptrp, size_t length)
 
 STATIC void update_Context(Context *ctx)
 {
-    JSValue *global = &(ctx->global);
-    update_JSValue(global);
+    update_JSValue(&(ctx->global));
 
+    // Nothing to do
     assert(!in_js_space(ctx->function_table));
-    FunctionFrame **lp = &(ctx->spreg.lp);
-    assert(in_js_space(*lp));
-    *lp = HEADER_GET_FWD(VALPTR_TO_HEADERPTR(*lp));
 
-    JSValue *a = &(ctx->spreg.a);
-    update_JSValue(a);
-    JSValue *err = &(ctx->spreg.err);
-    update_JSValue(err);
+    update_FunctionFrame(&(ctx->spreg.lp));
 
-    JSValue *exhandler_stack = &(ctx->exhandler_stack);
-    update_JSValue(exhandler_stack);
-    JSValue *lcall_stack = &(ctx->lcall_stack);
-    update_JSValue(lcall_stack);
+    update_JSValue(&(ctx->spreg.a));
+    update_JSValue(&(ctx->spreg.err));
+
+    update_JSValue(&(ctx->exhandler_stack));
+    update_JSValue(&(ctx->lcall_stack));
 
     update_stack(&(ctx->stack), ctx->spreg.sp, ctx->spreg.fp);
-}
-
-STATIC void update_FunctionTable(FunctionTable *table)
-{
-  JSValue *consts = (JSValue *)&(table->insns[table->n_insns]);
-  update_JSValue_array(consts, table->n_constants);
-}
-
-STATIC void update_FunctionTable_array(FunctionTable *tablearr, size_t len)
-{
-  size_t i;
-  for (i = 0; i < len; ++i) {
-    update_FunctionTable(tablearr + i);
-  }
-}
-
-STATIC void update_HiddenClass(HiddenClass **hcp)
-{
-  assert(!in_js_space(hidden_map(*hcp)));
-  if (in_js_space(hidden_map(*hcp))) { printf("Not Reached : (in_js_space(hidden_map(*hcp))) == TRUE\n");exit(1);}
-  HashTable *map = hidden_map(*hcp);
-  assert(!in_js_space(map));
-  if (in_js_space(map)) { printf("Not Reached : (in_js_space(map)) == TRUE\n");exit(1);}
-  HashCell ***body = &(map->body);
-  assert(in_js_space(*body));
-  if (!in_js_space(*body)) { printf("Not Reached : (in_js_space(*body)) == FALSE\n");exit(1);}
-  *body = HEADER_GET_FWD(VALPTR_TO_HEADERPTR(*body));
-}
-
-STATIC void update_HashCell(HashCell **cellp)
-{
-  assert(!in_js_space(*cellp));
-  JSValue *jsvp = (JSValue *)&((*cellp)->entry.key);
-  update_JSValue(jsvp);
-
-  if (is_transition((*cellp)->entry.attr)) {
-    HiddenClass **hcp = (HiddenClass **)&((*cellp)->entry.data);
-    assert(in_js_space(*hcp));
-    *hcp = HEADER_GET_FWD(VALPTR_TO_HEADERPTR(*hcp));
-  }
-
-  if ((*cellp)->next != NULL) {
-    update_HashCell(&((*cellp)->next));
-  }
-}
-
-STATIC void update_simple_object(Object **pobj)
-{
-  Object *ptr = *pobj;
-  HiddenClass **hcp = &(ptr->class);
-  assert(in_js_space(*hcp));
-  *hcp = HEADER_GET_FWD(VALPTR_TO_HEADERPTR(*hcp));
-
-  JSValue **prop = &(ptr->prop);
-  assert(in_js_space(*prop));
-  *prop = (JSValue *)HEADER_GET_FWD(VALPTR_TO_HEADERPTR(*prop));
-}
-
-STATIC void update_heap(struct space *space)
-{
-  uintptr_t scan = space->addr;
-
-  GCLOG_SWEEP("update_heap %s\n", space->name);
-
-  while (scan < space->addr + space->bytes) {
-    header_word_t htag = HEADER_GET_TYPE((HeaderCell *) scan);
-    header_word_t size = HEADER_GET_SIZE((HeaderCell *) scan);
-
-    switch (htag) {
-      case HTAG_FREE:
-        // Nothing to do
-        break;
-
-      case HTAG_STRING:
-      case HTAG_FLONUM:
-        // Nothing to do
-        break;
-
-      case HTAG_SIMPLE_OBJECT:
-      {
-        Object *ptr = (Object *)HEADERPTR_TO_VALPTR(scan);
-        update_simple_object(&ptr);
-        break;
-      }
-      case HTAG_ARRAY:
-      {
-        ArrayCell *ptr = (ArrayCell *)HEADERPTR_TO_VALPTR(scan);
-        Object *obj = &(ptr->o);
-        update_simple_object(&obj);
-
-        JSValue **body = &(ptr->body);
-        if (*body != NULL) {
-          assert(in_js_space(*body));
-          *body = (JSValue *)HEADER_GET_FWD(VALPTR_TO_HEADERPTR(*body));
-        }
-        break;
-      }
-      case HTAG_FUNCTION:
-      {
-        FunctionCell *func = (FunctionCell *)HEADERPTR_TO_VALPTR(scan);
-        Object *obj = &(func->o);
-        update_simple_object(&obj);
-
-        assert(!in_js_space(func->func_table_entry));
-        FunctionFrame **frame = &(func->environment);
-        assert(in_js_space(*frame));
-        *frame = (FunctionFrame *)HEADER_GET_FWD(VALPTR_TO_HEADERPTR(*frame));
-        break;
-      }
-      case HTAG_BUILTIN:
-      {
-        BuiltinCell *ptr = (BuiltinCell *)HEADERPTR_TO_VALPTR(scan);
-        Object *obj = &(ptr->o);
-        update_simple_object(&obj);
-        break;
-      }
-      case HTAG_ITERATOR:
-      {
-        Iterator *ptr = (Iterator *)HEADERPTR_TO_VALPTR(scan);
-        JSValue **body = &(ptr->body);
-        if (*body != NULL) {
-          assert(in_js_space(*body));
-          *body = (JSValue *)HEADER_GET_FWD(VALPTR_TO_HEADERPTR(*body));
-        }
-        break;
-      }
-#ifdef use_regexp
-      case HTAG_REGEXP: break;
-#endif
-      case HTAG_BOXED_STRING:
-      case HTAG_BOXED_NUMBER:
-      case HTAG_BOXED_BOOLEAN:
-      {
-        BoxedCell *ptr = (BoxedCell *)HEADERPTR_TO_VALPTR(scan);
-        Object *obj = &(ptr->o);
-        update_simple_object(&obj);
-
-        update_JSValue(&(ptr->value));
-        break;
-      }
-
-
-      case HTAG_PROP:
-      case HTAG_ARRAY_DATA:
-      {
-        const char *name = get_name_HTAG(htag);
-        JSValue *props = (JSValue *)HEADERPTR_TO_VALPTR(scan);
-        JSValue *end = (JSValue *)(scan + (size << LOG_BYTES_IN_JSVALUE));
-        for(; props < end; ++props) {
-          JSValue *jsvp = props;
-          update_JSValue(jsvp);
-        }
-        break;
-      }
-      case HTAG_FUNCTION_FRAME:
-      {
-        FunctionFrame *frame = (FunctionFrame *)HEADERPTR_TO_VALPTR(scan);
-        FunctionFrame **prev = &(frame->prev_frame);
-        if (*prev != NULL) {
-          assert(in_js_space(*prev));
-          *prev = (FunctionFrame *)HEADER_GET_FWD(VALPTR_TO_HEADERPTR(*prev));
-        }
-
-        JSValue *vals = &(frame->arguments);
-        JSValue *end = (JSValue *)(scan + (size << LOG_BYTES_IN_JSVALUE));
-        for(; vals < end; ++vals) {
-          JSValue *jsvp = vals;
-          update_JSValue(jsvp);
-        }
-        break;
-      }
-      case HTAG_HASH_BODY:
-      {
-        HashCell **hashcell_array = (HashCell **)HEADERPTR_TO_VALPTR(scan);
-        HashCell **end = (HashCell **)(scan + (size << LOG_BYTES_IN_JSVALUE));
-        for(; hashcell_array < end; ++hashcell_array) {
-          HashCell **cell = hashcell_array;
-          if (*cell == NULL) continue;
-          update_HashCell(cell);
-        }
-        break;
-      }
-      case HTAG_STR_CONS:
-      {
-        StrCons *strcons = (StrCons *)HEADERPTR_TO_VALPTR(scan);
-        update_StrCons(&strcons);
-        break;
-      }
-      case HTAG_CONTEXT:
-        LOG_EXIT("HTAG_CONTEXT error\n");
-#if 0
-      {
-        Context *ctx = (Context *)HEADERPTR_TO_VALPTR(scan);
-        JSValue *global = &(ctx->global);
-        update_JSValue(global);
-
-        assert(!in_js_space(ctx->function_table));
-        FunctionFrame **lp = &(ctx->spreg.lp);
-        assert(in_js_space(*lp));
-        *lp = HEADER_GET_FWD(VALPTR_TO_HEADERPTR(*lp));
-
-        JSValue **stack = &(ctx->stack);
-        assert(in_js_space(*stack));
-        *stack = (JSValue *)HEADER_GET_FWD(VALPTR_TO_HEADERPTR(*stack));
-
-        JSValue *exhandler_stack = &(ctx->exhandler_stack);
-        update_JSValue(exhandler_stack);
-        JSValue *lcall_stack = &(ctx->lcall_stack);
-        update_JSValue(lcall_stack);
-      }
-#endif
-      break;
-      case HTAG_STACK:
-#if 0
-      {
-        JSValue *vals = (JSValue *)HEADERPTR_TO_VALPTR(scan);
-        JSValue *end = (JSValue *)(scan + (size << LOG_BYTES_IN_JSVALUE));
-        int i = 0, cnt = 0;
-        for(; vals < end; ++vals) {
-          JSValue *jsvp = vals;
-        }
-      }
-#endif
-      break;
-      case HTAG_HIDDEN_CLASS:
-      {
-        HiddenClass *hcp = (HiddenClass *)HEADERPTR_TO_VALPTR(scan);
-        HashTable *map = hidden_map(hcp);
-        assert(!in_js_space(map));
-        HashCell ***body = &(map->body);
-        assert(in_js_space(*body));
-        *body = (HashCell **) HEADER_GET_FWD(VALPTR_TO_HEADERPTR(*body));
-        break;
-      }
-      
-      default: printf("Unknown tag : 0x%04"PRIx64"\n", htag); break;
-    }
-
-    scan += size << LOG_BYTES_IN_JSVALUE;
-  }
-}
-
-STATIC void update_root_ptr(void **ptrp)
-{
-  void *ptr = *ptrp;
-
-  if (clear_tag(ptr) != 0) {
-    JSValue *jsvp = (JSValue *)ptrp;
-    update_JSValue(jsvp);
-    return;
-  }
-
-  switch (obj_header_tag(ptr)) {
-  case HTAG_PROP:
-    printf("HTAG_PROP in update_root_ptr\n"); break;
-  case HTAG_ARRAY_DATA:
-    printf("HTAG_ARRAY_DATA in update_root_ptr\n"); break;
-  case HTAG_FUNCTION_FRAME:
-  case HTAG_HASH_BODY:
-  case HTAG_STR_CONS:
-  case HTAG_CONTEXT:
-    *ptrp = (void *) HEADER_GET_FWD(VALPTR_TO_HEADERPTR(*ptrp));
-    break;
-  case HTAG_STACK:
-    printf("HTAG_STACK in update_root_ptr\n"); break;
-#ifdef HIDDEN_CLASS
-  case HTAG_HIDDEN_CLASS:
-    *ptrp = (void *) HEADER_GET_FWD(VALPTR_TO_HEADERPTR(*ptrp));
-    break;
-#endif
-  default:
-    LOG_EXIT("GC::UPDATE_ROOT_PTR : unknown data type");
-//    update_JSValue((JSValue *) ptrp);
-    return;
-  }
 }
 
 STATIC void update_stack(JSValue** pstack, int sp, int fp)
 {
   JSValue *stack = *pstack;
+  assert(in_js_space(stack));
+  if (is_marked_cell(stack)) {
+    *pstack = (JSValue *)HEADER_GET_FWD(VALPTR_TO_HEADERPTR(stack));
+    return;
+  }
+  mark_cell(stack);
 
   while (1) {
     while (sp >= fp) {
@@ -1623,14 +1579,81 @@ STATIC void update_stack(JSValue** pstack, int sp, int fp)
     /* TODO: fixup inner pointer (CF) */
   }
 
-  assert(in_js_space(*pstack));
-  uintptr_t stack_old = (uintptr_t)*pstack;
+  uintptr_t stack_old = (uintptr_t)stack;
   *pstack = (JSValue *)HEADER_GET_FWD(VALPTR_TO_HEADERPTR(*pstack));
 
   uintptr_t stack_new = (uintptr_t)*pstack;
   assert(stack_old >= stack_new);
   if (stack_old > stack_new) {
     update_regbase(stack_old - stack_new);
+  }
+}
+
+STATIC void update_FunctionTable(FunctionTable *table)
+{
+  assert(!in_js_space(table));
+
+  Instruction *insns = table->insns;
+  assert(!in_js_space(insns));
+
+  JSValue *consts = (JSValue *)(insns + table->n_insns);
+  update_JSValue_array(consts, table->n_constants);
+}
+
+STATIC void update_FunctionTable_array(FunctionTable *tablearr, size_t len)
+{
+  size_t i;
+  for (i = 0; i < len; ++i) {
+    update_FunctionTable(tablearr + i);
+  }
+}
+
+STATIC void update_root_ptr(void **ptrp)
+{
+  void *ptr = *ptrp;
+
+  if (clear_tag(ptr) != 0) {
+    JSValue *pjsv = (JSValue *)ptrp;
+    update_JSValue(pjsv);
+    return;
+  }
+
+  switch (obj_header_tag(ptr)) {
+  case HTAG_PROP:
+    printf("HTAG_PROP in update_root_ptr\n"); break;
+  case HTAG_ARRAY_DATA:
+    printf("HTAG_ARRAY_DATA in update_root_ptr\n"); break;
+  case HTAG_FUNCTION_FRAME:
+    update_FunctionFrame((FunctionFrame **)ptrp);
+    break;
+  case HTAG_HASH_BODY:
+    {
+      // TODO: calculate body size
+      HeaderCell *hdrp = VALPTR_TO_HEADERPTR(ptr);
+      header_word_t size = HEADER_GET_SIZE(hdrp);
+      uintptr_t end = (uintptr_t)((JSValue *)hdrp + size);
+      size_t diff = (size_t)(end - (uintptr_t)ptr) / sizeof(HashCell *);
+      update_HashBody((HashCell ***)ptrp, diff);
+    }
+    break;
+  case HTAG_STR_CONS:
+    update_StrCons((StrCons **)ptrp);
+    break;
+  case HTAG_CONTEXT:
+    printf("HTAG_CONTEXT in update_root_ptr\n");
+    break;
+  case HTAG_STACK:
+    printf("HTAG_STACK in update_root_ptr\n");
+    break;
+#ifdef HIDDEN_CLASS
+  case HTAG_HIDDEN_CLASS:
+    update_HiddenClass((HiddenClass **)ptrp);
+    break;
+#endif
+  default:
+    LOG_EXIT("GC::UPDATE_ROOT_PTR : unknown data type");
+//    update_JSValue((JSValue *) ptrp);
+    return;
   }
 }
 #endif
