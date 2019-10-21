@@ -148,18 +148,6 @@ STATIC void compaction(Context *ctx);
 STATIC void set_fwdptr(void);
 STATIC void update_roots(Context *ctx);
 STATIC void move_heap_object(void);
-STATIC void update_JSValue(JSValue *jsvp);
-STATIC void update_heap(struct space *space);
-
-STATIC void update_HashCell(HashCell **ptrp);
-STATIC void update_StrCons(StrCons **ptrp);
-STATIC void update_StrCons_ptr_array(StrCons ***ptrp, size_t length);
-#ifdef HIDDEN_CLASS
-STATIC void update_HiddenClass(HiddenClass **ptrp);
-#endif
-STATIC void update_roots(Context *ctx);
-STATIC void update_root_ptr(void **ptrp);
-STATIC void update_stack(JSValue** stack, int sp, int fp);
 #endif
 
 /*
@@ -1124,18 +1112,37 @@ STATIC void set_fwdptr(void)
   }
 }
 
+/*
+ * update address with fwdptr
+ */
+
+STATIC void update_JSValue(JSValue *jsvp);
+STATIC void update_JSValue_array(JSValue *jsvarr, size_t len);
+STATIC void update_Context(Context *ctx);
+STATIC void update_FunctionTable(FunctionTable *table);
+STATIC void update_FunctionTable_array(FunctionTable *table, size_t len);
+STATIC void update_heap(struct space *space);
+STATIC void update_HashCell(HashCell **ptrp);
+STATIC void update_StrCons(StrCons **ptrp);
+STATIC void update_StrCons_ptr_array(StrCons ***ptrp, size_t length);
+#ifdef HIDDEN_CLASS
+STATIC void update_HiddenClass(HiddenClass **ptrp);
+#endif
+STATIC void update_root_ptr(void **ptrp);
+STATIC void update_stack(JSValue** stack, int sp, int fp);
+
+
 STATIC void update_roots(Context *ctx)
 {
-  struct global_constant_objects *gconstsp = &gconsts;
-  JSValue* p;
   int i;
 
   /*
    * global variables
    */
-
-  for (p = (JSValue *) gconstsp; p < (JSValue *) (gconstsp + 1); ++p) {
-    update_JSValue(p);
+  {
+    struct global_constant_objects *gconstsp = &gconsts;
+    size_t len = ((uintptr_t)(gconstsp + 1) - (uintptr_t)gconstsp) / sizeof(JSValue);
+    update_JSValue_array((JSValue *)gconstsp, len);
   }
 
   /*
@@ -1157,38 +1164,9 @@ STATIC void update_roots(Context *ctx)
   /*
    * Context
    */
-  {
-    JSValue *global = &(ctx->global);
-    update_JSValue(global);
+  update_Context(ctx);
 
-    assert(!in_js_space(ctx->function_table));
-    FunctionFrame **lp = &(ctx->spreg.lp);
-    assert(in_js_space(*lp));
-    *lp = HEADER_GET_FWD(VALPTR_TO_HEADERPTR(*lp));
-
-    JSValue *a = &(ctx->spreg.a);
-    update_JSValue(a);
-    JSValue *err = &(ctx->spreg.err);
-    update_JSValue(err);
-
-    JSValue *exhandler_stack = &(ctx->exhandler_stack);
-    update_JSValue(exhandler_stack);
-    JSValue *lcall_stack = &(ctx->lcall_stack);
-    update_JSValue(lcall_stack);
-
-    update_stack(&(ctx->stack), ctx->spreg.sp, ctx->spreg.fp);
-  }
-
-  FunctionTable *table = &function_table[0];
-  for (i = 0; i < FUNCTION_TABLE_LIMIT; ++i, ++table) {
-    Instruction *insns = table->insns;
-    JSValue *consts = (JSValue *)&(insns[table->n_insns]);
-    JSValue *end = consts + table->n_constants;
-    while(consts < end) {
-      update_JSValue(consts);
-      ++consts;
-    }
-  }
+  update_FunctionTable_array(&function_table[0], FUNCTION_TABLE_LIMIT);
 
   /*
    * tmp root
@@ -1256,6 +1234,80 @@ STATIC void update_JSValue(JSValue *jsvp)
   }
 }
 
+STATIC void update_JSValue_array(JSValue *jsvarr, size_t len)
+{
+  size_t i;
+  for (i = 0; i < len; ++i) {
+    update_JSValue(jsvarr + i);
+  }
+}
+
+STATIC void update_StrCons(StrCons **consp)
+{
+  if (test_and_mark_cell(*consp)) return;
+
+  JSValue *jsvp = &((*consp)->str);
+  update_JSValue(jsvp);
+
+  if ((*consp)->next != NULL) {
+    assert(in_js_space((*consp)->next));
+    StrCons **next = &((*consp)->next);
+    update_StrCons(next);
+  }
+
+  *consp = (StrCons *)HEADER_GET_FWD(VALPTR_TO_HEADERPTR(*consp));
+}
+
+STATIC void update_StrCons_ptr_array(StrCons ***ptrp, size_t length)
+{
+  assert(!in_js_space(ptrp));
+  StrCons **ptr = *ptrp;
+  assert(!in_js_space(ptr));
+  size_t i;
+
+  for (i = 0; i < length; i++)
+    if (ptr[i] != NULL) {
+      update_StrCons(ptr + i);
+    }
+}
+
+STATIC void update_Context(Context *ctx)
+{
+    JSValue *global = &(ctx->global);
+    update_JSValue(global);
+
+    assert(!in_js_space(ctx->function_table));
+    FunctionFrame **lp = &(ctx->spreg.lp);
+    assert(in_js_space(*lp));
+    *lp = HEADER_GET_FWD(VALPTR_TO_HEADERPTR(*lp));
+
+    JSValue *a = &(ctx->spreg.a);
+    update_JSValue(a);
+    JSValue *err = &(ctx->spreg.err);
+    update_JSValue(err);
+
+    JSValue *exhandler_stack = &(ctx->exhandler_stack);
+    update_JSValue(exhandler_stack);
+    JSValue *lcall_stack = &(ctx->lcall_stack);
+    update_JSValue(lcall_stack);
+
+    update_stack(&(ctx->stack), ctx->spreg.sp, ctx->spreg.fp);
+}
+
+STATIC void update_FunctionTable(FunctionTable *table)
+{
+  JSValue *consts = (JSValue *)&(table->insns[table->n_insns]);
+  update_JSValue_array(consts, table->n_constants);
+}
+
+STATIC void update_FunctionTable_array(FunctionTable *tablearr, size_t len)
+{
+  size_t i;
+  for (i = 0; i < len; ++i) {
+    update_FunctionTable(tablearr + i);
+  }
+}
+
 STATIC void update_HiddenClass(HiddenClass **hcp)
 {
   assert(!in_js_space(hidden_map(*hcp)));
@@ -1284,22 +1336,6 @@ STATIC void update_HashCell(HashCell **cellp)
   if ((*cellp)->next != NULL) {
     update_HashCell(&((*cellp)->next));
   }
-}
-
-STATIC void update_StrCons(StrCons **consp)
-{
-  if (test_and_mark_cell(*consp)) return;
-
-  JSValue *jsvp = &((*consp)->str);
-  update_JSValue(jsvp);
-
-  if ((*consp)->next != NULL) {
-    assert(in_js_space((*consp)->next));
-    StrCons **next = &((*consp)->next);
-    update_StrCons(next);
-  }
-
-  *consp = (StrCons *)HEADER_GET_FWD(VALPTR_TO_HEADERPTR(*consp));
 }
 
 STATIC void update_simple_object(Object **pobj)
@@ -1496,20 +1532,6 @@ STATIC void update_heap(struct space *space)
 
     scan += size << LOG_BYTES_IN_JSVALUE;
   }
-}
-
-STATIC void update_StrCons_ptr_array(StrCons ***ptrp, size_t length)
-{
-  assert(!in_js_space(ptrp));
-  StrCons **ptr = *ptrp;
-  assert(!in_js_space(ptr));
-  size_t i;
-
-  for (i = 0; i < length; i++)
-    if (ptr[i] != NULL) {
-      assert(in_js_space(ptr[i]));
-      ptr[i] = (StrCons *)HEADER_GET_FWD(VALPTR_TO_HEADERPTR(ptr[i]));
-    }
 }
 
 STATIC void update_root_ptr(void **ptrp)
