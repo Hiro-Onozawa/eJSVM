@@ -102,6 +102,11 @@ STATIC int tmp_roots_sp;
 STATIC JSValue *gc_root_stack[MAX_ROOTS];
 STATIC int gc_root_stack_ptr = 0;
 
+/* regbase stack */
+#define MAX_REGBASES 32
+STATIC JSValue **gc_regbase_stack[MAX_REGBASES];
+STATIC int gc_regbase_stack_ptr = 0;
+
 STATIC int gc_disabled = 1;
 
 int generation = 0;
@@ -147,6 +152,7 @@ STATIC void print_heap_stat(void);
 STATIC void compaction(Context *ctx);
 STATIC void set_fwdptr(void);
 STATIC void update_roots(Context *ctx);
+STATIC void update_regbase(size_t diff);
 STATIC void move_heap_object(void);
 #endif
 
@@ -299,6 +305,22 @@ void gc_pop_checked(void *addr)
   }
 #endif /* GC_DEBUG */
   gc_root_stack[--gc_root_stack_ptr] = NULL;
+}
+
+void gc_push_regbase(JSValue **pregbase)
+{
+  gc_regbase_stack[gc_regbase_stack_ptr++] = pregbase;
+}
+
+void gc_pop_regbase(JSValue **pregbase)
+{
+#ifdef GC_DEBUG
+  if (gc_regbase_stack[gc_regbase_stack_ptr - 1] != (JSValue *) pregbase) {
+    fprintf(stderr, "GC_POP_REGBASE pointer does not match\n");
+    abort();
+  }
+#endif /* GC_DEBUG */
+  gc_regbase_stack[--gc_regbase_stack_ptr] = NULL;
 }
 
 cell_type_t gc_obj_header_type(void *p)
@@ -1182,6 +1204,16 @@ STATIC void update_roots(Context *ctx)
   update_heap(&js_space);
 }
 
+STATIC void update_regbase(size_t diff)
+{
+  int i;
+  for (i = 0; i < gc_regbase_stack_ptr; i++) {
+    JSValue **pregbase = gc_regbase_stack[i];
+    uintptr_t regbase = (uintptr_t)*pregbase;
+    *pregbase = regbase - diff;
+  }
+}
+
 STATIC void move_heap_object(void)
 {
   uintptr_t scan = js_space.addr;
@@ -1592,7 +1624,14 @@ STATIC void update_stack(JSValue** pstack, int sp, int fp)
   }
 
   assert(in_js_space(*pstack));
+  uintptr_t stack_old = (uintptr_t)*pstack;
   *pstack = (JSValue *)HEADER_GET_FWD(VALPTR_TO_HEADERPTR(*pstack));
+
+  uintptr_t stack_new = (uintptr_t)*pstack;
+  assert(stack_old >= stack_new);
+  if (stack_old > stack_new) {
+    update_regbase(stack_old - stack_new);
+  }
 }
 #endif
 
