@@ -1245,10 +1245,12 @@ STATIC void move_heap_object(void)
       JSValue* fwd = (JSValue *)VALPTR_TO_HEADERPTR(HEADER_GET_FWD(header));
       HEADER_SET_FWD(header, 0);
       HEADER_SET_GC(header, 0);
-      JSValue* p = (JSValue *)header;
-      JSValue* end = (JSValue *)header + size;
-      for(; p < end; ++p, ++fwd) {
-        *fwd = *p;
+      if (header != fwd) {
+        JSValue* p = (JSValue *)header;
+        JSValue* end = (JSValue *)header + size;
+        for(; p < end; ++p, ++fwd) {
+          *fwd = *p;
+        }
       }
 
       tail = (struct free_chunk *)fwd;
@@ -1359,7 +1361,7 @@ STATIC void update_ObjectCell(Object *obj)
   update_HiddenClass(&(obj->class));
 
   JSValue **prop = &(obj->prop);
-  update_JSValue_array(*prop, obj->limit_props);
+    update_JSValue_array(*prop, obj->limit_props);
   assert(in_js_space(*prop));
   *prop = (JSValue *)HEADER_GET_FWD(VALPTR_TO_HEADERPTR(*prop));
 }
