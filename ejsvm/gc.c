@@ -14,12 +14,27 @@
 #include "header.h"
 #include "log.h"
 
+/*
+ * GC Options
+ * 
+ * GC_DEBUG : enable debug code
+ * 
+ * GC_MARK_SWEEP   : mark & sweep gc
+ * GC_MARK_COMPACT : mark & compation gc
+ * 
+ * GC_CLEAR_MEM : clear unused memory with this value
+ */
+
 #ifndef NDEBUG
 #define GC_DEBUG 1
 #define STATIC
 #else
 #undef GC_DEBUG
 #define STATIC static
+#endif
+
+#if (!defined GC_MARK_SWEEP) && (!defined GC_MARK_COMPACT)
+#error "Please define macro to select GC algorithm : GC_MARK_SWEEP / GC_MARK_COMPACT"
 #endif
 
 /*
@@ -130,11 +145,13 @@ STATIC HeaderCell *get_shadow(void *ptr);
 /* GC */
 STATIC int check_gc_request(Context *);
 STATIC void garbage_collect(Context *ctx);
+
+#if (defined GC_MARK_SWEEP) || (defined GC_MARK_COMPACT)
 STATIC void trace_HashCell_array(HashCell ***ptrp, uint32_t length);
 STATIC void trace_HashCell(HashCell **ptrp);
 #ifdef HIDDEN_CLASS
 STATIC void trace_HiddenClass(HiddenClass **ptrp);
-#endif
+#endif /* HIDDEN_CLASS */
 STATIC void trace_JSValue_array(JSValue **ptrp, size_t length);
 STATIC void trace_slot(JSValue* ptr);
 STATIC void scan_roots(Context *ctx);
@@ -142,19 +159,25 @@ STATIC void scan_stack(JSValue* stack, int sp, int fp);
 STATIC void weak_clear_StrTable(StrTable *table);
 STATIC void weak_clear(void);
 STATIC void sweep(void);
-STATIC void fill_free_cell(struct free_chunk *p, JSValue val);
+
 #ifdef GC_DEBUG
 STATIC void check_invariant(void);
 STATIC void print_memory_status(void);
 STATIC void print_heap_stat(void);
 #endif /* GC_DEBUG */
-#ifdef GC_COMPACTION
+
+#ifdef GC_MARK_COMPACT
 STATIC void compaction(Context *ctx);
 STATIC void set_fwdptr(void);
 STATIC void update_roots(Context *ctx);
 STATIC void update_regbase(size_t diff);
 STATIC void move_heap_object(void);
-#endif
+#endif /* GC_MARK_COMPACT */
+#endif /* (defined GC_MARK_SWEEP) || (defined GC_MARK_COMPACT) */
+
+#ifdef GC_CLEAR_MEM
+STATIC void fill_free_cell(struct free_chunk *p, JSValue val);
+#endif /* GC_CLEAR_MEM */
 
 /*
  *  Space
@@ -406,13 +429,20 @@ STATIC void garbage_collect(Context *ctx)
   /* print_memory_status(); */
   if (cputime_flag == TRUE) getrusage(RUSAGE_SELF, &ru0);
 
+#ifdef GC_MARK_SWEEP
   scan_roots(ctx);
   weak_clear();
   sweep();
-#ifdef GC_COMPACTION
+#endif
+#ifdef GC_MARK_COMPACT
+  scan_roots(ctx);
+  weak_clear();
+  sweep();
   compaction(ctx);
 #endif
-  fill_free_cell(js_space.freelist, 0);
+#ifdef GC_CLEAR_MEM
+  fill_free_cell(js_space.freelist, (JSValue)GC_CLEAR_MEM);
+#endif
   GCLOG("After Garbage Collection\n");
   /* print_memory_status(); */
   /* print_heap_stat(); */
@@ -436,6 +466,7 @@ STATIC void garbage_collect(Context *ctx)
   /* printf("Exit gc, generation = %d\n", generation); */
 }
 
+#if (defined GC_MARK_SWEEP) || (defined GC_MARK_COMPACT)
 /*
  * Mark the header
  */
@@ -978,22 +1009,6 @@ STATIC void sweep(void)
   sweep_space(&js_space);
 }
 
-STATIC void fill_free_cell(struct free_chunk *p, JSValue val)
-{
-  while(p != NULL) {
-    struct free_chunk *chunk = p;
-    p = p->next;
-
-    size_t size = HEADER_GET_SIZE(&(chunk->header));
-    JSValue *head = (JSValue *)(chunk + 1);
-    JSValue *end = ((JSValue *)chunk) + size;
-    while(head < end) {
-      *head = val;
-      ++head;
-    }
-  }
-}
-
 #ifdef GC_DEBUG
 STATIC void check_invariant_nobw_space(struct space *space)
 {
@@ -1075,7 +1090,7 @@ STATIC void sanity_check()
 }
 #endif /* GC_DEBUG */
 
-#if GC_COMPACTION
+#if defined GC_MARK_COMPACT
 STATIC const char *get_name_HTAG(cell_type_t htag)
 {
   switch(htag) {
@@ -1236,7 +1251,7 @@ STATIC void move_heap_object(void)
         *fwd = *p;
       }
 
-      tail = (struct  free_chunk *)fwd;
+      tail = (struct free_chunk *)fwd;
       used += size;
     }
     scan += (size << LOG_BYTES_IN_JSVALUE);
@@ -1569,13 +1584,11 @@ STATIC void update_stack(JSValue** pstack, int sp, int fp)
     if (sp < 0)
       break;
 
-    fp = stack[sp--];                                           /* FP */
-    assert(in_js_space(stack[sp]));
-    stack[sp] = (JSValue) HEADER_GET_FWD(VALPTR_TO_HEADERPTR(stack[sp])); /* LP */
-    sp--;
-    sp--;                                                       /* PC */
+    fp = stack[sp--];                                        /* FP */
+    update_FunctionFrame((FunctionFrame **) &(stack[sp--])); /* LP */
+    sp--;                                                    /* PC */
     assert(!in_js_space(stack[sp]));
-    sp--;                                                       /* CF */
+    sp--;                                                    /* CF */
     /* TODO: fixup inner pointer (CF) */
   }
 
@@ -1628,7 +1641,6 @@ STATIC void update_root_ptr(void **ptrp)
     break;
   case HTAG_HASH_BODY:
     {
-      // TODO: calculate body size
       HeaderCell *hdrp = VALPTR_TO_HEADERPTR(ptr);
       header_word_t size = HEADER_GET_SIZE(hdrp);
       uintptr_t end = (uintptr_t)((JSValue *)hdrp + size);
@@ -1654,6 +1666,26 @@ STATIC void update_root_ptr(void **ptrp)
     LOG_EXIT("GC::UPDATE_ROOT_PTR : unknown data type");
 //    update_JSValue((JSValue *) ptrp);
     return;
+  }
+}
+#endif /* defined GC_MARK_COMPACT */
+#endif /* (defined GC_MARK_SWEEP) || (defined GC_MARK_COMPACT) */
+
+
+#ifdef GC_CLEAR_MEM
+STATIC void fill_free_cell(struct free_chunk *p, JSValue val)
+{
+  while(p != NULL) {
+    struct free_chunk *chunk = p;
+    p = p->next;
+
+    size_t size = HEADER_GET_SIZE(&(chunk->header));
+    JSValue *head = (JSValue *)(chunk + 1);
+    JSValue *end = ((JSValue *)chunk) + size;
+    while(head < end) {
+      *head = val;
+      ++head;
+    }
   }
 }
 #endif
