@@ -1361,8 +1361,11 @@ STATIC void update_ObjectCell(Object *obj)
   update_HiddenClass(&(obj->class));
 
   JSValue **prop = &(obj->prop);
-    update_JSValue_array(*prop, obj->limit_props);
   assert(in_js_space(*prop));
+  if (!is_marked_cell(*prop)) {
+    update_JSValue_array(*prop, obj->limit_props);
+    mark_cell(*prop);
+  }
   *prop = (JSValue *)HEADER_GET_FWD(VALPTR_TO_HEADERPTR(*prop));
 }
 
