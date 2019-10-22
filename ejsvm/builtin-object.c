@@ -19,6 +19,7 @@ BUILTIN_FUNCTION(object_constr)
   JSValue ret, arg;
 
   builtin_prologue();
+  gc_push_regbase(&args);
   /*
    * If this is called with `new', which kind of object is allocated
    * depends on the type of the first argument.
@@ -49,6 +50,7 @@ BUILTIN_FUNCTION(object_constr)
   GC_PUSH(ret);
   set_a(context, ret);
   GC_POP(ret);
+  gc_pop_regbase(&args);
 }
 
 BUILTIN_FUNCTION(object_toString)

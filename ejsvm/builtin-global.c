@@ -19,8 +19,10 @@ BUILTIN_FUNCTION(builtin_isNaN)
   double d;
 
   builtin_prologue();
+  gc_push_regbase(&args);
   d = to_double(context, args[1]);
   set_a(context, true_false(isnan(d)));
+  gc_pop_regbase(&args);
 }
 
 /*
@@ -31,8 +33,10 @@ BUILTIN_FUNCTION(builtin_isFinite)
   double d;
 
   builtin_prologue();
+  gc_push_regbase(&args);
   d = to_double(context, args[1]);
   set_a(context, true_false(isinf(d)));
+  gc_pop_regbase(&args);
 }
 
 /*
@@ -48,6 +52,7 @@ BUILTIN_FUNCTION(builtin_parse_int)
   long ret;
 
   builtin_prologue();
+  gc_push_regbase(&args);
   str = to_string(context, args[1]);
   GC_PUSH(str);
   rad = to_number(context, args[2]);
@@ -60,6 +65,7 @@ BUILTIN_FUNCTION(builtin_parse_int)
     else irad = 10;
     if (irad < 2 || irad > 36) {
       set_a(context, gconsts.g_flonum_nan);
+      gc_pop_regbase(&args);
       return;
     }
   } else
@@ -71,6 +77,7 @@ BUILTIN_FUNCTION(builtin_parse_int)
     set_a(context, gconsts.g_flonum_nan);
   else
     set_a(context, int_to_fixnum(ret));
+  gc_pop_regbase(&args);
 }
 
 #ifdef need_float
@@ -81,6 +88,7 @@ BUILTIN_FUNCTION(builtin_parse_float)
   double x;
 
   builtin_prologue();
+  gc_push_regbase(&args);
   str = to_string(context, args[1]);
   cstr = string_to_cstr(str);
   cstr = space_chomp(cstr);
@@ -90,6 +98,7 @@ BUILTIN_FUNCTION(builtin_parse_float)
     set_a(context, double_to_fixnum(x));
   else
     set_a(context, double_to_flonum(x));
+  gc_pop_regbase(&args);
 }
 #endif /* need_float */
 
@@ -109,6 +118,7 @@ BUILTIN_FUNCTION(builtin_print)
   int i;
 
   builtin_prologue();
+  gc_push_regbase(&args);
   /* printf("builtin_print: na = %d, fp = %p, args = %p\n", na, fp, args); */
 
   for (i = 1; i <= na; ++i) {
@@ -117,6 +127,7 @@ BUILTIN_FUNCTION(builtin_print)
     putchar(i < na ? ' ' : '\n');
   }
   set_a(context, JS_UNDEFINED);
+  gc_pop_regbase(&args);
 }
 
 /*
@@ -127,6 +138,7 @@ BUILTIN_FUNCTION(builtin_printv)
   int i;
 
   builtin_prologue();
+  gc_push_regbase(&args);
   /* printf("builtin_print: na = %d, fp = %p, args = %p\n", na, fp, args); */
 
   for (i = 1; i <= na; ++i) {
@@ -135,6 +147,7 @@ BUILTIN_FUNCTION(builtin_printv)
     putchar(i < na ? ' ' : '\n');
   }
   set_a(context, JS_UNDEFINED);
+  gc_pop_regbase(&args);
 }
 
 /*
@@ -169,9 +182,11 @@ BUILTIN_FUNCTION(builtin_address)
   JSValue obj;
 
   builtin_prologue();
+  gc_push_regbase(&args);
   obj = args[1];
   printf("0x%"PRIJSValue"\n", obj);
   set_a(context, JS_UNDEFINED);
+  gc_pop_regbase(&args);
 }
 
 /*
@@ -186,13 +201,17 @@ BUILTIN_FUNCTION(builtin_hello)
 BUILTIN_FUNCTION(builtin_to_string)
 {
   builtin_prologue();
+  gc_push_regbase(&args);
   set_a(context, to_string(context, args[1]));
+  gc_pop_regbase(&args);
 }
 
 BUILTIN_FUNCTION(builtin_to_number)
 {
   builtin_prologue();
+  gc_push_regbase(&args);
   set_a(context, to_number(context, args[1]));
+  gc_pop_regbase(&args);
 }
 
 

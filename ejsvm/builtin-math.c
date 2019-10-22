@@ -24,6 +24,7 @@ void math_func(Context *context, int fp, double (*fn)(double)) {
   double x;
 
   builtin_prologue();
+  gc_push_regbase(&args);
   v = args[1];
   if (!is_number(v)) v = to_number(context, v);
   if (is_nan(v)) {
@@ -34,6 +35,7 @@ void math_func(Context *context, int fp, double (*fn)(double)) {
   x = is_fixnum(v)? fixnum_to_double(v): flonum_to_double(v);
   x = (*fn)(x);
   set_a_number(x);
+  gc_pop_regbase(&args);
 }
 
 void math_func2(Context *context, int fp, double (*fn)(double, double)) {
@@ -41,11 +43,13 @@ void math_func2(Context *context, int fp, double (*fn)(double, double)) {
   double x1, x2;
 
   builtin_prologue();
+  gc_push_regbase(&args);
 
   v1 = args[1];
   if (!is_number(v1)) v1 = to_number(context, v1);
   if (is_nan(v1)) {
     set_a(context, v1);
+    gc_pop_regbase(&args);
     return;
   }
   x1 = is_fixnum(v1)? fixnum_to_double(v1): flonum_to_double(v1);
@@ -54,12 +58,14 @@ void math_func2(Context *context, int fp, double (*fn)(double, double)) {
   if (!is_number(v2)) v2 = to_number(context, v2);
   if (is_nan(v2)) {
     set_a(context, v2);
+    gc_pop_regbase(&args);
     return;
   }
   x2 = is_fixnum(v2)? fixnum_to_double(v2): flonum_to_double(v2);
 
   x1 = (*fn)(x1, x2);
   set_a_number(x1);
+  gc_pop_regbase(&args);
 }
 
 BUILTIN_FUNCTION(math_abs)
@@ -139,6 +145,7 @@ BUILTIN_FUNCTION(math_max)
   int i;
 
   builtin_prologue();
+  gc_push_regbase(&args);
   r = -INFINITY;
   for (i = 1; i <= na; i++) {
     v = args[i];
@@ -149,6 +156,7 @@ BUILTIN_FUNCTION(math_max)
     if (r < x) r = x;
   }
   set_a_number(r);
+  gc_pop_regbase(&args);
 }
 
 BUILTIN_FUNCTION(math_min)
@@ -158,6 +166,7 @@ BUILTIN_FUNCTION(math_min)
   int i;
 
   builtin_prologue();
+  gc_push_regbase(&args);
   r = INFINITY;
   for (i = 1; i <= na; i++) {
     v = args[i];
@@ -168,6 +177,7 @@ BUILTIN_FUNCTION(math_min)
     if (x < r) r = x;
   }
   set_a_number(r);
+  gc_pop_regbase(&args);
 }
 
 BUILTIN_FUNCTION(math_pow)
