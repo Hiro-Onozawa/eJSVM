@@ -11,7 +11,9 @@
 \otherwise \{
   if (obj == JS_UNDEFINED)
      LOG_EXIT("GETPROP: !!!!\n");
+  GC_PUSH(prop);
   obj = to_object(context, obj);
+  GC_POP(prop);
   goto USELABEL(HEAD);
 \}
 
