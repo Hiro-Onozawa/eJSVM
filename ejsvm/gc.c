@@ -1036,7 +1036,7 @@ STATIC void check_invariant_nobw_space(struct space *space)
       payload_jsvalues -= HEADER_JSVALUES;
       payload_jsvalues -= HEADER_GET_EXTRA(hdrp);
       for (i = 0; i < payload_jsvalues; i++) {
-        JSValue x = ((JSValue *) (scan + BYTES_IN_JSVALUE))[i];
+        JSValue x = ((JSValue *) (scan + HEADER_BYTES))[i];
         if (HEADER_WORD_GET_TYPE(header) == HTAG_STR_CONS) {
           if (i ==
               (((uintptr_t) &((StrCons *) 0)->str) >> LOG_BYTES_IN_JSVALUE))
