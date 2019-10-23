@@ -32,6 +32,10 @@ ifeq ($(OPT_GC),)
 # GC=native|boehmgc|none
     OPT_GC=native
 endif
+ifeq ($(OPT_GC_ALGORITHM),)
+# GC_ALGORITHM=mark_sweep|mark_compact
+    OPT_GC_ALGORITHM=mark_sweep
+endif
 #ifeq ($(SUPERINSNSPEC),)
 #    SUPERINSNSPEC=none
 #endif
@@ -243,6 +247,12 @@ ifeq ($(OPT_GC),boehmgc)
     CFLAGS+=-DUSE_BOEHMGC=1
     LIBS+=-lgc
 endif
+ifeq ($(OPT_GC_ALGORITHM),mark_sweep)
+    CFLAGS+=-DGC_MARK_SWEEP
+endif
+ifeq ($(OPT_GC_ALGORITHM),mark_compact)
+    CFLAGS+=-DGC_MARK_COMPACT
+endif
 ifeq ($(OPT_REGEXP),oniguruma)
     CFLAGS+=-DUSE_REGEXP=1
     LIBS+=-lonig
@@ -372,7 +382,7 @@ endif
 endif
 
 cell-header.h: $(EJSVM_DIR)/cell-header.def
-	$(RUBY) $< $(OPT_BASEBIT) > $@
+	$(RUBY) $< $(OPT_BASEBIT) $(OPT_GC_ALGORITHM) > $@
 
 instructions.h: instructions-opcode.h instructions-table.h
 

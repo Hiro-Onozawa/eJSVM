@@ -86,7 +86,7 @@ void allocate_array_data(Context *ctx, JSValue a, int size, int len)
   body = (JSValue *) gc_malloc(ctx, sizeof(JSValue) * size,
                                HTAG_ARRAY_DATA);
   GC_POP(a);
-  for (i = 0; i < len; i++) body[i] = JS_UNDEFINED; 
+  for (i = 0; i < size; i++) body[i] = JS_UNDEFINED; 
   array_body(a) = body;
   array_size(a) = size;
   array_length(a) = len;
@@ -108,6 +108,7 @@ void reallocate_array_data(Context *ctx, JSValue a, int newsize)
   GC_POP(a);
   oldbody = array_body(a);
   for (i = 0; i < array_length(a); i++) body[i] = oldbody[i];
+  for (; i < newsize; i++) body[i] = JS_UNDEFINED; 
   array_body(a) = body;
   array_size(a) = newsize;
 }

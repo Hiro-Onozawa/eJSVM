@@ -68,10 +68,12 @@ void regexp_constr_general(Context *context, int fp, int na, int new) {
   char *cstrflag;
 
   builtin_prologue();
+  gc_push_regbase(&args);
   switch (na) {
   case 0:
     regexp_constructor_sub(context, "", "", &res);
     set_a(context, res);
+    gc_pop_regbase(&args);
     return;
   case 1:
   LAB0:
@@ -100,6 +102,7 @@ void regexp_constr_general(Context *context, int fp, int na, int new) {
     goto LAB1;
   }
   set_a(context, res);
+  gc_pop_regbase(&args);
 }
 
 JSValue regexp_exec(Context* ctx, JSValue rsv, char *cstr) {
@@ -123,6 +126,7 @@ BUILTIN_FUNCTION(regexp_toString)
   uint64_t len;
 
   builtin_prologue();
+  gc_push_regbase(&args);
   rsv = args[0];
   if (is_regexp(rsv)) {
     pat = regexp_pattern(rsv);
@@ -135,6 +139,7 @@ BUILTIN_FUNCTION(regexp_toString)
     set_a(context, cstr_to_string(context, ret));
   } else
     LOG_EXIT("RegExp.prototype.toString: receiver is not a regexp\n");
+  gc_pop_regbase(&args);
 }
 
 BUILTIN_FUNCTION(builtin_regexp_exec)
@@ -143,6 +148,7 @@ BUILTIN_FUNCTION(builtin_regexp_exec)
   char *cstr;
 
   builtin_prologue();
+  gc_push_regbase(&args);
   rsv = args[0];
   if (is_regexp(rsv)) {
     str = to_string(context, args[1]);
@@ -150,6 +156,7 @@ BUILTIN_FUNCTION(builtin_regexp_exec)
     set_a(context, regexp_exec(context, rsv, cstr));
   } else
     LOG_EXIT("Regexp.prototype.exec: receiver is not a regexp\n");
+  gc_pop_regbase(&args);
 }
 
 BUILTIN_FUNCTION(builtin_regexp_test)
@@ -158,6 +165,7 @@ BUILTIN_FUNCTION(builtin_regexp_test)
   char *cstr;
 
   builtin_prologue();
+  gc_push_regbase(&args);
   rsv = args[0];
   if (is_regexp(rsv)) {
     str = to_string(context, args[1]);
@@ -170,6 +178,7 @@ BUILTIN_FUNCTION(builtin_regexp_test)
     set_a(context, ret);
   } else
     LOG_EXIT("Regexp.prototype.test: receiver is not a regexp\n");
+  gc_pop_regbase(&args);
 }
 
 

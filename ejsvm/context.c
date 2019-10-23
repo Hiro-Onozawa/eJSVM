@@ -79,7 +79,8 @@ void init_context(FunctionTable *ftab, JSValue glob, Context **context) {
 static Context *allocate_context(size_t stack_size)
 {
   /* GC is not allowed */
-  Context *ctx = (Context *) gc_malloc_critical(sizeof(Context), HTAG_CONTEXT);
+//  Context *ctx = (Context *) gc_malloc_critical(sizeof(Context), HTAG_CONTEXT);
+  Context *ctx = (Context *) malloc(sizeof(Context));
   ctx->stack = (JSValue *) gc_malloc_critical(sizeof(JSValue) * stack_size,
                                               HTAG_STACK);
   ctx->exhandler_stack = new_array(NULL, 0, 0);
