@@ -3,5 +3,6 @@
 \otherwise \{
   dst = 0;
   d = 0;
+  gc_pop_regbase(&regbase);
   return -1;
 \}
