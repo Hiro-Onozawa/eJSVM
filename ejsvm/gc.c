@@ -1394,7 +1394,13 @@ STATIC void update_ArrayCell(ArrayCell *arr)
   if (*body != NULL) {
     assert(in_js_space(*body));
     if (!is_marked_cell(*body)) {
-      update_JSValue_array(*body, arr->size);
+      size_t len = 0;
+      if (arr->length < arr->size) {
+        len = arr->length;
+      } else {
+        len = arr->size;
+      }
+      update_JSValue_array(*body, len);
       mark_cell(*body);
     }
     *body = (JSValue *)HEADER_GET_FWD(VALPTR_TO_HEADERPTR(*body));
