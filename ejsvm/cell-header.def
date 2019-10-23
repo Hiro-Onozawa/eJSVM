@@ -1,46 +1,65 @@
 #!/usr/bin/ruby
 
-header_type   = "uint64_t"
-bytes_in_word = 8
-bits_in_byte  = 8
-header_magic  = 0x18
-header_def = [
-  [
-    [ 0,  7, "TYPE",   :param, "type of memory chunk"],
-    [ 8,  8, "GC",     nil,     "GC mark bit"],
-    [ 9, 11, "EXTRA",  :param, "number of unused words attached at the bottom"+
-                               " of this chunk"],
-    [12, 15, "GEN",    nil,    "generation"],
-  #  [16, 23, "MAGIC",  "HEADER0_MAGIC",    "magic"],
-    [16, 23, "MAGIC",  nil,    "magic"],
-    [32, 63, "SIZE",   :param, "number of words of this chunk including header"]
-  ],
-  [
-    [ 0, 63, "FWD",    nil, "fowarding pointer"]
-  ]
-];
-if (ARGV.size >= 1 && ARGV[0] == "32") then
+header_type   = ""
+bytes_in_word = 0
+bits_in_byte  = 0
+header_magic  = 0x0
+header_def = [];
+
+if (ARGV.size < 2) then
+  raise "Usage : <basebit> <gc algorithm>"
+end
+
+if (ARGV[0] == "64") then
+  header_type   = "uint64_t"
+  bytes_in_word = 8
+  bits_in_byte  = 8
+  header_magic  = 0x18
+  header_def = [
+    [
+      [ 0,  7, "TYPE",   :param, "type of memory chunk"],
+      [ 8,  8, "GC",     nil,     "GC mark bit"],
+      [ 9, 11, "EXTRA",  :param, "number of unused words attached at the bottom"+
+                                " of this chunk"],
+      [12, 15, "GEN",    nil,    "generation"],
+    #  [16, 23, "MAGIC",  "HEADER0_MAGIC",    "magic"],
+      [16, 23, "MAGIC",  nil,    "magic"],
+      [32, 63, "SIZE",   :param, "number of words of this chunk including header"]
+    ]
+  ];
+elsif (ARGV[0] == "32") then
   header_type   = "uint32_t"
   bytes_in_word = 4
   bits_in_byte  = 8
   header_magic  = 0x18
   header_def = [
     [
-      [ 0,  4, "TYPE",   :param, "type of memory chunk"],
-      [ 5,  5, "GC",     nil,     "GC mark bit"],
-      [ 6, 7, "EXTRA",  :param, "number of unused words attached at the bottom"+
+      [0, 4, "TYPE",   :param, "type of memory chunk"],
+      [5, 5, "GC",     nil,    "GC mark bit"],
+      [6, 7, "EXTRA",  :param, "number of unused words attached at the bottom"+
                                  " of this chunk"],
-      [8, 31, "SIZE",   :param, "number of words of this chunk including header"]
+      [8, 31, "SIZE",  :param, "number of words of this chunk including header"]
     ],
     [
-      [0, 3, "GEN",    nil,    "generation"],
+      [0,  3, "GEN",   nil,    "generation"],
     #  [16, 23, "MAGIC",  "HEADER0_MAGIC",    "magic"],
-      [4, 11, "MAGIC",  nil,    "magic"],
-    ],
-    [
-      [ 0, 31, "FWD",    nil, "fowarding pointer"]
+      [4, 11, "MAGIC", nil,    "magic"],
     ]
   ];
+else
+  raise "Invalid basebit value : " + ARGV[0]
+end
+
+if (ARGV[1] == "mark_sweep") then
+  # Nothing to do
+elsif (ARGV[1] == "mark_compact") then
+  header_def.push(
+    [
+      [ 0, bytes_in_word * bits_in_byte - 1, "FWD", :param, "fowarding pointer"]
+    ]
+  );
+else
+  raise "Invalid gc algorithm value : " + ARGV[1]
 end
 
 ####################################################################

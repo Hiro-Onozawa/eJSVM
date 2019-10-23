@@ -246,7 +246,9 @@ STATIC void* space_alloc(struct space *space,
           ((uintptr_t) chunk) + (new_chunk_jsvalues << LOG_BYTES_IN_JSVALUE);
         HEADER_SET_SIZE(&chunk->header, new_chunk_jsvalues);
         ((HeaderCell *) addr)->header0 = HEADER0_COMPOSE(alloc_jsvalues, 0, type);
-        ((HeaderCell *) addr)->header1 = 0;
+#ifdef GC_COMPACTION
+        ((HeaderCell *) addr)->header1 = HEADER1_COMPOSE(NULL);
+#endif
 #ifdef GC_DEBUG
         HEADER_SET_MAGIC((HeaderCell *) addr, HEADER_MAGIC);
         HEADER_SET_GEN_MASK((HeaderCell *) addr, generation);
@@ -259,7 +261,9 @@ STATIC void* space_alloc(struct space *space,
         chunk->header.header0 =
           HEADER0_COMPOSE(chunk_jsvalues,
                           chunk_jsvalues - alloc_jsvalues, type);
-        chunk->header.header1 = 0;
+#ifdef GC_COMPACTION
+        chunk->header.header1 = HEADER1_COMPOSE(NULL);
+#endif
 #ifdef GC_DEBUG
         HEADER_SET_MAGIC(&chunk->header, HEADER_MAGIC);
         HEADER_SET_GEN_MASK(&chunk->header, generation);
@@ -1271,10 +1275,12 @@ STATIC void move_heap_object(void)
 
   size_t freesize = (js_space.bytes >> LOG_BYTES_IN_JSVALUE) - used;
   tail->header.header0 = HEADER0_COMPOSE(freesize, 0, HTAG_FREE);
+#ifdef GC_COMPACTION
+  tail->header.header1 = HEADER1_COMPOSE(NULL);
+#endif
 #ifdef GC_DEBUG
   HEADER_SET_MAGIC(&(tail->header), HEADER_MAGIC);
 #endif
-  tail->header.header1 = 0;
   tail->next = NULL;
   js_space.freelist = tail;
 }

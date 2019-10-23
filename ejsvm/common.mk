@@ -382,7 +382,7 @@ endif
 endif
 
 cell-header.h: $(EJSVM_DIR)/cell-header.def
-	$(RUBY) $< $(OPT_BASEBIT) > $@
+	$(RUBY) $< $(OPT_BASEBIT) $(OPT_GC_ALGORITHM) > $@
 
 instructions.h: instructions-opcode.h instructions-table.h
 
