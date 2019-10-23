@@ -246,6 +246,7 @@ STATIC void* space_alloc(struct space *space,
           ((uintptr_t) chunk) + (new_chunk_jsvalues << LOG_BYTES_IN_JSVALUE);
         HEADER_SET_SIZE(&chunk->header, new_chunk_jsvalues);
         ((HeaderCell *) addr)->header0 = HEADER0_COMPOSE(alloc_jsvalues, 0, type);
+        ((HeaderCell *) addr)->header1 = 0;
 #ifdef GC_DEBUG
         HEADER_SET_MAGIC((HeaderCell *) addr, HEADER_MAGIC);
         HEADER_SET_GEN_MASK((HeaderCell *) addr, generation);
@@ -258,6 +259,7 @@ STATIC void* space_alloc(struct space *space,
         chunk->header.header0 =
           HEADER0_COMPOSE(chunk_jsvalues,
                           chunk_jsvalues - alloc_jsvalues, type);
+        chunk->header.header1 = 0;
 #ifdef GC_DEBUG
         HEADER_SET_MAGIC(&chunk->header, HEADER_MAGIC);
         HEADER_SET_GEN_MASK(&chunk->header, generation);
@@ -338,7 +340,7 @@ void gc_push_regbase(JSValue **pregbase)
 void gc_pop_regbase(JSValue **pregbase)
 {
 #ifdef GC_DEBUG
-  if (gc_regbase_stack[gc_regbase_stack_ptr - 1] != (JSValue *) pregbase) {
+  if (gc_regbase_stack[gc_regbase_stack_ptr - 1] != pregbase) {
     fprintf(stderr, "GC_POP_REGBASE pointer does not match\n");
     abort();
   }
@@ -1034,14 +1036,16 @@ STATIC void check_invariant_nobw_space(struct space *space)
       payload_jsvalues -= HEADER_JSVALUES;
       payload_jsvalues -= HEADER_GET_EXTRA(hdrp);
       for (i = 0; i < payload_jsvalues; i++) {
-        uintptr_t x = ((uintptr_t *) (scan + BYTES_IN_JSVALUE))[i];
-        if (HEADER_GET_TYPE(hdrp) == HTAG_STR_CONS) {
+        JSValue x = ((JSValue *) (scan + BYTES_IN_JSVALUE))[i];
+        if (HEADER_WORD_GET_TYPE(header) == HTAG_STR_CONS) {
           if (i ==
               (((uintptr_t) &((StrCons *) 0)->str) >> LOG_BYTES_IN_JSVALUE))
             continue;
         }
-        if (in_js_space((void *)(x & ~TAGMASK))) {
-          assert(is_marked_cell((void *) (x & ~TAGMASK)));
+        if (is_pointer(x)) {
+          if (in_js_space((void *)(x & ~TAGMASK))) {
+            assert(is_marked_cell((void *) (x & ~TAGMASK)));
+          }
         }
       }
     }
@@ -1234,7 +1238,7 @@ STATIC void move_heap_object(void)
 {
   uintptr_t scan = js_space.addr;
   size_t used = 0;
-  struct free_chunk* tail = NULL;
+  struct free_chunk* tail = (struct free_chunk *)scan;
 
   while (scan < js_space.addr + js_space.bytes) {
     HeaderCell* header = (HeaderCell *) scan;
@@ -1245,7 +1249,13 @@ STATIC void move_heap_object(void)
       JSValue* fwd = (JSValue *)VALPTR_TO_HEADERPTR(HEADER_GET_FWD(header));
       HEADER_SET_FWD(header, 0);
       HEADER_SET_GC(header, 0);
-      if (header != fwd) {
+#ifdef GC_DEBUG
+      {
+        HeaderCell* shadow = get_shadow(fwd);
+        *shadow = *header;
+      }
+#endif /* GC_DEBUG */
+      if ((JSValue *)header != fwd) {
         JSValue* p = (JSValue *)header;
         JSValue* end = (JSValue *)header + size;
         for(; p < end; ++p, ++fwd) {
@@ -1259,10 +1269,11 @@ STATIC void move_heap_object(void)
     scan += (size << LOG_BYTES_IN_JSVALUE);
   }
 
-  assert(tail != NULL);
-  assert((struct  free_chunk *)(js_space.addr + (js_space.bytes - js_space.free_bytes)) == tail);
   size_t freesize = (js_space.bytes >> LOG_BYTES_IN_JSVALUE) - used;
   tail->header.header0 = HEADER0_COMPOSE(freesize, 0, HTAG_FREE);
+#ifdef GC_DEBUG
+  HEADER_SET_MAGIC(&(tail->header), HEADER_MAGIC);
+#endif
   tail->header.header1 = 0;
   tail->next = NULL;
   js_space.freelist = tail;
@@ -1509,7 +1520,7 @@ STATIC void update_HashBody(HashCell ***pbody, size_t len)
 STATIC void update_HashCell(HashCell **phash)
 {
   HashCell *hash = *phash;
-  assert(!in_js_space(phash));
+  assert(!in_js_space(hash));
 
   update_JSValue((JSValue *)&(hash->entry.key));
 
@@ -1592,7 +1603,7 @@ STATIC void update_stack(JSValue** pstack, int sp, int fp)
     fp = stack[sp--];                                        /* FP */
     update_FunctionFrame((FunctionFrame **) &(stack[sp--])); /* LP */
     sp--;                                                    /* PC */
-    assert(!in_js_space(stack[sp]));
+    assert(!in_js_space((void *) stack[sp]));
     sp--;                                                    /* CF */
     /* TODO: fixup inner pointer (CF) */
   }
