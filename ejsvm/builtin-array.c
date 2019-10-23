@@ -407,6 +407,7 @@ cint sortCompare(Context *context, JSValue x, JSValue y, JSValue comparefn) {
        */
       call_builtin(context, comparefn, 2, TRUE, FALSE);
     }
+    stack = &get_stack(context, 0);
     restore_special_registers(context, stack, oldsp - 6);
     set_fp(context, oldfp);
     set_sp(context, oldsp);
