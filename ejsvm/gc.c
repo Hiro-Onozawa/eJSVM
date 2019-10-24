@@ -443,7 +443,6 @@ STATIC void garbage_collect(Context *ctx)
 #ifdef GC_MARK_COMPACT
   scan_roots(ctx);
   weak_clear();
-  sweep();
   compaction(ctx);
 #endif
 #ifdef GC_CLEAR_MEM
@@ -916,6 +915,8 @@ STATIC void weak_clear_StrTable(StrTable *table)
       StringCell *cell = remove_normal_string_tag((*p)->str);
       if (!is_marked_cell(cell)) {
         (*p)->str = JS_UNDEFINED;
+//        HEADER_SET_TYPE(VALPTR_TO_HEADERPTR(cell), HTAG_FREE);
+//        HEADER_SET_TYPE(VALPTR_TO_HEADERPTR(*p), HTAG_FREE);
         *p = (*p)->next;
       } else
         p = &(*p)->next;
@@ -1134,6 +1135,11 @@ STATIC const char *get_name_HTAG(cell_type_t htag)
 
 STATIC void compaction(Context *ctx)
 {
+#ifdef GC_DEBUG
+  sanity_check();
+  check_invariant();
+#endif /* GC_DEBUG */
+
   set_fwdptr();
   update_roots(ctx);
   move_heap_object();
@@ -1147,11 +1153,23 @@ STATIC void set_fwdptr(void)
   while (scan < js_space.addr + js_space.bytes) {
     HeaderCell* header = (HeaderCell *) scan;
     cell_type_t type = HEADER_GET_TYPE(header);
-    size_t size = HEADER_GET_SIZE(header);
-    if (type != HTAG_FREE) {
+    header_word_t size = HEADER_GET_SIZE(header);
+
+    if (is_marked_cell_header(header)) {
+#ifdef GC_DEBUG
+      assert(HEADER_GET_MAGIC(header) == HEADER_MAGIC);
+#endif /* GC_DEBUG */
+
+      header_word_t extra = HEADER_GET_EXTRA(header);
+      unmark_cell_header(header);
       HEADER_SET_FWD(header, HEADERPTR_TO_VALPTR(fwd));
-      fwd += (size << LOG_BYTES_IN_JSVALUE);
+      fwd += ((size - extra) << LOG_BYTES_IN_JSVALUE);
     }
+    else {
+//      HEADER_SET_TYPE(header, HTAG_FREE);
+      HEADER_SET_FWD(header, NULL);
+    }
+
     scan += (size << LOG_BYTES_IN_JSVALUE);
   }
 }
@@ -1246,13 +1264,24 @@ STATIC void move_heap_object(void)
 
   while (scan < js_space.addr + js_space.bytes) {
     HeaderCell* header = (HeaderCell *) scan;
-    cell_type_t type = HEADER_GET_TYPE(header);
     size_t size = HEADER_GET_SIZE(header);
 
-    if (type != HTAG_FREE) {
+    if (HEADER_GET_FWD(header) != NULL) {
       JSValue* fwd = (JSValue *)VALPTR_TO_HEADERPTR(HEADER_GET_FWD(header));
-      HEADER_SET_FWD(header, 0);
-      HEADER_SET_GC(header, 0);
+      cell_type_t type = HEADER_GET_TYPE(header);
+      header_word_t extra = HEADER_GET_EXTRA(header);
+#ifdef GC_DEBUG
+      assert(HEADER_GET_MAGIC(header) == HEADER_MAGIC);
+#endif /* GC_DEBUG */
+
+      header_word_t newsize = size - extra;
+      header->header0 = HEADER0_COMPOSE(newsize, 0, type);
+#ifdef GC_MARK_COMPACT
+      header->header1 = HEADER1_COMPOSE(NULL);
+#endif
+#ifdef GC_DEBUG
+      HEADER_SET_MAGIC(header, HEADER_MAGIC);
+#endif
 #ifdef GC_DEBUG
       {
         HeaderCell* shadow = get_shadow(fwd);
@@ -1261,21 +1290,21 @@ STATIC void move_heap_object(void)
 #endif /* GC_DEBUG */
       if ((JSValue *)header != fwd) {
         JSValue* p = (JSValue *)header;
-        JSValue* end = (JSValue *)header + size;
+        JSValue* end = (JSValue *)header + newsize;
         for(; p < end; ++p, ++fwd) {
           *fwd = *p;
         }
       }
 
       tail = (struct free_chunk *)fwd;
-      used += size;
+      used += newsize;
     }
     scan += (size << LOG_BYTES_IN_JSVALUE);
   }
 
   size_t freesize = (js_space.bytes >> LOG_BYTES_IN_JSVALUE) - used;
   tail->header.header0 = HEADER0_COMPOSE(freesize, 0, HTAG_FREE);
-#ifdef GC_COMPACTION
+#ifdef GC_MARK_COMPACT
   tail->header.header1 = HEADER1_COMPOSE(NULL);
 #endif
 #ifdef GC_DEBUG
@@ -1283,6 +1312,7 @@ STATIC void move_heap_object(void)
 #endif
   tail->next = NULL;
   js_space.freelist = tail;
+  js_space.free_bytes = freesize << LOG_BYTES_IN_JSVALUE;
 }
 
 
@@ -1311,7 +1341,7 @@ STATIC void update_JSValue(JSValue *jsvp)
 
     case HTAG_STRING:
     case HTAG_FLONUM:
-      // Nothing to do
+      mark_cell_header(hdrp);
       break;
 
     case HTAG_SIMPLE_OBJECT:
