@@ -191,7 +191,12 @@ STATIC void create_space(struct space *space, size_t bytes, char *name)
 {
   struct free_chunk *p;
   p = (struct free_chunk *) malloc(bytes);
-  p->header.header0 = HEADER0_COMPOSE(bytes >> LOG_BYTES_IN_JSVALUE, 0, HTAG_FREE);
+#ifdef GC_MARK_SWEEP
+  HEADER_COMPOSE(&(p->header), bytes >> LOG_BYTES_IN_JSVALUE, 0, HTAG_FREE);
+#endif
+#ifdef GC_MARK_COMPACT
+  HEADER_COMPOSE(&(p->header), bytes >> LOG_BYTES_IN_JSVALUE, 0, HTAG_FREE, NULL);
+#endif
 #ifdef GC_DEBUG
   HEADER_SET_MAGIC(&p->header, HEADER_MAGIC);
 #endif /* GC_DEBUG */
@@ -249,9 +254,11 @@ STATIC void* space_alloc(struct space *space,
         uintptr_t addr =
           ((uintptr_t) chunk) + (new_chunk_jsvalues << LOG_BYTES_IN_JSVALUE);
         HEADER_SET_SIZE(&chunk->header, new_chunk_jsvalues);
-        ((HeaderCell *) addr)->header0 = HEADER0_COMPOSE(alloc_jsvalues, 0, type);
-#ifdef GC_COMPACTION
-        ((HeaderCell *) addr)->header1 = HEADER1_COMPOSE(NULL);
+#ifdef GC_MARK_SWEEP
+        HEADER_COMPOSE((HeaderCell *) addr, alloc_jsvalues, 0, type);
+#endif
+#ifdef GC_MARK_COMPACT
+        HEADER_COMPOSE((HeaderCell *) addr, alloc_jsvalues, 0, type, NULL);
 #endif
 #ifdef GC_DEBUG
         HEADER_SET_MAGIC((HeaderCell *) addr, HEADER_MAGIC);
@@ -262,11 +269,13 @@ STATIC void* space_alloc(struct space *space,
       } else {
         /* This chunk is too small to split. */
         *p = (*p)->next;
-        chunk->header.header0 =
-          HEADER0_COMPOSE(chunk_jsvalues,
-                          chunk_jsvalues - alloc_jsvalues, type);
-#ifdef GC_COMPACTION
-        chunk->header.header1 = HEADER1_COMPOSE(NULL);
+#ifdef GC_MARK_SWEEP
+        HEADER_COMPOSE(&(chunk->header), chunk_jsvalues,
+                      chunk_jsvalues - alloc_jsvalues, type);
+#endif
+#ifdef GC_MARK_COMPACT
+        HEADER_COMPOSE(&(chunk->header), chunk_jsvalues,
+                      chunk_jsvalues - alloc_jsvalues, type, NULL);
 #endif
 #ifdef GC_DEBUG
         HEADER_SET_MAGIC(&chunk->header, HEADER_MAGIC);
@@ -988,9 +997,8 @@ STATIC void sweep_space(struct space *space)
 #ifdef GC_DEBUG
         memset(chunk, 0xcc, scan - free_start);
 #endif /* GC_DEBUG */
-        chunk->header.header0 =
-          HEADER0_COMPOSE((scan - free_start) >> LOG_BYTES_IN_JSVALUE,
-                          0, HTAG_FREE);
+        HEADER_COMPOSE(&(chunk->header), (scan - free_start) >> LOG_BYTES_IN_JSVALUE,
+                      0, HTAG_FREE);
 #ifdef GC_DEBUG
         HEADER_SET_MAGIC(&(chunk->header), HEADER_MAGIC);
 #endif /* GC_DEBUG */
@@ -998,9 +1006,8 @@ STATIC void sweep_space(struct space *space)
         p = &chunk->next;
         free_bytes += scan - free_start;
       } else  {
-        ((HeaderCell *) free_start)->header0 =
-          HEADER0_COMPOSE((scan - free_start) >> LOG_BYTES_IN_JSVALUE,
-                          0, HTAG_FREE);
+        HEADER_COMPOSE((HeaderCell *) free_start, (scan - free_start) >> LOG_BYTES_IN_JSVALUE,
+                      0, HTAG_FREE);
 #ifdef GC_DEBUG
         HEADER_SET_MAGIC((HeaderCell *) free_start, HEADER_MAGIC);
 #endif /* GC_DEBUG */
@@ -1282,10 +1289,7 @@ STATIC void move_heap_object(void)
 #endif /* GC_DEBUG */
 
       header_word_t newsize = size - extra;
-      header->header0 = HEADER0_COMPOSE(newsize, 0, type);
-#ifdef GC_MARK_COMPACT
-      header->header1 = HEADER1_COMPOSE(NULL);
-#endif
+      HEADER_COMPOSE(header, newsize, 0, type, NULL);
 #ifdef GC_DEBUG
       HEADER_SET_MAGIC(header, HEADER_MAGIC);
 #endif
@@ -1310,10 +1314,7 @@ STATIC void move_heap_object(void)
   }
 
   size_t freesize = (js_space.bytes >> LOG_BYTES_IN_JSVALUE) - used;
-  tail->header.header0 = HEADER0_COMPOSE(freesize, 0, HTAG_FREE);
-#ifdef GC_MARK_COMPACT
-  tail->header.header1 = HEADER1_COMPOSE(NULL);
-#endif
+  HEADER_COMPOSE(&(tail->header), freesize, 0, HTAG_FREE, NULL);
 #ifdef GC_DEBUG
   HEADER_SET_MAGIC(&(tail->header), HEADER_MAGIC);
 #endif

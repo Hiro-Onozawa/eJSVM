@@ -185,8 +185,19 @@ header_def.each_with_index do |fields, index|
 end
 
 section_start("initialisation")
+initializer_list = []
+initializer = "\\\n"
 header_def.size.times do |index|
   params = compose_params[index].join(",")
-  define("HEADER#{index}_COMPOSE(#{params}) \\\n",
+  if (params == "") then
+    define("HEADER#{index}_COMPOSE(#{params}) \\\n", "0")
+  else
+    define("HEADER#{index}_COMPOSE(#{params}) \\\n",
         compose[index].join(" | \\\n  "))
+  end
+
+  if (params != "") then initializer_list.push(params) end
+  initializer += "    __hdrp->header#{index} = HEADER#{index}_COMPOSE(#{params});\\\n"
 end
+print "#define HEADER_COMPOSE(hdrp,#{initializer_list.join(",")}) \\\n"
+print "  do {\\\n    HeaderCell* __hdrp = (hdrp);#{initializer}  } while (0)"
