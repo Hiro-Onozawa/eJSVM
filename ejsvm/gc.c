@@ -158,7 +158,10 @@ STATIC void scan_roots(Context *ctx);
 STATIC void scan_stack(JSValue* stack, int sp, int fp);
 STATIC void weak_clear_StrTable(StrTable *table);
 STATIC void weak_clear(void);
+
+#ifdef GC_MARK_SWEEP
 STATIC void sweep(void);
+#endif /* GC_MARK_SWEEP */
 
 #ifdef GC_DEBUG
 STATIC void check_invariant(void);
@@ -173,6 +176,7 @@ STATIC void update_roots(Context *ctx);
 STATIC void update_regbase(size_t diff);
 STATIC void move_heap_object(void);
 #endif /* GC_MARK_COMPACT */
+
 #endif /* (defined GC_MARK_SWEEP) || (defined GC_MARK_COMPACT) */
 
 #ifdef GC_CLEAR_MEM
@@ -929,6 +933,7 @@ STATIC void weak_clear(void)
   weak_clear_StrTable(&string_table);
 }
 
+#ifdef GC_MARK_SWEEP
 STATIC void sweep_space(struct space *space)
 {
   struct free_chunk **p;
@@ -1016,6 +1021,8 @@ STATIC void sweep(void)
   sweep_space(&js_space);
 }
 
+#endif /* GC_MARK_SWEEP */
+
 #ifdef GC_DEBUG
 STATIC void check_invariant_nobw_space(struct space *space)
 {
@@ -1099,7 +1106,7 @@ STATIC void sanity_check()
 }
 #endif /* GC_DEBUG */
 
-#if defined GC_MARK_COMPACT
+#ifdef GC_MARK_COMPACT
 STATIC const char *get_name_HTAG(cell_type_t htag)
 {
   switch(htag) {
@@ -1726,7 +1733,7 @@ STATIC void update_root_ptr(void **ptrp)
     return;
   }
 }
-#endif /* defined GC_MARK_COMPACT */
+#endif /* GC_MARK_COMPACT */
 #endif /* (defined GC_MARK_SWEEP) || (defined GC_MARK_COMPACT) */
 
 
