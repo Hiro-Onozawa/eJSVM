@@ -1,23 +1,23 @@
 [x64]
-build: ../ejs/ejsvm/build
+build: ../build
 vm: %(build)s/ejsvm_64
 compiler: %(build)s/ejsc.jar
 compile-opt: -O --spec %(build)s/ejsvm.spec
 
 [x64_obc]
-build: ../ejs/ejsvm/build
+build: ../build
 vm: %(build)s/ejsvm_64
 compiler: %(build)s/ejsc.jar
 compile-opt: -O --spec %(build)s/ejsvm.spec --out_obc
 
 [x86]
-build: ../ejs/ejsvm/build
+build: ../build
 vm: %(build)s/ejsvm_86
 compiler: %(build)s/ejsc.jar
 compile-opt: -O --spec %(build)s/ejsvm.spec --basebit 32
 
 [x86_obc]
-build: ../ejs/ejsvm/build
+build: ../build
 vm: %(build)s/ejsvm_86
 compiler: %(build)s/ejsc.jar
 compile-opt: -O --spec %(build)s/ejsvm.spec --out_obc --basebit 32 --specPTAG 01
