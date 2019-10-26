@@ -24,6 +24,10 @@ endif
 ifeq ($(COCCINELLE),)
     COCCINELLE = spatch
 endif
+ifeq ($(OPT_DEBUG),)
+# DEBUG=true|false
+    OPT_DEBUG=false
+endif
 ifeq ($(OPT_BASEBIT),)
 # BASEBIT=32|64
     OPT_BASEBIT=64
@@ -232,6 +236,13 @@ INSN_FILES = $(INSN_SUPERINSNS) $(INSN_GENERATED) $(INSN_HANDCRAFT)
 
 ######################################################
 
+ifeq ($(OPT_DEBUG),true)
+    CFLAGS+=-DDEBUG -UNDEBUG
+endif
+ifeq ($(OPT_DEBUG),false)
+    CFLAGS+=-DNDEBUG -UDEBUG
+endif
+
 ifeq ($(OPT_BASEBIT),32)
     CCOPT=-m32
     CFLAGS+=-DBIT_32=1
@@ -382,7 +393,7 @@ endif
 endif
 
 cell-header.h: $(EJSVM_DIR)/cell-header.def
-	$(RUBY) $< $(OPT_BASEBIT) $(OPT_GC_ALGORITHM) > $@
+	$(RUBY) $< $(OPT_DEBUG) $(OPT_BASEBIT) $(OPT_GC_ALGORITHM) > $@
 
 instructions.h: instructions-opcode.h instructions-table.h
 

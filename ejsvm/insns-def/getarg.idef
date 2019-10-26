@@ -7,12 +7,13 @@
  */
 
   FunctionFrame *fr;
-  JSValue arguments;
+  JSValue arguments, tmp;
   int i;
   fr = get_lp(context);
   for (i = 0; i < link; i++) {
     fr = fframe_prev(fr);
   }
   arguments = fframe_arguments(fr);
-  dst = get_array_prop(context, arguments, int_to_fixnum(index));
+  tmp = get_array_prop(context, arguments, int_to_fixnum(index));
+  dst = tmp;
 \}

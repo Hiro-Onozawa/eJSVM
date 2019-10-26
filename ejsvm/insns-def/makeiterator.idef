@@ -9,5 +9,6 @@
 
   if (!is_object(obj))
     LOG_EXIT("makeiterator: not an object\n");
-  dst = new_normal_iterator(context, obj);
+  JSValue tmp = new_normal_iterator(context, obj);
+  dst = tmp;
 \}
