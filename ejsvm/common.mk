@@ -24,6 +24,10 @@ endif
 ifeq ($(COCCINELLE),)
     COCCINELLE = spatch
 endif
+ifeq ($(OPT_DEBUG),)
+# DEBUG=true|false
+    OPT_DEBUG=false
+endif
 ifeq ($(OPT_BASEBIT),)
 # BASEBIT=32|64
     OPT_BASEBIT=64
@@ -231,6 +235,13 @@ CHECKFILES = $(patsubst %.c,$(CHECKFILES_DIR)/%.c,$(CFILES))
 INSN_FILES = $(INSN_SUPERINSNS) $(INSN_GENERATED) $(INSN_HANDCRAFT)
 
 ######################################################
+
+ifeq ($(OPT_DEBUG),true)
+    CFLAGS+=-DDEBUG -UNDEBUG
+endif
+ifeq ($(OPT_DEBUG),false)
+    CFLAGS+=-DNDEBUG -UDEBUG
+endif
 
 ifeq ($(OPT_BASEBIT),32)
     CCOPT=-m32

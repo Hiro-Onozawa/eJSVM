@@ -17,8 +17,8 @@ SUPERINSNTYPE = 4
 ## compile flags
 ##
 
-CFLAGS = -O2 -DNDEBUG -UDEBUG $(HEAPSIZE)
-# CFLAGS = -Os -DNDEBUG -UDEBUG $(HEAPSIZE)
+CFLAGS = -O2 $(HEAPSIZE)
+# CFLAGS = -Os $(HEAPSIZE)
 # CFLAGS = -O0 -g $(HEAPSIZE)
 INSNGEN_FLAGS = -Xgen:pad_cases true -Xcmp:opt_pass MR:S -Xcmp:rand_seed 0
 
@@ -48,6 +48,7 @@ LIBS =
 ## options
 ## 
 
+OPT_DEBUG     = false
 OPT_BASEBIT   = 64
 # OPT_BASEBIT   = 32
 OPT_REGEXP    = none
