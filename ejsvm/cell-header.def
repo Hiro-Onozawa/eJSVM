@@ -10,7 +10,11 @@ if (ARGV.size < 2) then
   raise "Usage : <basebit> <gc algorithm>"
 end
 
-if (ARGV[0] == "64") then
+is_debug = (ARGV[0] == "true")
+basebit = ARGV[1]
+gc_algorithm = ARGV[2]
+
+if (basebit == "64") then
   header_type   = "uint64_t"
   bytes_in_word = 8
   bits_in_byte  = 8
@@ -27,7 +31,7 @@ if (ARGV[0] == "64") then
       [32, 63, "SIZE",   :param, "number of words of this chunk including header"]
     ]
   ];
-elsif (ARGV[0] == "32") then
+elsif (basebit == "32") then
   header_type   = "uint32_t"
   bytes_in_word = 4
   bits_in_byte  = 8
@@ -39,27 +43,30 @@ elsif (ARGV[0] == "32") then
       [6, 7, "EXTRA",  :param, "number of unused words attached at the bottom"+
                                  " of this chunk"],
       [8, 31, "SIZE",  :param, "number of words of this chunk including header"]
-    ],
-    [
-      [0,  3, "GEN",   nil,    "generation"],
-    #  [16, 23, "MAGIC",  "HEADER0_MAGIC",    "magic"],
-      [4, 11, "MAGIC", nil,    "magic"],
     ]
-  ];
+  ]
+  if (is_debug) then
+    header_def.push(
+      [
+        [0,  3, "GEN",   nil,    "generation"],
+        [4, 11, "MAGIC", nil,    "magic"]
+      ]
+    )
+  end
 else
-  raise "Invalid basebit value : " + ARGV[0]
+  raise "Invalid basebit value : " + basebit
 end
 
-if (ARGV[1] == "mark_sweep") then
+if (gc_algorithm == "mark_sweep") then
   # Nothing to do
-elsif (ARGV[1] == "mark_compact") then
+elsif (gc_algorithm == "mark_compact") then
   header_def.push(
     [
       [ 0, bytes_in_word * bits_in_byte - 1, "FWD", :param, "fowarding pointer"]
     ]
   );
 else
-  raise "Invalid gc algorithm value : " + ARGV[1]
+  raise "Invalid gc algorithm value : " + gc_algorithm
 end
 
 ####################################################################
