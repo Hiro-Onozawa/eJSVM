@@ -14,6 +14,7 @@
    */
   Subscript ss = subscr + 1;
   save_context();    // GC
-  dst = new_normal_function(context, ss);
+  JSValue tmp = new_normal_function(context, ss);
+  dst = tmp;
   update_context();    // GC
 \}
