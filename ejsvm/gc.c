@@ -1691,7 +1691,7 @@ STATIC void update_root_ptr(void **ptrp)
 {
   void *ptr = *ptrp;
 
-  if (clear_tag(ptr) != 0) {
+  if (get_tag(ptr) != 0) {
     JSValue *pjsv = (JSValue *)ptrp;
     update_JSValue(pjsv);
     return;
@@ -1729,8 +1729,7 @@ STATIC void update_root_ptr(void **ptrp)
     break;
 #endif
   default:
-    LOG_EXIT("GC::UPDATE_ROOT_PTR : unknown data type");
-//    update_JSValue((JSValue *) ptrp);
+    update_JSValue((JSValue *) ptrp);
     return;
   }
 }
