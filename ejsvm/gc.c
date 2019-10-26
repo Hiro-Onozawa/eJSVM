@@ -621,7 +621,7 @@ STATIC void trace_FunctionTable_array(FunctionTable **ptrp, size_t length)
 STATIC void trace_FunctionFrame(FunctionFrame **ptrp)
 {
   FunctionFrame *ptr = *ptrp;
-  header_word_t header;
+  HeaderCell *hdrp;
   size_t length;
   size_t   i;
   if (test_and_mark_cell(ptr))
@@ -631,11 +631,11 @@ STATIC void trace_FunctionFrame(FunctionFrame **ptrp)
     trace_FunctionFrame(&ptr->prev_frame);
   trace_slot(&ptr->arguments);
   /* locals */
-  header = VALPTR_TO_HEADER0(ptr);
-  length = HEADER_WORD_GET_SIZE(header);
+  hdrp = VALPTR_TO_HEADERPTR(ptr);
+  length = HEADER_GET_SIZE(hdrp);
   length -= HEADER_JSVALUES;
   length -= sizeof(FunctionFrame) >> LOG_BYTES_IN_JSVALUE;
-  length -= HEADER_WORD_GET_EXTRA(header);
+  length -= HEADER_GET_EXTRA(hdrp);
   for (i = 0; i < length; i++)
     trace_slot(ptr->locals + i);
 
@@ -722,9 +722,9 @@ STATIC void trace_js_object(uintptr_t *ptrp)
 #endif
   trace_JSValue_array(&obj->prop, obj->n_props);
 
-  header_word_t hword;
-  hword = HEADER_TYPE_GET_WORD(VALPTR_TO_HEADERPTR(ptr));
-  switch (HEADER_WORD_GET_TYPE(hword)) {
+  header_word_t type;
+  type = HEADER_GET_TYPE(VALPTR_TO_HEADERPTR(ptr));
+  switch (type) {
   case HTAG_SIMPLE_OBJECT:
     break;
   case HTAG_ARRAY:
@@ -1037,16 +1037,16 @@ STATIC void check_invariant_nobw_space(struct space *space)
 
   while (scan < space->addr + space->bytes) {
     HeaderCell *hdrp = (HeaderCell *) scan;
-    header_word_t header = HEADER_TYPE_GET_WORD(hdrp);
-    if (HEADER_WORD_GET_TYPE(header) == HTAG_STRING)
+    header_word_t type = HEADER_GET_TYPE(hdrp);
+    if (type == HTAG_STRING)
       ;
 #ifdef need_flonum
-    else if (HEADER_WORD_GET_TYPE(header) == HTAG_FLONUM)
+    else if (type == HTAG_FLONUM)
       ;
 #endif
-    else if (HEADER_WORD_GET_TYPE(header) == HTAG_CONTEXT)
+    else if (type == HTAG_CONTEXT)
       ;
-    else if (HEADER_WORD_GET_TYPE(header) == HTAG_STACK)
+    else if (type == HTAG_STACK)
       ;
     else if (is_marked_cell_header(hdrp)) {
       /* this object is black; should not contain a pointer to white */
@@ -1056,7 +1056,7 @@ STATIC void check_invariant_nobw_space(struct space *space)
       payload_jsvalues -= HEADER_GET_EXTRA(hdrp);
       for (i = 0; i < payload_jsvalues; i++) {
         JSValue x = ((JSValue *) (scan + HEADER_BYTES))[i];
-        if (HEADER_WORD_GET_TYPE(header) == HTAG_STR_CONS) {
+        if (type == HTAG_STR_CONS) {
           if (i ==
               (((uintptr_t) &((StrCons *) 0)->str) >> LOG_BYTES_IN_JSVALUE))
             continue;
