@@ -58,6 +58,7 @@ OPT_GC        = native
 # OPT_GC        = none
 OPT_GC_ALGORITHM = mark_sweep
 # OPT_GC_ALGORITHM = mark_compact
+# OPT_GC_ALGORITHM = copy
 HEAPSIZE      = -DJS_SPACE_BYTES=10485760
 
 CFLAGS       += -DUSE_SBC

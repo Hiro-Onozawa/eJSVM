@@ -19,32 +19,45 @@ if (basebit == "64") then
   bytes_in_word = 8
   bits_in_byte  = 8
   header_magic  = 0x18
-  header_def = [
-    [
+  if (gc_algorithm == "copy") then
+    header_def.push([
       [ 0,  7, "TYPE",   :param, "type of memory chunk"],
-      [ 8,  8, "GC",     nil,     "GC mark bit"],
+      [ 8, 11, "GEN",    nil,    "generation"],
+    #  [13, 20, "MAGIC",  "HEADER0_MAGIC",    "magic"],
+      [12, 19, "MAGIC",  nil,    "magic"],
+      [32, 63, "SIZE",   :param, "number of words of this chunk including header"]
+    ]);
+  else
+    header_def.push([
+      [ 0,  7, "TYPE",   :param, "type of memory chunk"],
+      [ 8,  8, "GC",     nil,    "GC mark bit"],
       [ 9, 11, "EXTRA",  :param, "number of unused words attached at the bottom"+
-                                " of this chunk"],
+                                 " of this chunk"],
       [12, 15, "GEN",    nil,    "generation"],
     #  [16, 23, "MAGIC",  "HEADER0_MAGIC",    "magic"],
       [16, 23, "MAGIC",  nil,    "magic"],
       [32, 63, "SIZE",   :param, "number of words of this chunk including header"]
-    ]
-  ];
+    ]);
+  end
 elsif (basebit == "32") then
   header_type   = "uint32_t"
   bytes_in_word = 4
   bits_in_byte  = 8
   header_magic  = 0x18
-  header_def = [
-    [
-      [0, 4, "TYPE",   :param, "type of memory chunk"],
-      [5, 5, "GC",     nil,    "GC mark bit"],
-      [6, 7, "EXTRA",  :param, "number of unused words attached at the bottom"+
-                                 " of this chunk"],
+  if (gc_algorithm == "copy") then
+    header_def.push([
+      [0,  4, "TYPE",  :param, "type of memory chunk"],
+      [5, 31, "SIZE",  :param, "number of words of this chunk including header"]
+    ]);
+  else
+    header_def.push([
+      [0,  4, "TYPE",  :param, "type of memory chunk"],
+      [5,  5, "GC",    nil,    "GC mark bit"],
+      [6,  7, "EXTRA", :param, "number of unused words attached at the bottom"+
+                               " of this chunk"],
       [8, 31, "SIZE",  :param, "number of words of this chunk including header"]
-    ]
-  ]
+    ]);
+  end
   if (is_debug) then
     header_def.push(
       [
@@ -65,6 +78,8 @@ elsif (gc_algorithm == "mark_compact") then
       [ 0, bytes_in_word * bits_in_byte - 1, "FWD", :param, "fowarding pointer"]
     ]
   );
+elsif (gc_algorithm == "copy") then
+  # Nothing to do
 else
   raise "Invalid gc algorithm value : " + gc_algorithm
 end
@@ -198,4 +213,4 @@ header_def.size.times do |index|
   initializer += "    __hdrp->header#{index} = HEADER#{index}_COMPOSE(#{params});\\\n"
 end
 print "#define HEADER_COMPOSE(hdrp,#{initializer_list.join(",")}) \\\n"
-print "  do {\\\n    HeaderCell* __hdrp = (hdrp);#{initializer}  } while (0)"
+print "  do {\\\n    HeaderCell* __hdrp = (HeaderCell *)(hdrp);#{initializer}  } while (0)\n"
