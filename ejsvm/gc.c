@@ -21,6 +21,7 @@
  * 
  * GC_MARK_SWEEP   : mark & sweep gc
  * GC_MARK_COMPACT : mark & compation gc
+ * GC_COPY         : copy gc
  * 
  * GC_CLEAR_MEM : clear unused memory with this value
  */
@@ -33,8 +34,8 @@
 #define STATIC static
 #endif
 
-#if (!defined GC_MARK_SWEEP) && (!defined GC_MARK_COMPACT)
-#error "Please define macro to select GC algorithm : GC_MARK_SWEEP / GC_MARK_COMPACT"
+#if (!defined GC_MARK_SWEEP) && (!defined GC_MARK_COMPACT) && (!defined GC_COPY)
+#error "Please define macro to select GC algorithm : GC_MARK_SWEEP / GC_MARK_COMPACT / GC_COPY"
 #endif
 
 /*
@@ -60,7 +61,11 @@
 #ifndef JS_SPACE_BYTES
 #define JS_SPACE_BYTES     (10 * 1024 * 1024)
 #endif
+#ifdef GC_COPY
+#define JS_SPACE_GC_THREASHOLD     (JS_SPACE_BYTES >> 2)
+#else
 #define JS_SPACE_GC_THREASHOLD     (JS_SPACE_BYTES >> 1)
+#endif
 /* #define JS_SPACE_GC_THREASHOLD     (JS_SPACE_BYTES >> 4) */
 
 /*
@@ -77,7 +82,9 @@
  *  Macro
  */
 
+#ifdef HEADER_GC_OFFSET
 #define GC_MARK_BIT (1 << HEADER_GC_OFFSET)
+#endif
 #define HEADER_JSVALUES ((HEADER_BYTES + BYTES_IN_JSVALUE - 1) >> LOG_BYTES_IN_JSVALUE)
 
 /*
@@ -86,6 +93,7 @@
 
 #define HTAG_FREE ((1 << HEADER_TYPE_BITS) - 1)
 
+#if (defined GC_MARK_SWEEP) || (defined GC_MARK_COMPACT)
 struct free_chunk {
   HeaderCell header;
   struct free_chunk *next;
@@ -98,6 +106,20 @@ struct space {
   struct free_chunk* freelist;
   char *name;
 };
+#endif /* (defined GC_MARK_SWEEP) || (defined GC_MARK_COMPACT) */
+
+#if (defined GC_COPY)
+struct space {
+  uintptr_t addr;
+  uintptr_t free;
+  uintptr_t toSpace;
+  uintptr_t fromSpace;
+  uintptr_t top;
+  size_t extent;
+  size_t free_bytes;
+  char *name;
+};
+#endif /* (defined GC_COPY) */
 
 /*
  * variables
@@ -179,14 +201,19 @@ STATIC void move_heap_object(void);
 
 #endif /* (defined GC_MARK_SWEEP) || (defined GC_MARK_COMPACT) */
 
+#if (defined GC_COPY)
+STATIC void collect(Context *ctx);
+#endif /* (defined GC_COPY) */
+
 #ifdef GC_CLEAR_MEM
-STATIC void fill_free_cell(struct free_chunk *p, JSValue val);
+STATIC void fill_free_cell(struct space *p, JSValue val);
 #endif /* GC_CLEAR_MEM */
 
 /*
  *  Space
  */
 
+#if (defined GC_MARK_SWEEP) || (defined GC_MARK_COMPACT)
 STATIC void create_space(struct space *space, size_t bytes, char *name)
 {
   struct free_chunk *p;
@@ -290,6 +317,87 @@ STATIC void* space_alloc(struct space *space,
   printf("memory exhausted\n");
   return NULL;
 }
+#endif /* (defined GC_MARK_SWEEP) || (defined GC_MARK_COMPACT) */
+
+#if (defined GC_COPY)
+STATIC void create_space(struct space *space, size_t bytes, char *name)
+{
+  void *p;
+  size_t extent;
+
+  p = malloc(bytes);
+  assert(p != NULL);
+
+  extent = bytes / 2;
+  HEADER_COMPOSE(p, extent, HTAG_FREE);
+
+  space->addr       = (uintptr_t) p;
+  space->free       = (uintptr_t) p;
+  space->toSpace    = (uintptr_t) p;
+  space->fromSpace  = ((uintptr_t) p) + extent;
+  space->top        = ((uintptr_t) p) + extent;
+  space->extent     = extent;
+  space->free_bytes = extent;
+  space->name       = name;
+}
+
+STATIC int in_js_to_space(void *addr_)
+{
+  uintptr_t addr = (uintptr_t) addr_;
+  return (js_space.toSpace <= addr && addr < js_space.top);
+}
+
+STATIC int in_js_from_space(void *addr_)
+{
+  uintptr_t addr = (uintptr_t) addr_;
+  return (js_space.fromSpace <= addr && addr < js_space.fromSpace + js_space.extent);
+}
+
+STATIC int in_js_space(void *addr_)
+{
+  uintptr_t addr = (uintptr_t) addr_;
+  return (js_space.addr <= addr && addr < js_space.addr + js_space.extent * 2);
+}
+
+#ifdef GC_DEBUG
+STATIC HeaderCell *get_shadow(void *ptr)
+{
+  if (in_js_space(ptr)) {
+    uintptr_t a = (uintptr_t) ptr;
+    uintptr_t off = a - js_space.addr;
+    return (HeaderCell *) (debug_js_shadow.addr + off);
+  } else
+    return NULL;
+}
+#endif /* GC_DEBUG */
+
+STATIC void* space_alloc(struct space *space,
+                         size_t request_bytes, cell_type_t type)
+{
+  size_t alloc_jsvalues;
+  HeaderCell *hdrp;
+  uintptr_t newfree;
+  
+  alloc_jsvalues =
+    (request_bytes + BYTES_IN_JSVALUE - 1) >> LOG_BYTES_IN_JSVALUE;
+  alloc_jsvalues += HEADER_JSVALUES;
+  
+  hdrp = (HeaderCell *) space->free;
+  newfree = space->free + (alloc_jsvalues << LOG_BYTES_IN_JSVALUE);
+
+  if (newfree > space->top) {
+    printf("memory exhausted\n");
+    return NULL;
+  }
+  space->free = newfree;
+  space->free_bytes -= alloc_jsvalues << LOG_BYTES_IN_JSVALUE;
+
+  HEADER_COMPOSE(hdrp, alloc_jsvalues, type);
+  HEADER_COMPOSE(newfree, space->free_bytes, HTAG_FREE);
+
+  return (void *) HEADERPTR_TO_VALPTR(hdrp);
+}
+#endif /* (defined GC_COPY) */
 
 
 /*
@@ -458,8 +566,11 @@ STATIC void garbage_collect(Context *ctx)
   weak_clear();
   compaction(ctx);
 #endif
+#ifdef GC_COPY
+  collect(ctx);
+#endif
 #ifdef GC_CLEAR_MEM
-  fill_free_cell(js_space.freelist, (JSValue)GC_CLEAR_MEM);
+  fill_free_cell(&js_space, (JSValue)GC_CLEAR_MEM);
 #endif
   GCLOG("After Garbage Collection\n");
   /* print_memory_status(); */
@@ -1736,10 +1847,685 @@ STATIC void update_root_ptr(void **ptrp)
 #endif /* GC_MARK_COMPACT */
 #endif /* (defined GC_MARK_SWEEP) || (defined GC_MARK_COMPACT) */
 
+#ifdef GC_COPY
+#if 0
+createSemiSpace():
+  toSpace <- HeapStart
+  extent <- (HeapEnd - HeapStart) / 2
+  top <- fromSpace <- HeapStart + extent
+  free <- tospace
+
+atomic allocate(size):
+  result <- free
+  newfree <- result + size
+  if newfree > top
+    return null
+  free <- newfree
+  return result
+
+atomic collect():
+  flip()
+  initialize(worklist)        /* 空 */
+  for each fld in Roots       /* ルートをコピー */
+    process(fld)
+  while not isEmpty(worklist) /* 推移的閉包をコピー */
+    ref <- remove(worklist)
+    scan(ref)
+
+/* 二部空間を切り替える */
+flip():
+  fromspace, tospace <- tospace, fromspace
+  top <- tospace + extent
+  free <- tospacce
+
+scan(ref):
+  for each fld in Pointers(ref)
+    process(fld)
+
+/* フィールドを to 空間の複製への参照に置き換える */
+process(fld):
+  fromRef <- *fld
+  if fromRef != null
+    *fld <- forward(fromRef) /* to 空間への参照に置き換える */
+
+forward(fromRef):
+  toRef <- forwardingAddress(fromRef)
+  if toRef == null                    /* 未コピー (未マーク) */
+    toRef <- copy(fromRef)
+  return toRef
+
+/* オブジェクトをコピーし転送先アドレスを返す */
+copy(fromRef):
+  toRef <- free
+  free <- free + size(fromRef)
+  move(fromRef, toRef)
+  forwardingAddress(fromRef) <- toRef /* マーク */
+  add(worklist, toRef)
+  return toRef
+
+initialize(worklist):
+  scan <- free
+
+isEmpty(worklist):
+  return scan == free
+
+remove(worklist):
+  ref <- scan
+  scan <- scan + size(scan)
+  return ref
+
+add(worklist, ref):
+  /* nop */
+#endif
+STATIC void *worklist;
+
+STATIC void flip();
+STATIC void wl_initialize(void **worklist);
+STATIC int  wl_isEmpty(void **worklist);
+STATIC void wl_add(void **worklist, void *ref);
+STATIC void *wl_remove(void **worklist);
+STATIC void scan_HiddenClass(HiddenClass *phc);
+STATIC void scan_StrCons(StrCons *pcons);
+STATIC void scan_HashCell(HashCell *hash);
+STATIC void scan_HashBody(HashCell **pbody);
+STATIC void scan_FnctionFrame(FunctionFrame *pfframe);
+STATIC void scan_BoxedCell(BoxedCell *pcell);
+STATIC void scan_Iterator(Iterator *pitr);
+STATIC void scan_FunctionCell(FunctionCell *pfunc);
+STATIC void scan_ArrayCell(ArrayCell *parr);
+STATIC void scan_ObjectCell(Object *pobj);
+STATIC void scan(void *ref);
+STATIC void process_JSValue(JSValue *pjsv);
+STATIC void process_JSValue_array(JSValue *jsvarr, size_t len);
+STATIC void process_StrCons_ptr_array(StrCons **pscarr, size_t len);
+STATIC void process_Context(Context *ctx);
+STATIC void process_stack(JSValue **pstack, int sp, int fp);
+STATIC void update_regbase(intptr_t diff);
+STATIC void process_FunctionTable(FunctionTable *pft);
+STATIC void process_FunctionTable_array(FunctionTable *ftarr, size_t len);
+STATIC void process_root_ptr(void **ptrp);
+STATIC void process(void **pref);
+STATIC void process_roots(Context *ctx);
+STATIC void *forwardingAddress(void *fromRef);
+STATIC void *forward(void *fromRef);
+STATIC void *copy(void *fromRef);
+
+STATIC const char *get_name_HTAG(cell_type_t htag)
+{
+  switch(htag) {
+      case HTAG_FREE: return "FREE";
+
+      case HTAG_STRING: return "STRING";
+      case HTAG_FLONUM: return "FLONUM";
+      case HTAG_SIMPLE_OBJECT: return "OBJECT";
+      case HTAG_ARRAY: return "ARRAY";
+      case HTAG_FUNCTION: return "FUNCTION";
+      case HTAG_BUILTIN: return "BUILTIN";
+      case HTAG_ITERATOR: return "ITERATOR";
+#ifdef use_regexp
+      case HTAG_REGEXP: return "REGEXP";
+#endif
+      case HTAG_BOXED_STRING: return "BOX_STRING";
+      case HTAG_BOXED_NUMBER: return "BOX_NUMBER";
+      case HTAG_BOXED_BOOLEAN: return "BOX_BOOLEAN";
+
+
+      case HTAG_PROP: return "PROP";
+      case HTAG_ARRAY_DATA: return "ARRAY_DATA";
+      case HTAG_FUNCTION_FRAME: return "FUNCTION_FRAME";
+      case HTAG_HASH_BODY: return "HASH_BODY";
+      case HTAG_STR_CONS: return "STR_CONS";
+      case HTAG_CONTEXT: return "CONTEXT";
+      case HTAG_STACK: return "STACK";
+      case HTAG_HIDDEN_CLASS: return "HIDDEN_CLASS";
+      
+      default: return "UNKNOWN";
+  }
+}
+
+STATIC void flip()
+{
+  uintptr_t tmp = js_space.toSpace;
+  js_space.toSpace = js_space.fromSpace;
+  js_space.fromSpace = tmp;
+
+  js_space.top = js_space.toSpace + js_space.extent;
+  js_space.free = js_space.toSpace;
+  js_space.free_bytes = js_space.extent;
+}
+
+STATIC void wl_initialize(void **worklist)
+{
+  *worklist = (void *) js_space.free;
+}
+
+STATIC int wl_isEmpty(void **worklist)
+{
+  return *worklist == (void *) js_space.free;
+}
+
+STATIC void wl_add(void **worklist, void *ref)
+{
+  // Nothing to do
+}
+
+STATIC void *wl_remove(void **worklist)
+{
+  void *ref;
+  HeaderCell *hdrp;
+  size_t size;
+
+  ref = *worklist;
+
+  hdrp = (HeaderCell *) *worklist;
+  size = (HEADER_GET_SIZE(hdrp) << LOG_BYTES_IN_JSVALUE);
+  *worklist = (void *) (((uintptr_t) *worklist) + size);
+
+  return ref;
+}
+
+STATIC void scan_ObjectCell(Object *pobj)
+{
+  process((void **) &(pobj->class));
+  process((void **) &(pobj->prop));
+}
+
+STATIC void scan_ArrayCell(ArrayCell *parr)
+{
+  scan_ObjectCell(&(parr->o));
+  process((void **) &(parr->body));
+}
+
+STATIC void scan_FunctionCell(FunctionCell *pfunc)
+{
+  scan_ObjectCell(&(pfunc->o));
+  assert(!in_js_space(pfunc->func_table_entry));
+  process((void **) &(pfunc->environment));
+}
+
+STATIC void scan_Iterator(Iterator *pitr)
+{
+  process((void **) &(pitr->body));
+}
+
+STATIC void scan_BoxedCell(BoxedCell *pcell)
+{
+  scan_ObjectCell(&(pcell->o));
+  process_JSValue(&(pcell->value));
+}
+
+STATIC void scan_FnctionFrame(FunctionFrame *pfframe)
+{
+  HeaderCell *hdrp;
+  JSValue *head;
+  JSValue *end;
+  size_t n_locals;
+
+  process((void **) &(pfframe->prev_frame));
+
+  hdrp = VALPTR_TO_HEADERPTR(pfframe);
+  head = &(pfframe->arguments);
+  end = ((JSValue *) hdrp) + HEADER_GET_SIZE(hdrp);
+  n_locals = ((uintptr_t)end - (uintptr_t)head) / sizeof(JSValue);
+  process_JSValue_array(head, n_locals);
+}
+
+STATIC void scan_HashBody(HashCell **pbody)
+{
+  HeaderCell *hdrp;
+  header_word_t size;
+  uintptr_t end;
+  size_t len;
+
+  hdrp = VALPTR_TO_HEADERPTR(pbody);
+  size = HEADER_GET_SIZE(hdrp);
+  end = (uintptr_t)((JSValue *) hdrp + size);
+  len = (size_t)(end - (uintptr_t) pbody) / sizeof(HashCell *);
+
+  while (len > 0) {
+    if (*pbody != NULL) scan_HashCell(*pbody);
+    ++pbody;
+    --len;
+  }
+}
+
+STATIC void scan_HashCell(HashCell *hash)
+{
+  assert(!in_js_space(hash));
+
+  process_JSValue((JSValue *) &(hash->entry.key));
+
+  if (is_transition(hash->entry.attr)) {
+    process((void **) ((HiddenClass **) &(hash->entry.data)));
+  }
+
+  if (hash->next != NULL) {
+    scan_HashCell(hash->next);
+  }
+}
+
+STATIC void scan_StrCons(StrCons *pcons)
+{
+  process_JSValue(&(pcons->str));
+  process((void **) &(pcons->next));
+}
+
+STATIC void scan_HiddenClass(HiddenClass *phc)
+{
+  HashTable *map;
+
+  map = phc->map;
+  assert(!in_js_space(map));
+
+  process((void **) &(map->body));
+}
+
+STATIC void scan(void *ref)
+{
+  HeaderCell *hdrp;
+  void *ptr;
+  header_word_t size;
+  header_word_t type;
+
+  assert(in_js_to_space(ref));
+
+  hdrp = (HeaderCell *) ref;
+  size = HEADER_GET_SIZE(hdrp);
+  type = HEADER_GET_TYPE(hdrp);
+  ptr = HEADERPTR_TO_VALPTR(hdrp);
+
+  switch(type) {
+    case HTAG_FREE:
+      LOG_EXIT("scan : htag is HTAG_FREE\n");
+      return;
+
+    case HTAG_STRING:
+    case HTAG_FLONUM:
+      // Nothing to do
+      break;
+
+    case HTAG_SIMPLE_OBJECT:
+      scan_ObjectCell((Object *) ptr);
+      break;
+    case HTAG_ARRAY:
+      scan_ArrayCell((ArrayCell *) ptr);
+      break;
+    case HTAG_FUNCTION:
+      scan_FunctionCell((FunctionCell *) ptr);
+      break;
+    case HTAG_BUILTIN:
+      // Same as ObjectCell
+      scan_ObjectCell((Object *) ptr);
+      break;
+    case HTAG_ITERATOR:
+      scan_Iterator((Iterator *) ptr);
+      break;
+#ifdef use_regexp
+    case HTAG_REGEXP:
+      LOG_EXIT("Not implemented\n");
+      return;
+#endif
+    case HTAG_BOXED_STRING:
+    case HTAG_BOXED_NUMBER:
+    case HTAG_BOXED_BOOLEAN:
+      scan_BoxedCell((BoxedCell *) ptr);
+      break;
+
+    case HTAG_PROP:
+    case HTAG_ARRAY_DATA:
+      process_JSValue_array((JSValue *) ptr, size - HEADER_JSVALUES);
+      break;
+    case HTAG_FUNCTION_FRAME:
+      scan_FnctionFrame((FunctionFrame *) ptr);
+      break;
+    case HTAG_HASH_BODY:
+      scan_HashBody((HashCell**) ptr);
+      break;
+    case HTAG_STR_CONS:
+      scan_StrCons((StrCons *) ptr);
+      break;
+    case HTAG_CONTEXT:
+      LOG_EXIT("Unreachable Code\n");
+      abort();
+      break;
+    case HTAG_STACK:
+      // Nothing to do
+      break;
+    case HTAG_HIDDEN_CLASS:
+      scan_HiddenClass((HiddenClass *) ptr);
+      break;
+    
+    default:
+     LOG_EXIT("Unknown tag : 0x%04"PRIJSValue"\n", HEADER_GET_TYPE(hdrp));
+     abort();
+  }
+}
+
+STATIC void process_JSValue(JSValue *pjsv)
+{
+  JSValue jsv;
+  Tag tag;
+  void *fromRef;
+  void *toRef;
+
+  jsv = *pjsv;
+  if (!is_pointer(jsv)) return;
+
+  tag = get_tag(jsv);
+  fromRef = clear_tag(jsv);
+
+  assert(fromRef != NULL);
+  assert(in_js_from_space(fromRef));
+
+  toRef = forward(fromRef);
+
+  *pjsv = put_tag(toRef, tag);
+}
+
+STATIC void process_JSValue_array(JSValue *jsvarr, size_t len)
+{
+  size_t i;
+  for (i = 0; i < len; ++i) {
+    process_JSValue(jsvarr + i);
+  }
+}
+
+STATIC void process_StrCons_ptr_array(StrCons **pscarr, size_t len)
+{
+  size_t i;
+  for (i = 0; i < len; ++i) {
+    process(pscarr + i);
+  }
+}
+
+STATIC void process_Context(Context *ctx)
+{
+  process_JSValue(&(ctx->global));
+
+  // Nothing to do
+  assert(!in_js_space(ctx->function_table));
+
+  process(&(ctx->spreg.lp));
+
+  process_JSValue(&(ctx->spreg.a));
+  process_JSValue(&(ctx->spreg.err));
+
+  process_JSValue(&(ctx->exhandler_stack));
+  process_JSValue(&(ctx->lcall_stack));
+
+  process_stack(&(ctx->stack), ctx->spreg.sp, ctx->spreg.fp);
+}
+
+STATIC void process_stack(JSValue **pstack, int sp, int fp)
+{
+  JSValue *stack = *pstack;
+  void *toRef;
+
+  assert(in_js_space(stack));
+  toRef = forwardingAddress(stack);
+  if (toRef != NULL) {
+    *pstack = toRef;
+    return;
+  }
+
+  while (1) {
+    while (sp >= fp) {
+      process_JSValue(stack + sp);
+      sp--;
+    }
+    if (sp < 0)
+      break;
+
+    fp = stack[sp--];                           /* FP */
+    process((FunctionFrame **) &(stack[sp--])); /* LP */
+    sp--;                                       /* PC */
+    assert(!in_js_space((void *) stack[sp]));
+    sp--;                                       /* CF */
+    /* TODO: fixup inner pointer (CF) */
+  }
+
+  process(pstack);
+
+  intptr_t stack_old = (intptr_t)stack;
+  intptr_t stack_new = (intptr_t)*pstack;
+  intptr_t diff = stack_old - stack_new;
+  update_regbase(diff);
+}
+
+STATIC void update_regbase(intptr_t diff)
+{
+  int i;
+  for (i = 0; i < gc_regbase_stack_ptr; i++) {
+    JSValue **pregbase = gc_regbase_stack[i];
+    intptr_t regbase = (intptr_t)*pregbase;
+    *pregbase = (JSValue *)(regbase - diff);
+  }
+}
+
+STATIC void process_FunctionTable(FunctionTable *pft)
+{
+  JSValue *table;
+  size_t n_constants;
+
+  table = (JSValue *) (pft->insns + pft->n_insns);
+  n_constants = (size_t) pft->n_constants;
+
+  process_JSValue_array(table, n_constants);
+}
+
+STATIC void process_FunctionTable_array(FunctionTable *ftarr, size_t len)
+{
+  size_t i;
+  for (i = 0; i < len; ++i) {
+    FunctionTable *pft;
+    pft = ftarr + i;
+    if (pft != NULL) {
+      process_FunctionTable(pft);
+    }
+  }
+}
+
+STATIC void process_root_ptr(void **ptrp)
+{
+  void *ptr = *ptrp;
+
+  if (get_tag(ptr) != 0) {
+    JSValue *pjsv = (JSValue *) ptrp;
+    process_JSValue(pjsv);
+    return;
+  }
+
+  switch (obj_header_tag(ptr)) {
+  case HTAG_PROP:
+    printf("HTAG_PROP in process_root_ptr\n");
+    break;
+  case HTAG_ARRAY_DATA:
+    printf("HTAG_ARRAY_DATA in process_root_ptr\n");
+    break;
+  case HTAG_FUNCTION_FRAME:
+    process((FunctionFrame **) ptrp);
+    break;
+  case HTAG_HASH_BODY:
+    process((HashCell ***) ptrp);
+    break;
+  case HTAG_STR_CONS:
+    process((StrCons **) ptrp);
+    break;
+  case HTAG_CONTEXT:
+    printf("HTAG_CONTEXT in process_root_ptr\n");
+    break;
+  case HTAG_STACK:
+    printf("HTAG_STACK in process_root_ptr\n");
+    break;
+#ifdef HIDDEN_CLASS
+  case HTAG_HIDDEN_CLASS:
+    process((HiddenClass **) ptrp);
+    break;
+#endif
+  default:
+    process_JSValue((JSValue *) ptrp);
+    return;
+  }
+}
+
+STATIC void process(void **pref)
+{
+  void *fromRef;
+
+  fromRef = *pref;
+  if (fromRef != NULL) {
+    void *toRef;
+    toRef = forward(fromRef);
+    *pref = toRef;
+  }
+}
+
+STATIC void *forwardingAddress(void *fromRef)
+{
+  HeaderCell *hdrp;
+  header_word_t hdr0;
+  void *p;
+
+  hdrp = VALPTR_TO_HEADERPTR(fromRef);
+  hdr0 = hdrp->header0;
+  p = (void *) hdr0;
+
+  return (in_js_to_space(p))? p : NULL;
+}
+
+STATIC void *forward(void *fromRef)
+{
+  void *toRef;
+
+  toRef = forwardingAddress(fromRef);
+  if (toRef == NULL) {
+    toRef = copy(fromRef);
+  }
+
+  return toRef;
+}
+
+STATIC void *copy(void *fromRef)
+{
+  HeaderCell *hdrp_from;
+  size_t size;
+  JSValue *from;
+  JSValue *to;
+  void *toRef;
+
+  hdrp_from = VALPTR_TO_HEADERPTR(fromRef);
+  size = HEADER_GET_SIZE(hdrp_from);
+  from = (JSValue *) hdrp_from;
+  to = (JSValue *) js_space.free;
+  toRef = (void *) HEADERPTR_TO_VALPTR(to);
+
+  js_space.free = (uintptr_t) (to + size);
+  js_space.free_bytes -= size;
+
+  while (size > 0) {
+    *to = *from;
+    ++to;
+    ++from;
+    --size;
+  }
+
+  hdrp_from->header0 = (header_word_t) toRef;
+  wl_add(&worklist, toRef);
+
+  return toRef;
+}
+
+STATIC void process_roots(Context *ctx)
+{
+  int i;
+
+  /*
+   * global variables
+   */
+  {
+    struct global_constant_objects *gconstsp = &gconsts;
+    size_t len = ((uintptr_t)(gconstsp + 1) - (uintptr_t)gconstsp) / sizeof(JSValue);
+    process_JSValue_array((JSValue *)gconstsp, len);
+  }
+
+  /*
+   * global malloced objects
+   * For simplicity, we do not use a `for' loop to visit every object
+   * registered in the gobjects.
+   */
+#ifdef HIDDEN_CLASS
+  process(&(gobjects.g_hidden_class_0));
+#endif
+
+  /* function table: do not trace.
+   *                 Used slots should be traced through Function objects
+   */
+  /* string table */
+  process_StrCons_ptr_array(string_table.obvector, string_table.size);
+
+  /*
+   * Context
+   */
+  process_Context(ctx);
+
+  process_FunctionTable_array(&function_table[0], FUNCTION_TABLE_LIMIT);
+
+  /*
+   * tmp root
+   */
+  /* old gc root stack */
+  for (i = 0; i <= tmp_roots_sp; i++)
+    process_root_ptr((void **)tmp_roots[i]);
+
+  /* new gc root stack */
+  for (i = 0; i < gc_root_stack_ptr; i++)
+    process_root_ptr((void **)gc_root_stack[i]);
+}
+
+STATIC void collect(Context *ctx)
+{
+  flip();
+  wl_initialize(&worklist);
+
+  process_roots(ctx);
+
+  while (!wl_isEmpty(&worklist)) {
+    void *ref;
+    ref = wl_remove(&worklist);
+    scan(ref);
+  }
+}
+
+#endif /* GC_COPY */
 
 #ifdef GC_CLEAR_MEM
-STATIC void fill_free_cell(struct free_chunk *p, JSValue val)
+#ifdef GC_COPY
+STATIC void fill_free_cell(struct space *space, JSValue val)
 {
+  JSValue *head;
+  JSValue *end;
+
+  head = space->fromSpace;
+  end = ((uintptr_t) head) + space->extent;
+
+  while (head < end) {
+    *head = val;
+    ++head;
+  }
+
+  head = space->free + HEADER_JSVALUES;
+  end = space->top;
+
+  while (head < end) {
+    *head = val;
+    ++head;
+  }
+}
+#else
+STATIC void fill_free_cell(struct space *space, JSValue val)
+{
+  struct free_chunk *p = space->freelist;
+
   while(p != NULL) {
     struct free_chunk *chunk = p;
     p = p->next;
@@ -1753,6 +2539,7 @@ STATIC void fill_free_cell(struct free_chunk *p, JSValue val)
     }
   }
 }
+#endif
 #endif
 
 /* Local Variables:      */
