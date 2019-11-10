@@ -1949,6 +1949,8 @@ STATIC void process_roots(Context *ctx);
 STATIC void *forwardingAddress(void *fromRef);
 STATIC void *forward(void *fromRef);
 STATIC void *copy(void *fromRef);
+STATIC void weak_clear();
+STATIC void weak_clear_StrTable(StrTable *table);
 
 STATIC const char *get_name_HTAG(cell_type_t htag)
 {
@@ -2460,6 +2462,7 @@ STATIC void process_roots(Context *ctx)
   /* function table: do not trace.
    *                 Used slots should be traced through Function objects
    */
+
   /* string table */
   process_StrCons_ptr_array(string_table.obvector, string_table.size);
 
@@ -2482,6 +2485,28 @@ STATIC void process_roots(Context *ctx)
     process_root_ptr((void **)gc_root_stack[i]);
 }
 
+STATIC void weak_clear()
+{
+  weak_clear_StrTable(&string_table);
+}
+
+STATIC void weak_clear_StrTable(StrTable *table)
+{
+  size_t i;
+  for (i = 0; i < table->size; i++) {
+    StrCons ** p = table->obvector + i;
+    while (*p != NULL) {
+      StringCell *cell = remove_normal_string_tag((*p)->str);
+      void *toRef = forwardingAddress(cell);
+      if (toRef == NULL) {
+        (*p)->str = JS_UNDEFINED;
+        *p = (*p)->next;
+      } else
+        p = &(*p)->next;
+    }
+  }
+}
+
 STATIC void collect(Context *ctx)
 {
   flip();
@@ -2494,6 +2519,8 @@ STATIC void collect(Context *ctx)
     ref = wl_remove(&worklist);
     scan(ref);
   }
+
+  weak_clear();
 }
 
 #endif /* GC_COPY */
