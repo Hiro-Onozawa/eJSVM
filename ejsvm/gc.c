@@ -19,9 +19,10 @@
  * 
  * GC_DEBUG : enable debug code
  * 
- * GC_MARK_SWEEP   : mark & sweep gc
- * GC_MARK_COMPACT : mark & compation gc
- * GC_COPY         : copy gc
+ * GC_MARK_SWEEP       : mark & sweep gc
+ * GC_MARK_COMPACT     : mark & compaction gc
+ * GC_THREADED_COMPACT : mark & threaded compaction gc
+ * GC_COPY             : copy gc
  * 
  * GC_CLEAR_MEM : clear unused memory with this value
  */
@@ -34,8 +35,8 @@
 #define STATIC static
 #endif
 
-#if (!defined GC_MARK_SWEEP) && (!defined GC_MARK_COMPACT) && (!defined GC_COPY)
-#error "Please define macro to select GC algorithm : GC_MARK_SWEEP / GC_MARK_COMPACT / GC_COPY"
+#if (!defined GC_MARK_SWEEP) && (!defined GC_MARK_COMPACT) && (!defined GC_THREADED_COMPACT) && (!defined GC_COPY)
+#error "Please define macro to select GC algorithm : GC_MARK_SWEEP / GC_MARK_COMPACT / GC_THREADED_COMPACT / GC_COPY"
 #endif
 
 /*
@@ -565,6 +566,9 @@ STATIC void garbage_collect(Context *ctx)
   scan_roots(ctx);
   weak_clear();
   compaction(ctx);
+#endif
+#ifdef GC_THREADED_COMPACT
+  LOG_EXIT("Not Implemented");
 #endif
 #ifdef GC_COPY
   collect(ctx);

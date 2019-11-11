@@ -78,6 +78,8 @@ elsif (gc_algorithm == "mark_compact") then
       [ 0, bytes_in_word * bits_in_byte - 1, "FWD", :param, "fowarding pointer"]
     ]
   );
+elsif (gc_algorithm == "threaded_compact") then
+  # Nothing to do
 elsif (gc_algorithm == "copy") then
   # Nothing to do
 else
