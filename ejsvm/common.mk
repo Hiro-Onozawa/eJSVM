@@ -37,7 +37,7 @@ ifeq ($(OPT_GC),)
     OPT_GC=native
 endif
 ifeq ($(OPT_GC_ALGORITHM),)
-# GC_ALGORITHM=mark_sweep|mark_compact
+# GC_ALGORITHM=mark_sweep|mark_compact|copy
     OPT_GC_ALGORITHM=mark_sweep
 endif
 #ifeq ($(SUPERINSNSPEC),)
@@ -263,6 +263,9 @@ ifeq ($(OPT_GC_ALGORITHM),mark_sweep)
 endif
 ifeq ($(OPT_GC_ALGORITHM),mark_compact)
     CFLAGS+=-DGC_MARK_COMPACT
+endif
+ifeq ($(OPT_GC_ALGORITHM),copy)
+    CFLAGS+=-DGC_COPY
 endif
 ifeq ($(OPT_REGEXP),oniguruma)
     CFLAGS+=-DUSE_REGEXP=1
