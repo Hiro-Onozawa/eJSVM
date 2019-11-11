@@ -1848,75 +1848,6 @@ STATIC void update_root_ptr(void **ptrp)
 #endif /* (defined GC_MARK_SWEEP) || (defined GC_MARK_COMPACT) */
 
 #ifdef GC_COPY
-#if 0
-createSemiSpace():
-  toSpace <- HeapStart
-  extent <- (HeapEnd - HeapStart) / 2
-  top <- fromSpace <- HeapStart + extent
-  free <- tospace
-
-atomic allocate(size):
-  result <- free
-  newfree <- result + size
-  if newfree > top
-    return null
-  free <- newfree
-  return result
-
-atomic collect():
-  flip()
-  initialize(worklist)        /* 空 */
-  for each fld in Roots       /* ルートをコピー */
-    process(fld)
-  while not isEmpty(worklist) /* 推移的閉包をコピー */
-    ref <- remove(worklist)
-    scan(ref)
-
-/* 二部空間を切り替える */
-flip():
-  fromspace, tospace <- tospace, fromspace
-  top <- tospace + extent
-  free <- tospacce
-
-scan(ref):
-  for each fld in Pointers(ref)
-    process(fld)
-
-/* フィールドを to 空間の複製への参照に置き換える */
-process(fld):
-  fromRef <- *fld
-  if fromRef != null
-    *fld <- forward(fromRef) /* to 空間への参照に置き換える */
-
-forward(fromRef):
-  toRef <- forwardingAddress(fromRef)
-  if toRef == null                    /* 未コピー (未マーク) */
-    toRef <- copy(fromRef)
-  return toRef
-
-/* オブジェクトをコピーし転送先アドレスを返す */
-copy(fromRef):
-  toRef <- free
-  free <- free + size(fromRef)
-  move(fromRef, toRef)
-  forwardingAddress(fromRef) <- toRef /* マーク */
-  add(worklist, toRef)
-  return toRef
-
-initialize(worklist):
-  scan <- free
-
-isEmpty(worklist):
-  return scan == free
-
-remove(worklist):
-  ref <- scan
-  scan <- scan + size(scan)
-  return ref
-
-add(worklist, ref):
-  /* nop */
-#endif
 STATIC void *worklist;
 
 STATIC void flip();
@@ -1951,39 +1882,6 @@ STATIC void *forward(void *fromRef);
 STATIC void *copy(void *fromRef);
 STATIC void weak_clear();
 STATIC void weak_clear_StrTable(StrTable *table);
-
-STATIC const char *get_name_HTAG(cell_type_t htag)
-{
-  switch(htag) {
-      case HTAG_FREE: return "FREE";
-
-      case HTAG_STRING: return "STRING";
-      case HTAG_FLONUM: return "FLONUM";
-      case HTAG_SIMPLE_OBJECT: return "OBJECT";
-      case HTAG_ARRAY: return "ARRAY";
-      case HTAG_FUNCTION: return "FUNCTION";
-      case HTAG_BUILTIN: return "BUILTIN";
-      case HTAG_ITERATOR: return "ITERATOR";
-#ifdef use_regexp
-      case HTAG_REGEXP: return "REGEXP";
-#endif
-      case HTAG_BOXED_STRING: return "BOX_STRING";
-      case HTAG_BOXED_NUMBER: return "BOX_NUMBER";
-      case HTAG_BOXED_BOOLEAN: return "BOX_BOOLEAN";
-
-
-      case HTAG_PROP: return "PROP";
-      case HTAG_ARRAY_DATA: return "ARRAY_DATA";
-      case HTAG_FUNCTION_FRAME: return "FUNCTION_FRAME";
-      case HTAG_HASH_BODY: return "HASH_BODY";
-      case HTAG_STR_CONS: return "STR_CONS";
-      case HTAG_CONTEXT: return "CONTEXT";
-      case HTAG_STACK: return "STACK";
-      case HTAG_HIDDEN_CLASS: return "HIDDEN_CLASS";
-      
-      default: return "UNKNOWN";
-  }
-}
 
 STATIC void flip()
 {
