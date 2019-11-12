@@ -36,6 +36,7 @@ if (basebit == "64") then
       [12, 15, "GEN",    nil,    "generation"],
     #  [16, 23, "MAGIC",  "HEADER0_MAGIC",    "magic"],
       [16, 23, "MAGIC",  nil,    "magic"],
+      [12, 31, "BLANK",  nil,    "blank"],
       [32, 63, "SIZE",   :param, "number of words of this chunk including header"]
     ]);
   end
@@ -175,6 +176,7 @@ header_def.each_with_index do |fields, index|
     setter  = "HEADER_SET_#{name}(hdrp,val)"
     setterm = "HEADER_SET_#{name}_MASK(hdrp,val)"
     getter  = "HEADER_GET_#{name}(hdrp)"
+    wgetter = "HEADERW_GET_#{name}(hdrw)"
 
     define(word, "(hdrp)->header#{index}");
     # bit field
@@ -186,6 +188,7 @@ header_def.each_with_index do |fields, index|
     define(setter, "__HEADER_SET((hdrp)->header#{index}, (val), #{offset}, #{mask})")
     define(setterm, "__HEADER_SET_MASK((hdrp)->header#{index}, (val), #{offset}, #{mask})")
     define(getter, "__HEADER_GET((hdrp)->header#{index}, #{offset}, #{mask})")
+    define(wgetter, "__HEADER_GET(hdrw, #{offset}, #{mask})")
 
     if c then
       if c == :param then
