@@ -2356,6 +2356,12 @@ STATIC void update_backward_reference()
 
 STATIC void thread_reference(void **ref)
 {
+  if (HEADERW_GET_MARK((header_word_t) ref) != 0) {
+    fprintf(stderr, "refernece %p is unthreadable address.\n", ref);
+    abort();
+    return;
+  }
+
   if (*ref != NULL) {
     if (in_js_space(*ref)) {
       HeaderCell *cell = VALPTR_TO_HEADERPTR(*ref);
@@ -2369,28 +2375,8 @@ STATIC void thread_reference(void **ref)
 STATIC int is_reference(void **pptr)
 {
   header_word_t header0 = (header_word_t) (pptr);
-  header_word_t size = HEADERW_GET_SIZE(header0);
-  header_word_t type = HEADERW_GET_TYPE(header0);
-  header_word_t gc = HEADERW_GET_GC(header0);
-#ifdef GC_DEBUG
-  header_word_t magic = HEADERW_GET_MAGIC(header0);
-#endif
-  header_word_t blank = HEADERW_GET_BLANK(header0);
 
-  int is_header = 1;
-#ifdef GC_DEBUG
-  is_header = is_header && (magic == HEADER_MAGIC);
-#endif
-  is_header = is_header && (blank == 0);
-  is_header = is_header && (type != 0);
-  if (type == HTAG_STACK) {
-    is_header = is_header && (size == STACK_LIMIT + HEADER_JSVALUES);
-  }
-  else {
-    is_header = is_header && (size <= (JS_SPACE_BYTES >> LOG_BYTES_IN_JSVALUE));
-  }
-  
-  return !is_header;
+  return HEADERW_GET_MARK(header0) == 0;
 }
 
 STATIC void update_regbase(intptr_t diff)

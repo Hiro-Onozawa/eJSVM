@@ -33,7 +33,8 @@ if (basebit == "64") then
     ]);
   when "threaded_compact" then
     header_def.push([
-      [ 0,  7, "TYPE",   :param, "type of memory chunk"],
+      [ 0,  0, "MARK",   1,      "mark bit of header word"],
+      [ 1,  7, "TYPE",   :param, "type of memory chunk"],
       [ 8,  8, "GC",     nil,    "GC mark bit"],
       [32, 63, "SIZE",   :param, "number of words of this chunk including header"]
     ]);
