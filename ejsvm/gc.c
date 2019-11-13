@@ -319,7 +319,7 @@ STATIC void* space_alloc(struct space *space,
 #ifdef GC_THREADED_COMPACT
         printf("Extra is not member of header.\n");
         abort();
-        return;
+        return NULL;
 #endif
 #ifdef GC_MARK_COMPACT
         HEADER_COMPOSE(&(chunk->header), chunk_jsvalues,
@@ -1902,7 +1902,6 @@ STATIC void update_regbase(intptr_t diff);
 
 STATIC void thread_fields(void *pval);
 STATIC int is_reference(void **pptr);
-STATIC void thread_HashTable(HashTable **pmap);
 
 STATIC header_word_t get_threaded_header(HeaderCell *hdrp)
 {
@@ -1939,7 +1938,7 @@ STATIC void thread_roots(Context *ctx)
    * registered in the gobjects.
    */
 #ifdef HIDDEN_CLASS
-  thread_reference(&gobjects.g_hidden_class_0);
+  thread_reference((void **) &gobjects.g_hidden_class_0);
 #endif
 
   /* function table */
@@ -1971,9 +1970,8 @@ STATIC void thread_JSValue(JSValue *jsvp)
   if (!is_pointer(jsv))
     return;
 
-  Tag tag = get_tag(jsv);
-  *jsvp = (void *)clear_tag(jsv);
-  thread_reference(jsvp);
+  *jsvp = (JSValue) clear_tag(jsv);
+  thread_reference((void **) jsvp);
 }
 
 STATIC void thread_JSValue_array(JSValue *jsvarr, size_t len)
@@ -1986,15 +1984,15 @@ STATIC void thread_JSValue_array(JSValue *jsvarr, size_t len)
 
 STATIC void thread_ObjectCell(Object *obj)
 {
-  thread_reference(&(obj->class));
-  thread_reference(&(obj->prop));
+  thread_reference((void **) &(obj->class));
+  thread_reference((void **) &(obj->prop));
 }
 
 STATIC void thread_ArrayCell(ArrayCell *arr)
 {
   thread_ObjectCell(&(arr->o));
 
-  thread_reference(&(arr->body));
+  thread_reference((void **) &(arr->body));
 }
 
 STATIC void thread_FunctionCell(FunctionCell *func)
@@ -2002,7 +2000,7 @@ STATIC void thread_FunctionCell(FunctionCell *func)
   thread_ObjectCell(&(func->o));
 
   assert(!in_js_space(func->func_table_entry));
-  thread_reference(&(func->environment));
+  thread_reference((void **) &(func->environment));
 }
 
 STATIC void thread_FunctionTable(FunctionTable *table)
@@ -2021,7 +2019,7 @@ STATIC void thread_FunctionTable_array(FunctionTable *table, size_t len)
 
 STATIC void thread_Iterator(Iterator* itr)
 {
-  thread_reference(&(itr->body));
+  thread_reference((void **) &(itr->body));
 }
 
 STATIC void thread_BoxedCell(BoxedCell *boxed)
@@ -2040,7 +2038,7 @@ STATIC void thread_FunctionFrame(FunctionFrame *pframe)
   JSValue *end;
   size_t len;
 
-  thread_reference(&(pframe->prev_frame));
+  thread_reference((void **) &(pframe->prev_frame));
 
   thread_JSValue(&(pframe->arguments));
 
@@ -2077,7 +2075,7 @@ STATIC void thread_HashCell(HashCell **phash)
   thread_JSValue((JSValue *)&(hash->entry.key));
 
   if (is_transition(hash->entry.attr)) {
-    thread_reference((HiddenClass **)&(hash->entry.data));
+    thread_reference((void **) ((HiddenClass **) &(hash->entry.data)));
   }
 
   if (hash->next != NULL) {
@@ -2088,7 +2086,7 @@ STATIC void thread_HashCell(HashCell **phash)
 STATIC void thread_StrCons(StrCons *ptr)
 {
   thread_JSValue(&(ptr->str));
-  thread_reference(&(ptr->next));
+  thread_reference((void **) &(ptr->next));
 }
 
 STATIC void thread_StrCons_ptr_array(StrCons ***pptrarr, size_t length)
@@ -2099,7 +2097,7 @@ STATIC void thread_StrCons_ptr_array(StrCons ***pptrarr, size_t length)
   size_t i;
 
   for (i = 0; i < length; ++i) {
-    if (ptrarr[i] != NULL) thread_reference(&(ptrarr[i]));
+    if (ptrarr[i] != NULL) thread_reference((void **) &(ptrarr[i]));
   }
 }
 
@@ -2110,7 +2108,7 @@ STATIC void thread_HiddenClass(HiddenClass *phc)
   map = phc->map;
   assert(!in_js_space(map));
 
-  thread_reference(&(map->body));
+  thread_reference((void **) &(map->body));
 }
 
 STATIC void thread_Context(Context *ctx)
@@ -2120,7 +2118,7 @@ STATIC void thread_Context(Context *ctx)
   // Nothing to do
   assert(!in_js_space(ctx->function_table));
 
-  thread_reference(&(ctx->spreg.lp));
+  thread_reference((void **) &(ctx->spreg.lp));
 
   thread_JSValue(&(ctx->spreg.a));
   thread_JSValue(&(ctx->spreg.err));
@@ -2135,7 +2133,7 @@ STATIC void thread_stack(JSValue** pstack, int sp, int fp)
 {
   JSValue *stack = *pstack;
   assert(in_js_space(stack));
-  thread_reference(pstack);
+  thread_reference((void **) pstack);
 
   while (1) {
     while (sp >= fp) {
@@ -2146,7 +2144,7 @@ STATIC void thread_stack(JSValue** pstack, int sp, int fp)
       break;
 
     fp = stack[sp--];                                    /* FP */
-    thread_reference((FunctionFrame **) &(stack[sp--])); /* LP */
+    thread_reference((void **) ((FunctionFrame **) &(stack[sp--]))); /* LP */
     sp--;                                                /* PC */
     assert(!in_js_space((void *) stack[sp]));
     sp--;                                                /* CF */
@@ -2172,13 +2170,13 @@ STATIC void thread_root_ptr(void **ptrp)
     printf("HTAG_ARRAY_DATA in thread_root_ptr\n");
     break;
   case HTAG_FUNCTION_FRAME:
-    thread_reference((FunctionFrame **) ptrp);
+    thread_reference((void **) ((FunctionFrame **) ptrp));
     break;
   case HTAG_HASH_BODY:
-    thread_reference((HashCell ***) ptrp);
+    thread_reference((void **) ((HashCell ***) ptrp));
     break;
   case HTAG_STR_CONS:
-    thread_reference((StrCons **) ptrp);
+    thread_reference((void **) ((StrCons **) ptrp));
     break;
   case HTAG_CONTEXT:
     printf("HTAG_CONTEXT in thread_root_ptr\n");
@@ -2188,7 +2186,7 @@ STATIC void thread_root_ptr(void **ptrp)
     break;
 #ifdef HIDDEN_CLASS
   case HTAG_HIDDEN_CLASS:
-    thread_reference((HiddenClass **) ptrp);
+    thread_reference((void **) ((HiddenClass **) ptrp));
     break;
 #endif
   default:
@@ -2460,7 +2458,7 @@ STATIC void update_reference(void *ref, void *addr)
   while(is_reference(tmp)) {
     void **next = (void **) *tmp;
     if (tag != (Tag)(-1)) {
-      *tmp = put_tag(addr, tag);
+      *tmp = (void *) put_tag(addr, tag);
     }
     else {
       *tmp = addr;
