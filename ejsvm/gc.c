@@ -2406,7 +2406,11 @@ STATIC void update_reference(void *ref, void *addr)
       tag = T_STRING;
       break;
     case HTAG_FLONUM:
+#ifdef BIT_32
+      tag = T_GENERIC;
+#else
       tag = T_FLONUM;
+#endif
       break;
     case HTAG_SIMPLE_OBJECT:
       tag = T_GENERIC;
@@ -2421,7 +2425,7 @@ STATIC void update_reference(void *ref, void *addr)
       tag = T_GENERIC;
       break;
     case HTAG_ITERATOR:
-      tag = (uint16_t)(-1);
+      tag = T_GENERIC;
       break;
 #ifdef use_regexp
     case HTAG_REGEXP:
@@ -2443,7 +2447,7 @@ STATIC void update_reference(void *ref, void *addr)
     case HTAG_CONTEXT:
     case HTAG_STACK:
     case HTAG_HIDDEN_CLASS:
-      tag = (uint16_t)(-1);
+      tag = (Tag)(-1);
       break;
       
     default:
@@ -2455,7 +2459,7 @@ STATIC void update_reference(void *ref, void *addr)
   void **tmp = (void **) cell->header0;
   while(is_reference(tmp)) {
     void **next = (void **) *tmp;
-    if (tag != (uint16_t)(-1)) {
+    if (tag != (Tag)(-1)) {
       *tmp = put_tag(addr, tag);
     }
     else {
