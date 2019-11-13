@@ -206,6 +206,7 @@ STATIC void update_forward_reference(Context *ctx);
 STATIC void update_backward_reference();
 STATIC void thread_reference(void **ref);
 STATIC void update_reference(void *ref, void *addr);
+STATIC header_word_t get_threaded_header(HeaderCell *hdrp);
 #endif /* GC_THREADED_COMPACT */
 
 #endif /* (defined GC_MARK_SWEEP) || (defined GC_MARK_COMPACT) || (defined GC_THREADED_COMPACT) */
@@ -227,11 +228,14 @@ STATIC void create_space(struct space *space, size_t bytes, char *name)
 {
   struct free_chunk *p;
   p = (struct free_chunk *) malloc(bytes);
-#if (defined GC_MARK_SWEEP) || (defined GC_THREADED_COMPACT)
+#ifdef GC_MARK_SWEEP
   HEADER_COMPOSE(&(p->header), bytes >> LOG_BYTES_IN_JSVALUE, 0, HTAG_FREE);
 #endif
 #ifdef GC_MARK_COMPACT
   HEADER_COMPOSE(&(p->header), bytes >> LOG_BYTES_IN_JSVALUE, 0, HTAG_FREE, NULL);
+#endif
+#ifdef GC_THREADED_COMPACT
+  HEADER_COMPOSE(&(p->header), bytes >> LOG_BYTES_IN_JSVALUE, HTAG_FREE);
 #endif
 #ifdef GC_DEBUG
   HEADER_SET_MAGIC(&p->header, HEADER_MAGIC);
@@ -290,11 +294,14 @@ STATIC void* space_alloc(struct space *space,
         uintptr_t addr =
           ((uintptr_t) chunk) + (new_chunk_jsvalues << LOG_BYTES_IN_JSVALUE);
         HEADER_SET_SIZE(&chunk->header, new_chunk_jsvalues);
-#if (defined GC_MARK_SWEEP) || (defined GC_THREADED_COMPACT)
+#ifdef GC_MARK_SWEEP
         HEADER_COMPOSE((HeaderCell *) addr, alloc_jsvalues, 0, type);
 #endif
 #ifdef GC_MARK_COMPACT
         HEADER_COMPOSE((HeaderCell *) addr, alloc_jsvalues, 0, type, NULL);
+#endif
+#ifdef GC_THREADED_COMPACT
+        HEADER_COMPOSE((HeaderCell *) addr, alloc_jsvalues, type);
 #endif
 #ifdef GC_DEBUG
         HEADER_SET_MAGIC((HeaderCell *) addr, HEADER_MAGIC);
@@ -305,9 +312,14 @@ STATIC void* space_alloc(struct space *space,
       } else {
         /* This chunk is too small to split. */
         *p = (*p)->next;
-#if (defined GC_MARK_SWEEP) || (defined GC_THREADED_COMPACT)
+#ifdef GC_MARK_SWEEP
         HEADER_COMPOSE(&(chunk->header), chunk_jsvalues,
                       chunk_jsvalues - alloc_jsvalues, type);
+#endif
+#ifdef GC_THREADED_COMPACT
+        printf("Extra is not member of header.\n");
+        abort();
+        return;
 #endif
 #ifdef GC_MARK_COMPACT
         HEADER_COMPOSE(&(chunk->header), chunk_jsvalues,
@@ -620,8 +632,10 @@ STATIC void mark_cell_header(HeaderCell *hdrp)
     HeaderCell *shadow = get_shadow(hdrp);
     assert(HEADER_GET_MAGIC(hdrp) == HEADER_MAGIC);
     assert(HEADER_GET_TYPE(hdrp) == HEADER_GET_TYPE(shadow));
+#if (defined GC_MARK_SWEEP) || (defined GC_MARK_COMPACT)
     assert(HEADER_GET_SIZE(hdrp) - HEADER_GET_EXTRA(hdrp) ==
            HEADER_GET_SIZE(shadow) - HEADER_GET_EXTRA(shadow));
+#endif /* (defined GC_MARK_SWEEP) || (defined GC_MARK_COMPACT) */
     assert(HEADER_GET_GEN(hdrp) == HEADER_GET_GEN(shadow));
   }
 #endif /* GC_DEBUG */
@@ -760,7 +774,9 @@ STATIC void trace_FunctionFrame(FunctionFrame **ptrp)
   length = HEADER_GET_SIZE(hdrp);
   length -= HEADER_JSVALUES;
   length -= sizeof(FunctionFrame) >> LOG_BYTES_IN_JSVALUE;
+#if (defined GC_MARK_SWEEP) || (defined GC_MARK_COMPACT)
   length -= HEADER_GET_EXTRA(hdrp);
+#endif
   for (i = 0; i < length; i++)
     trace_slot(ptr->locals + i);
 
@@ -1178,7 +1194,9 @@ STATIC void check_invariant_nobw_space(struct space *space)
       size_t payload_jsvalues = HEADER_GET_SIZE(hdrp);
       size_t i;
       payload_jsvalues -= HEADER_JSVALUES;
+#if (defined GC_MARK_SWEEP) || (defined GC_MARK_COMPACT)
       payload_jsvalues -= HEADER_GET_EXTRA(hdrp);
+#endif
       for (i = 0; i < payload_jsvalues; i++) {
         JSValue x = ((JSValue *) (scan + HEADER_BYTES))[i];
         if (type == HTAG_STR_CONS) {
@@ -1861,8 +1879,6 @@ STATIC void update_root_ptr(void **ptrp)
 #endif /* GC_MARK_COMPACT */
 
 #ifdef GC_THREADED_COMPACT
-STATIC header_word_t get_threaded_header(HeaderCell *hdrp);
-
 STATIC void thread_roots(Context* ctx);
 STATIC void thread_JSValue(JSValue *jsvp);
 STATIC void thread_JSValue_array(JSValue *jsvarr, size_t len);
@@ -2301,9 +2317,8 @@ STATIC void update_backward_reference()
         update_regbase(stack_old - stack_new);
       }
 
-      header_word_t ex   = HEADERW_GET_EXTRA(header0);
       header_word_t type = HEADERW_GET_TYPE(header0);
-      HEADER_COMPOSE(hdrp, size, ex, type);
+      HEADER_COMPOSE(hdrp, size, type);
 #ifdef GC_DEBUG
       HEADER_SET_MAGIC(hdrp, HEADER_MAGIC);
       
@@ -2330,7 +2345,7 @@ STATIC void update_backward_reference()
 
   size_t freebytes = (js_space.addr + js_space.bytes) - free;
   struct free_chunk *cell = (struct free_chunk *) free;
-  HEADER_COMPOSE(&(cell->header), freebytes >> LOG_BYTES_IN_JSVALUE, 0, HTAG_FREE);
+  HEADER_COMPOSE(&(cell->header), freebytes >> LOG_BYTES_IN_JSVALUE, HTAG_FREE);
 #ifdef GC_DEBUG
   HEADER_SET_MAGIC(&(cell->header), HEADER_MAGIC);
 #endif /* GC_DEBUG */

@@ -35,19 +35,17 @@ if (basebit == "64") then
     header_def.push([
       [ 0,  7, "TYPE",   :param, "type of memory chunk"],
       [ 8,  8, "GC",     nil,    "GC mark bit"],
-      [ 9, 11, "EXTRA",  :param, "number of unused words attached at the bottom"+
-                                 " of this chunk"],
       [32, 63, "SIZE",   :param, "number of words of this chunk including header"]
     ]);
     if (is_debug) then
       header_def[0].push(
-        [12, 15, "GEN",    nil,    "generation"],
-        [16, 23, "MAGIC",  nil,    "magic"],
-        [24, 31, "BLANK",  nil,    "blank"]
+        [ 9, 12, "GEN",    nil,    "generation"],
+        [13, 20, "MAGIC",  nil,    "magic"],
+        [21, 31, "BLANK",  nil,    "blank"]
       )
     else
       header_def[0].push(
-        [12, 31, "BLANK",  nil,    "blank"]
+        [ 9, 31, "BLANK",  nil,    "blank"]
       )
     end
   when "copy" then
