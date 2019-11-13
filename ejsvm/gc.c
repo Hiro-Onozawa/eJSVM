@@ -2290,8 +2290,6 @@ STATIC void update_backward_reference()
     HeaderCell *hdrp = (HeaderCell *) scan;
     header_word_t header0 = get_threaded_header(hdrp);
     header_word_t size = HEADERW_GET_SIZE(header0);
-    header_word_t ex   = HEADERW_GET_EXTRA(header0);
-    header_word_t type = HEADERW_GET_TYPE(header0);
 
     if (HEADERW_GET_GC(header0)) {
       void *pval = HEADERPTR_TO_VALPTR(hdrp);
@@ -2303,7 +2301,17 @@ STATIC void update_backward_reference()
         update_regbase(stack_old - stack_new);
       }
 
+      header_word_t ex   = HEADERW_GET_EXTRA(header0);
+      header_word_t type = HEADERW_GET_TYPE(header0);
       HEADER_COMPOSE(hdrp, size, ex, type);
+#ifdef GC_DEBUG
+      HEADER_SET_MAGIC(hdrp, HEADER_MAGIC);
+      
+      {
+        HeaderCell* shadow = get_shadow(free);
+        *shadow = *hdrp;
+      }
+#endif /* GC_DEBUG */
 
       JSValue *from = (JSValue *)scan;
       JSValue *end = from + size;
@@ -2313,6 +2321,7 @@ STATIC void update_backward_reference()
         ++to;
         ++from;
       }
+
       free += size << LOG_BYTES_IN_JSVALUE;
     }
 
@@ -2322,6 +2331,9 @@ STATIC void update_backward_reference()
   size_t freebytes = (js_space.addr + js_space.bytes) - free;
   struct free_chunk *cell = (struct free_chunk *) free;
   HEADER_COMPOSE(&(cell->header), freebytes >> LOG_BYTES_IN_JSVALUE, 0, HTAG_FREE);
+#ifdef GC_DEBUG
+  HEADER_SET_MAGIC(&(cell->header), HEADER_MAGIC);
+#endif /* GC_DEBUG */
   cell->next = NULL;
   js_space.freelist = cell;
   js_space.free_bytes = freebytes;
@@ -2345,8 +2357,25 @@ STATIC int is_reference(void **pptr)
   header_word_t size = HEADERW_GET_SIZE(header0);
   header_word_t type = HEADERW_GET_TYPE(header0);
   header_word_t gc = HEADERW_GET_GC(header0);
+#ifdef GC_DEBUG
+  header_word_t magic = HEADERW_GET_MAGIC(header0);
+#endif
   header_word_t blank = HEADERW_GET_BLANK(header0);
-  return !((blank == 0) && (header0 & HEADER_TYPE_MASK) != 0 && ((type == HTAG_STACK) ? (size == STACK_LIMIT + HEADER_JSVALUES) : (size <= (JS_SPACE_BYTES >> LOG_BYTES_IN_JSVALUE))));
+
+  int is_header = 1;
+#ifdef GC_DEBUG
+  is_header = is_header && (magic == HEADER_MAGIC);
+#endif
+  is_header = is_header && (blank == 0);
+  is_header = is_header && (type != 0);
+  if (type == HTAG_STACK) {
+    is_header = is_header && (size == STACK_LIMIT + HEADER_JSVALUES);
+  }
+  else {
+    is_header = is_header && (size <= (JS_SPACE_BYTES >> LOG_BYTES_IN_JSVALUE));
+  }
+  
+  return !is_header;
 }
 
 STATIC void update_regbase(intptr_t diff)

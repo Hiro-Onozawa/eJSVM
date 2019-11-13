@@ -19,15 +19,8 @@ if (basebit == "64") then
   bytes_in_word = 8
   bits_in_byte  = 8
   header_magic  = 0x18
-  if (gc_algorithm == "copy") then
-    header_def.push([
-      [ 0,  7, "TYPE",   :param, "type of memory chunk"],
-      [ 8, 11, "GEN",    nil,    "generation"],
-    #  [13, 20, "MAGIC",  "HEADER0_MAGIC",    "magic"],
-      [12, 19, "MAGIC",  nil,    "magic"],
-      [32, 63, "SIZE",   :param, "number of words of this chunk including header"]
-    ]);
-  else
+  case gc_algorithm
+  when "mark_sweep", "mark_compact" then
     header_def.push([
       [ 0,  7, "TYPE",   :param, "type of memory chunk"],
       [ 8,  8, "GC",     nil,    "GC mark bit"],
@@ -36,7 +29,33 @@ if (basebit == "64") then
       [12, 15, "GEN",    nil,    "generation"],
     #  [16, 23, "MAGIC",  "HEADER0_MAGIC",    "magic"],
       [16, 23, "MAGIC",  nil,    "magic"],
-      [12, 31, "BLANK",  nil,    "blank"],
+      [32, 63, "SIZE",   :param, "number of words of this chunk including header"]
+    ]);
+  when "threaded_compact" then
+    header_def.push([
+      [ 0,  7, "TYPE",   :param, "type of memory chunk"],
+      [ 8,  8, "GC",     nil,    "GC mark bit"],
+      [ 9, 11, "EXTRA",  :param, "number of unused words attached at the bottom"+
+                                 " of this chunk"],
+      [32, 63, "SIZE",   :param, "number of words of this chunk including header"]
+    ]);
+    if (is_debug) then
+      header_def[0].push(
+        [12, 15, "GEN",    nil,    "generation"],
+        [16, 23, "MAGIC",  nil,    "magic"],
+        [24, 31, "BLANK",  nil,    "blank"]
+      )
+    else
+      header_def[0].push(
+        [12, 31, "BLANK",  nil,    "blank"]
+      )
+    end
+  when "copy" then
+    header_def.push([
+      [ 0,  7, "TYPE",   :param, "type of memory chunk"],
+      [ 8, 11, "GEN",    nil,    "generation"],
+    #  [13, 20, "MAGIC",  "HEADER0_MAGIC",    "magic"],
+      [12, 19, "MAGIC",  nil,    "magic"],
       [32, 63, "SIZE",   :param, "number of words of this chunk including header"]
     ]);
   end
