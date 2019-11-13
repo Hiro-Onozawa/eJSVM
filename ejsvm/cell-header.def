@@ -19,15 +19,8 @@ if (basebit == "64") then
   bytes_in_word = 8
   bits_in_byte  = 8
   header_magic  = 0x18
-  if (gc_algorithm == "copy") then
-    header_def.push([
-      [ 0,  7, "TYPE",   :param, "type of memory chunk"],
-      [ 8, 11, "GEN",    nil,    "generation"],
-    #  [13, 20, "MAGIC",  "HEADER0_MAGIC",    "magic"],
-      [12, 19, "MAGIC",  nil,    "magic"],
-      [32, 63, "SIZE",   :param, "number of words of this chunk including header"]
-    ]);
-  else
+  case gc_algorithm
+  when "mark_sweep", "mark_compact" then
     header_def.push([
       [ 0,  7, "TYPE",   :param, "type of memory chunk"],
       [ 8,  8, "GC",     nil,    "GC mark bit"],
@@ -38,24 +31,53 @@ if (basebit == "64") then
       [16, 23, "MAGIC",  nil,    "magic"],
       [32, 63, "SIZE",   :param, "number of words of this chunk including header"]
     ]);
+  when "threaded_compact" then
+    header_def.push([
+      [ 0,  0, "MARK",   1,      "mark bit of header word"],
+      [ 1,  7, "TYPE",   :param, "type of memory chunk"],
+      [ 8,  8, "GC",     nil,    "GC mark bit"],
+      [32, 63, "SIZE",   :param, "number of words of this chunk including header"]
+    ]);
+    if (is_debug) then
+      header_def[0].push(
+        [ 9, 12, "GEN",    nil,    "generation"],
+        [13, 20, "MAGIC",  nil,    "magic"]
+      )
+    end
+  when "copy" then
+    header_def.push([
+      [ 0,  7, "TYPE",   :param, "type of memory chunk"],
+      [ 8, 11, "GEN",    nil,    "generation"],
+    #  [13, 20, "MAGIC",  "HEADER0_MAGIC",    "magic"],
+      [12, 19, "MAGIC",  nil,    "magic"],
+      [32, 63, "SIZE",   :param, "number of words of this chunk including header"]
+    ]);
   end
 elsif (basebit == "32") then
   header_type   = "uint32_t"
   bytes_in_word = 4
   bits_in_byte  = 8
   header_magic  = 0x18
-  if (gc_algorithm == "copy") then
-    header_def.push([
-      [0,  4, "TYPE",  :param, "type of memory chunk"],
-      [5, 31, "SIZE",  :param, "number of words of this chunk including header"]
-    ]);
-  else
+  case gc_algorithm
+  when "mark_sweep", "mark_compact" then
     header_def.push([
       [0,  4, "TYPE",  :param, "type of memory chunk"],
       [5,  5, "GC",    nil,    "GC mark bit"],
       [6,  7, "EXTRA", :param, "number of unused words attached at the bottom"+
                                " of this chunk"],
       [8, 31, "SIZE",  :param, "number of words of this chunk including header"]
+    ]);
+  when "threaded_compact" then
+    header_def.push([
+      [0,  0, "MARK",  1,      "mark bit of header word"],
+      [1,  5, "TYPE",  :param, "type of memory chunk"],
+      [6,  6, "GC",    nil,    "GC mark bit"],
+      [7, 31, "SIZE",  :param, "number of words of this chunk including header"]
+    ]);
+  when "copy" then
+    header_def.push([
+      [0,  4, "TYPE",  :param, "type of memory chunk"],
+      [5, 31, "SIZE",  :param, "number of words of this chunk including header"]
     ]);
   end
   if (is_debug) then
@@ -78,6 +100,8 @@ elsif (gc_algorithm == "mark_compact") then
       [ 0, bytes_in_word * bits_in_byte - 1, "FWD", :param, "fowarding pointer"]
     ]
   );
+elsif (gc_algorithm == "threaded_compact") then
+  # Nothing to do
 elsif (gc_algorithm == "copy") then
   # Nothing to do
 else
@@ -173,6 +197,7 @@ header_def.each_with_index do |fields, index|
     setter  = "HEADER_SET_#{name}(hdrp,val)"
     setterm = "HEADER_SET_#{name}_MASK(hdrp,val)"
     getter  = "HEADER_GET_#{name}(hdrp)"
+    wgetter = "HEADERW_GET_#{name}(hdrw)"
 
     define(word, "(hdrp)->header#{index}");
     # bit field
@@ -184,6 +209,7 @@ header_def.each_with_index do |fields, index|
     define(setter, "__HEADER_SET((hdrp)->header#{index}, (val), #{offset}, #{mask})")
     define(setterm, "__HEADER_SET_MASK((hdrp)->header#{index}, (val), #{offset}, #{mask})")
     define(getter, "__HEADER_GET((hdrp)->header#{index}, #{offset}, #{mask})")
+    define(wgetter, "__HEADER_GET(hdrw, #{offset}, #{mask})")
 
     if c then
       if c == :param then
