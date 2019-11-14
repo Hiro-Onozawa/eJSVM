@@ -20,7 +20,7 @@ if (basebit == "64") then
   bits_in_byte  = 8
   header_magic  = 0x18
   case gc_algorithm
-  when "mark_sweep", "mark_compact" then
+  when "mark_sweep" then
     header_def.push([
       [ 0,  7, "TYPE",   :param, "type of memory chunk"],
       [ 8,  8, "GC",     nil,    "GC mark bit"],
@@ -29,6 +29,14 @@ if (basebit == "64") then
       [12, 15, "GEN",    nil,    "generation"],
     #  [16, 23, "MAGIC",  "HEADER0_MAGIC",    "magic"],
       [16, 23, "MAGIC",  nil,    "magic"],
+      [32, 63, "SIZE",   :param, "number of words of this chunk including header"]
+    ]);
+  when "mark_compact" then
+    header_def.push([
+      [ 0,  7, "TYPE",   :param, "type of memory chunk"],
+      [ 8,  8, "GC",     nil,    "GC mark bit"],
+      [ 9, 12, "GEN",    nil,    "generation"],
+      [13, 20, "MAGIC",  nil,    "magic"],
       [32, 63, "SIZE",   :param, "number of words of this chunk including header"]
     ]);
   when "threaded_compact" then
@@ -59,13 +67,19 @@ elsif (basebit == "32") then
   bits_in_byte  = 8
   header_magic  = 0x18
   case gc_algorithm
-  when "mark_sweep", "mark_compact" then
+  when "mark_sweep" then
     header_def.push([
       [0,  4, "TYPE",  :param, "type of memory chunk"],
       [5,  5, "GC",    nil,    "GC mark bit"],
       [6,  7, "EXTRA", :param, "number of unused words attached at the bottom"+
                                " of this chunk"],
       [8, 31, "SIZE",  :param, "number of words of this chunk including header"]
+    ]);
+  when "mark_compact" then
+    header_def.push([
+      [0,  4, "TYPE",  :param, "type of memory chunk"],
+      [5,  5, "GC",    nil,    "GC mark bit"],
+      [6, 31, "SIZE",  :param, "number of words of this chunk including header"]
     ]);
   when "threaded_compact" then
     header_def.push([

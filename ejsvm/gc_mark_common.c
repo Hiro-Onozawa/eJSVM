@@ -61,10 +61,10 @@ STATIC void mark_cell_header(HeaderCell *hdrp)
     HeaderCell *shadow = get_shadow(hdrp);
     assert(HEADER_GET_MAGIC(hdrp) == HEADER_MAGIC);
     assert(HEADER_GET_TYPE(hdrp) == HEADER_GET_TYPE(shadow));
-#if (defined GC_MARK_SWEEP) || (defined GC_MARK_COMPACT)
+#if (defined GC_MARK_SWEEP)
     assert(HEADER_GET_SIZE(hdrp) - HEADER_GET_EXTRA(hdrp) ==
            HEADER_GET_SIZE(shadow) - HEADER_GET_EXTRA(shadow));
-#endif /* (defined GC_MARK_SWEEP) || (defined GC_MARK_COMPACT) */
+#endif /* (defined GC_MARK_SWEEP) */
     assert(HEADER_GET_GEN(hdrp) == HEADER_GET_GEN(shadow));
   }
 #endif /* GC_DEBUG */
@@ -203,7 +203,7 @@ STATIC void trace_FunctionFrame(FunctionFrame **ptrp)
   length = HEADER_GET_SIZE(hdrp);
   length -= HEADER_JSVALUES;
   length -= sizeof(FunctionFrame) >> LOG_BYTES_IN_JSVALUE;
-#if (defined GC_MARK_SWEEP) || (defined GC_MARK_COMPACT)
+#if (defined GC_MARK_SWEEP)
   length -= HEADER_GET_EXTRA(hdrp);
 #endif
   for (i = 0; i < length; i++)
@@ -536,7 +536,7 @@ STATIC void check_invariant_nobw_space(struct space *space)
       size_t payload_jsvalues = HEADER_GET_SIZE(hdrp);
       size_t i;
       payload_jsvalues -= HEADER_JSVALUES;
-#if (defined GC_MARK_SWEEP) || (defined GC_MARK_COMPACT)
+#if (defined GC_MARK_SWEEP)
       payload_jsvalues -= HEADER_GET_EXTRA(hdrp);
 #endif
       for (i = 0; i < payload_jsvalues; i++) {

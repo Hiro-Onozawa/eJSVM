@@ -25,7 +25,7 @@ STATIC void create_space(struct space *space, size_t bytes, char *name)
 {
   struct free_chunk *p;
   p = (struct free_chunk *) malloc(bytes);
-  HEADER_COMPOSE(&(p->header), bytes >> LOG_BYTES_IN_JSVALUE, 0, HTAG_FREE, NULL);
+  HEADER_COMPOSE(&(p->header), bytes >> LOG_BYTES_IN_JSVALUE, HTAG_FREE, NULL);
 #ifdef GC_DEBUG
   HEADER_SET_MAGIC(&p->header, HEADER_MAGIC);
 #endif /* GC_DEBUG */
@@ -77,33 +77,20 @@ STATIC void* space_alloc(struct space *space,
     struct free_chunk *chunk = *p;
     size_t chunk_jsvalues = HEADER_GET_SIZE(&chunk->header);
     if (chunk_jsvalues >= alloc_jsvalues) {
-      if (chunk_jsvalues >= alloc_jsvalues + MINIMUM_FREE_CHUNK_JSVALUES) {
         /* This chunk is large enough to leave a part unused.  Split it */
         size_t new_chunk_jsvalues = chunk_jsvalues - alloc_jsvalues;
         uintptr_t addr =
           ((uintptr_t) chunk) + (new_chunk_jsvalues << LOG_BYTES_IN_JSVALUE);
         HEADER_SET_SIZE(&chunk->header, new_chunk_jsvalues);
-        HEADER_COMPOSE((HeaderCell *) addr, alloc_jsvalues, 0, type, NULL);
+      HEADER_COMPOSE((HeaderCell *) addr, alloc_jsvalues, type, NULL);
 #ifdef GC_DEBUG
         HEADER_SET_MAGIC((HeaderCell *) addr, HEADER_MAGIC);
         HEADER_SET_GEN_MASK((HeaderCell *) addr, generation);
 #endif /* GC_DEBUG */
         space->free_bytes -= alloc_jsvalues << LOG_BYTES_IN_JSVALUE;
         return HEADERPTR_TO_VALPTR(addr);
-      } else {
-        /* This chunk is too small to split. */
-        *p = (*p)->next;
-        HEADER_COMPOSE(&(chunk->header), chunk_jsvalues,
-                      chunk_jsvalues - alloc_jsvalues, type, NULL);
-#ifdef GC_DEBUG
-        HEADER_SET_MAGIC(&chunk->header, HEADER_MAGIC);
-        HEADER_SET_GEN_MASK(&chunk->header, generation);
-#endif /* GC_DEBUG */
-        space->free_bytes -= chunk_jsvalues << LOG_BYTES_IN_JSVALUE;
-        return HEADERPTR_TO_VALPTR(chunk);
       }
     }
-  }
 
   printf("memory exhausted\n");
   return NULL;
@@ -179,10 +166,9 @@ STATIC void set_fwdptr(void)
       assert(HEADER_GET_MAGIC(header) == HEADER_MAGIC);
 #endif /* GC_DEBUG */
 
-      header_word_t extra = HEADER_GET_EXTRA(header);
       unmark_cell_header(header);
       HEADER_SET_FWD(header, HEADERPTR_TO_VALPTR(fwd));
-      fwd += ((size - extra) << LOG_BYTES_IN_JSVALUE);
+      fwd += (size << LOG_BYTES_IN_JSVALUE);
     }
     else {
 //      HEADER_SET_TYPE(header, HTAG_FREE);
@@ -288,13 +274,11 @@ STATIC void move_heap_object(void)
     if (HEADER_GET_FWD(header) != NULL) {
       JSValue* fwd = (JSValue *)VALPTR_TO_HEADERPTR(HEADER_GET_FWD(header));
       cell_type_t type = HEADER_GET_TYPE(header);
-      header_word_t extra = HEADER_GET_EXTRA(header);
 #ifdef GC_DEBUG
       assert(HEADER_GET_MAGIC(header) == HEADER_MAGIC);
 #endif /* GC_DEBUG */
 
-      header_word_t newsize = size - extra;
-      HEADER_COMPOSE(header, newsize, 0, type, NULL);
+      HEADER_COMPOSE(header, size, type, NULL);
 #ifdef GC_DEBUG
       HEADER_SET_MAGIC(header, HEADER_MAGIC);
 #endif
@@ -306,20 +290,20 @@ STATIC void move_heap_object(void)
 #endif /* GC_DEBUG */
       if ((JSValue *)header != fwd) {
         JSValue* p = (JSValue *)header;
-        JSValue* end = (JSValue *)header + newsize;
+        JSValue* end = (JSValue *)header + size;
         for(; p < end; ++p, ++fwd) {
           *fwd = *p;
         }
       }
 
       tail = (struct free_chunk *)fwd;
-      used += newsize;
+      used += size;
     }
     scan += (size << LOG_BYTES_IN_JSVALUE);
   }
 
   size_t freesize = (js_space.bytes >> LOG_BYTES_IN_JSVALUE) - used;
-  HEADER_COMPOSE(&(tail->header), freesize, 0, HTAG_FREE, NULL);
+  HEADER_COMPOSE(&(tail->header), freesize, HTAG_FREE, NULL);
 #ifdef GC_DEBUG
   HEADER_SET_MAGIC(&(tail->header), HEADER_MAGIC);
 #endif
