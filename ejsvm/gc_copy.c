@@ -103,6 +103,11 @@ STATIC void* space_alloc(struct space *space,
 
   HEADER_COMPOSE(hdrp, alloc_jsvalues, type);
   HEADER_COMPOSE(newfree, space->free_bytes, HTAG_FREE);
+#ifdef GC_DEBUG
+  HEADER_SET_MAGIC(hdrp, HEADER_MAGIC);
+  HEADER_SET_GEN_MASK(hdrp, generation);
+  HEADER_SET_MAGIC((HeaderCell *) newfree, HEADER_MAGIC);
+#endif /* GC_DEBUG */
 
   return (void *) HEADERPTR_TO_VALPTR(hdrp);
 }
@@ -581,6 +586,10 @@ STATIC void *copy(void *fromRef)
   from = (JSValue *) hdrp_from;
   to = (JSValue *) js_space.free;
   toRef = (void *) HEADERPTR_TO_VALPTR(to);
+
+#ifdef GC_DEBUG
+  assert(HEADER_GET_MAGIC(hdrp_from) == HEADER_MAGIC);
+#endif /* GC_DEBUG */
 
   js_space.free = (uintptr_t) (to + size);
   js_space.free_bytes -= size;
