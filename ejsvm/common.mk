@@ -413,6 +413,22 @@ codeloader.o: specfile-fingerprint.h
 
 vmloop.o: vmloop.c vmloop-cases.inc $(INSN_FILES) $(HFILES)
 	$(CC) $(CCOPT) -c $(CFLAGS) -o $@ $<
+ifeq ($(OPT_GC_ALGORITHM),mark_sweep)
+gc.o: gc.c gc_marksweep.c gc_mark_common.c $(HFILES)
+	$(CC) $(CCOPT) -c $(CFLAGS) -o $@ $<
+endif
+ifeq ($(OPT_GC_ALGORITHM),mark_compact)
+gc.o: gc.c gc_markcompact.c gc_mark_common.c $(HFILES)
+	$(CC) $(CCOPT) -c $(CFLAGS) -o $@ $<
+endif
+ifeq ($(OPT_GC_ALGORITHM),threaded_compact)
+gc.o: gc.c gc_threadedcompact.c gc_mark_common.c $(HFILES)
+	$(CC) $(CCOPT) -c $(CFLAGS) -o $@ $<
+endif
+ifeq ($(OPT_GC_ALGORITHM),copy)
+gc.o: gc.c gc_copy.c $(HFILES)
+	$(CC) $(CCOPT) -c $(CFLAGS) -o $@ $<
+endif
 
 %.o: %.c $(HFILES)
 	$(CC) $(CCOPT) -c $(CFLAGS) -o $@ $<
