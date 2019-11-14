@@ -31,7 +31,7 @@
 #define TAGOFFSET (2)
 #define TAGMASK   (0x3)  /* 11 */
 
-#define get_tag(p)      (((Tag)(p)) & TAGMASK)
+#define get_tag(p)      (((Tag)((uint32_t)(p))) & TAGMASK)
 #define put_tag(p,t)    ((JSValue)((uint32_t)(p) + (t)))
 #define clear_tag(p)    ((uint32_t)(p) & ~TAGMASK)
 #define remove_tag(p,t) (clear_tag(p))
@@ -40,7 +40,7 @@
 #define TAGOFFSET (3)
 #define TAGMASK   (0x7)  /* 111 */
 
-#define get_tag(p)      (((Tag)(p)) & TAGMASK)
+#define get_tag(p)      (((Tag)((uint64_t)(p))) & TAGMASK)
 #define put_tag(p,t)    ((JSValue)((uint64_t)(p) + (t)))
 #define clear_tag(p)    ((uint64_t)(p) & ~TAGMASK)
 #define remove_tag(p,t) (clear_tag(p))

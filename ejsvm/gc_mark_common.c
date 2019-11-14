@@ -132,7 +132,7 @@ STATIC void trace_HashTable(HashTable **ptrp)
 STATIC void trace_HashCell_array(HashCell ***ptrp, uint32_t length)
 {
   HashCell **ptr = *ptrp;
-  int i;
+  uint32_t i;
   if (test_and_mark_cell(ptr))
     return;
 

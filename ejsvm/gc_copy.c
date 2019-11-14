@@ -380,7 +380,7 @@ STATIC void process_JSValue(JSValue *pjsv)
   if (!is_pointer(jsv)) return;
 
   tag = get_tag(jsv);
-  fromRef = clear_tag(jsv);
+  fromRef = (void *) clear_tag(jsv);
 
   assert(fromRef != NULL);
   assert(in_js_from_space(fromRef));
@@ -402,7 +402,7 @@ STATIC void process_StrCons_ptr_array(StrCons **pscarr, size_t len)
 {
   size_t i;
   for (i = 0; i < len; ++i) {
-    process(pscarr + i);
+    process((void **) (pscarr + i));
   }
 }
 
@@ -413,7 +413,7 @@ STATIC void process_Context(Context *ctx)
   // Nothing to do
   assert(!in_js_space(ctx->function_table));
 
-  process(&(ctx->spreg.lp));
+  process((void **) &(ctx->spreg.lp));
 
   process_JSValue(&(ctx->spreg.a));
   process_JSValue(&(ctx->spreg.err));
@@ -445,14 +445,14 @@ STATIC void process_stack(JSValue **pstack, int sp, int fp)
       break;
 
     fp = stack[sp--];                           /* FP */
-    process((FunctionFrame **) &(stack[sp--])); /* LP */
+    process((void **) ((FunctionFrame **) &(stack[sp--]))); /* LP */
     sp--;                                       /* PC */
     assert(!in_js_space((void *) stack[sp]));
     sp--;                                       /* CF */
     /* TODO: fixup inner pointer (CF) */
   }
 
-  process(pstack);
+  process((void **) pstack);
 
   intptr_t stack_old = (intptr_t)stack;
   intptr_t stack_new = (intptr_t)*pstack;
@@ -511,13 +511,13 @@ STATIC void process_root_ptr(void **ptrp)
     printf("HTAG_ARRAY_DATA in process_root_ptr\n");
     break;
   case HTAG_FUNCTION_FRAME:
-    process((FunctionFrame **) ptrp);
+    process((void **) ((FunctionFrame **) ptrp));
     break;
   case HTAG_HASH_BODY:
-    process((HashCell ***) ptrp);
+    process((void **) ((HashCell ***) ptrp));
     break;
   case HTAG_STR_CONS:
-    process((StrCons **) ptrp);
+    process((void **) ((StrCons **) ptrp));
     break;
   case HTAG_CONTEXT:
     printf("HTAG_CONTEXT in process_root_ptr\n");
@@ -527,7 +527,7 @@ STATIC void process_root_ptr(void **ptrp)
     break;
 #ifdef HIDDEN_CLASS
   case HTAG_HIDDEN_CLASS:
-    process((HiddenClass **) ptrp);
+    process((void **) ((HiddenClass **) ptrp));
     break;
 #endif
   default:
@@ -626,7 +626,7 @@ STATIC void process_roots(Context *ctx)
    * registered in the gobjects.
    */
 #ifdef HIDDEN_CLASS
-  process(&(gobjects.g_hidden_class_0));
+  process((void **) &(gobjects.g_hidden_class_0));
 #endif
 
   /* function table: do not trace.

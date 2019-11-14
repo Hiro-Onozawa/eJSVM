@@ -77,20 +77,20 @@ STATIC void* space_alloc(struct space *space,
     struct free_chunk *chunk = *p;
     size_t chunk_jsvalues = HEADER_GET_SIZE(&chunk->header);
     if (chunk_jsvalues >= alloc_jsvalues) {
-        /* This chunk is large enough to leave a part unused.  Split it */
-        size_t new_chunk_jsvalues = chunk_jsvalues - alloc_jsvalues;
-        uintptr_t addr =
-          ((uintptr_t) chunk) + (new_chunk_jsvalues << LOG_BYTES_IN_JSVALUE);
-        HEADER_SET_SIZE(&chunk->header, new_chunk_jsvalues);
+      /* This chunk is large enough to leave a part unused.  Split it */
+      size_t new_chunk_jsvalues = chunk_jsvalues - alloc_jsvalues;
+      uintptr_t addr =
+        ((uintptr_t) chunk) + (new_chunk_jsvalues << LOG_BYTES_IN_JSVALUE);
+      HEADER_SET_SIZE(&chunk->header, new_chunk_jsvalues);
       HEADER_COMPOSE((HeaderCell *) addr, alloc_jsvalues, type, NULL);
 #ifdef GC_DEBUG
-        HEADER_SET_MAGIC((HeaderCell *) addr, HEADER_MAGIC);
-        HEADER_SET_GEN_MASK((HeaderCell *) addr, generation);
+      HEADER_SET_MAGIC((HeaderCell *) addr, HEADER_MAGIC);
+      HEADER_SET_GEN_MASK((HeaderCell *) addr, generation);
 #endif /* GC_DEBUG */
-        space->free_bytes -= alloc_jsvalues << LOG_BYTES_IN_JSVALUE;
-        return HEADERPTR_TO_VALPTR(addr);
-      }
+      space->free_bytes -= alloc_jsvalues << LOG_BYTES_IN_JSVALUE;
+      return HEADERPTR_TO_VALPTR(addr);
     }
+  }
 
   printf("memory exhausted\n");
   return NULL;
@@ -104,39 +104,6 @@ STATIC void collect(Context *ctx) {
   scan_roots(ctx);
   weak_clear();
   compaction(ctx);
-}
-
-STATIC const char *get_name_HTAG(cell_type_t htag)
-{
-  switch(htag) {
-      case HTAG_FREE: return "FREE";
-
-      case HTAG_STRING: return "STRING";
-      case HTAG_FLONUM: return "FLONUM";
-      case HTAG_SIMPLE_OBJECT: return "OBJECT";
-      case HTAG_ARRAY: return "ARRAY";
-      case HTAG_FUNCTION: return "FUNCTION";
-      case HTAG_BUILTIN: return "BUILTIN";
-      case HTAG_ITERATOR: return "ITERATOR";
-#ifdef use_regexp
-      case HTAG_REGEXP: return "REGEXP";
-#endif
-      case HTAG_BOXED_STRING: return "BOX_STRING";
-      case HTAG_BOXED_NUMBER: return "BOX_NUMBER";
-      case HTAG_BOXED_BOOLEAN: return "BOX_BOOLEAN";
-
-
-      case HTAG_PROP: return "PROP";
-      case HTAG_ARRAY_DATA: return "ARRAY_DATA";
-      case HTAG_FUNCTION_FRAME: return "FUNCTION_FRAME";
-      case HTAG_HASH_BODY: return "HASH_BODY";
-      case HTAG_STR_CONS: return "STR_CONS";
-      case HTAG_CONTEXT: return "CONTEXT";
-      case HTAG_STACK: return "STACK";
-      case HTAG_HIDDEN_CLASS: return "HIDDEN_CLASS";
-      
-      default: return "UNKNOWN";
-  }
 }
 
 STATIC void compaction(Context *ctx)
@@ -158,7 +125,6 @@ STATIC void set_fwdptr(void)
 
   while (scan < js_space.addr + js_space.bytes) {
     HeaderCell* header = (HeaderCell *) scan;
-    cell_type_t type = HEADER_GET_TYPE(header);
     header_word_t size = HEADER_GET_SIZE(header);
 
     if (is_marked_cell_header(header)) {
@@ -271,7 +237,7 @@ STATIC void move_heap_object(void)
     HeaderCell* header = (HeaderCell *) scan;
     size_t size = HEADER_GET_SIZE(header);
 
-    if (HEADER_GET_FWD(header) != NULL) {
+    if (((void *) HEADER_GET_FWD(header)) != NULL) {
       JSValue* fwd = (JSValue *)VALPTR_TO_HEADERPTR(HEADER_GET_FWD(header));
       cell_type_t type = HEADER_GET_TYPE(header);
 #ifdef GC_DEBUG
