@@ -44,7 +44,7 @@ BUILTIN_FUNCTION(array_constr)
   cint size, length;
 
   builtin_prologue();
-  gc_push_regbase(&args);
+  GC_PUSH_REGBASE(args);
   rsv = new_normal_array(context); /* this sets the `length' property to 0 */
   GC_PUSH(rsv);
   if (na == 0) {
@@ -81,7 +81,7 @@ BUILTIN_FUNCTION(array_constr)
   }
   GC_POP(rsv);
   set_a(context, rsv);
-  gc_pop_regbase(&args);
+  GC_POP_REGBASE(args);
 }
 
 BUILTIN_FUNCTION(array_toString)
@@ -89,10 +89,10 @@ BUILTIN_FUNCTION(array_toString)
   JSValue ret;
 
   builtin_prologue();
-  gc_push_regbase(&args);
+  GC_PUSH_REGBASE(args);
   ret = array_to_string(context, args[0], gconsts.g_string_comma);
   set_a(context, ret);
-  gc_pop_regbase(&args);
+  GC_POP_REGBASE(args);
   return;
 }
 
@@ -109,7 +109,7 @@ BUILTIN_FUNCTION(array_join)
   JSValue sep, ret;
 
   builtin_prologue();
-  gc_push_regbase(&args);
+  GC_PUSH_REGBASE(args);
   if (is_undefined(args[1])) {
     sep = gconsts.g_string_comma;
   } else {
@@ -119,7 +119,7 @@ BUILTIN_FUNCTION(array_join)
   }
   ret = array_to_string(context, args[0], sep);
   set_a(context, ret);
-  gc_pop_regbase(&args);
+  GC_POP_REGBASE(args);
   return;
 }
 
@@ -130,7 +130,7 @@ BUILTIN_FUNCTION(array_concat)
   JSArraySize n, k, len;
 
   builtin_prologue();
-  gc_push_regbase(&args);
+  GC_PUSH_REGBASE(args);
   a = new_normal_array(context);
   n = 0;
   GC_PUSH(a);
@@ -165,7 +165,7 @@ BUILTIN_FUNCTION(array_concat)
   set_prop_none(context, a, gconsts.g_string_length, cint_to_fixnum(n));
   GC_POP(a);
   set_a(context, a);
-  gc_pop_regbase(&args);
+  GC_POP_REGBASE(args);
   return;
 }
 
@@ -175,12 +175,12 @@ BUILTIN_FUNCTION(array_pop)
   JSArraySize len;
 
   builtin_prologue();
-  gc_push_regbase(&args);
+  GC_PUSH_REGBASE(args);
   a = args[0];
   len = array_length(a);    /* len >= -1 */
   if (len <= 0) {
     set_a(context, JS_UNDEFINED);
-    gc_pop_regbase(&args);
+    GC_POP_REGBASE(args);
     return;
   }
   len = len - 1;
@@ -196,7 +196,7 @@ BUILTIN_FUNCTION(array_pop)
   set_prop_none(context, a, gconsts.g_string_length, flen);
   GC_POP(ret);
   set_a(context, ret);
-  gc_pop_regbase(&args);
+  GC_POP_REGBASE(args);
   return;
 }
 
@@ -207,7 +207,7 @@ BUILTIN_FUNCTION(array_push)
   int i;
 
   builtin_prologue();
-  gc_push_regbase(&args);
+  GC_PUSH_REGBASE(args);
   a = args[0];
   len = array_length(a);
   /*
@@ -221,7 +221,7 @@ BUILTIN_FUNCTION(array_push)
   ret = (len <= MAX_ARRAY_LENGTH)?
     cint_to_fixnum(len): cint_to_fixnum(MAX_ARRAY_LENGTH);
   set_a(context, ret);
-  gc_pop_regbase(&args);
+  GC_POP_REGBASE(args);
   return;
 }
 
@@ -232,7 +232,7 @@ BUILTIN_FUNCTION(array_reverse)
   JSValue lowerValue, upperValue;
 
   builtin_prologue();
-  gc_push_regbase(&args);
+  GC_PUSH_REGBASE(args);
   len = array_length(args[0]);
   mid = len / 2;
 
@@ -263,7 +263,7 @@ BUILTIN_FUNCTION(array_reverse)
   }
   GC_POP(lowerValue);
   set_a(context, args[0]);
-  gc_pop_regbase(&args);
+  GC_POP_REGBASE(args);
   return;
 }
 
@@ -273,11 +273,11 @@ BUILTIN_FUNCTION(array_shift)
   JSArraySize len, from, to;
 
   builtin_prologue();
-  gc_push_regbase(&args);
+  GC_PUSH_REGBASE(args);
   len = array_length(args[0]);
   if (len <= 0) {
     set_a(context, JS_UNDEFINED);
-    gc_pop_regbase(&args);
+    GC_POP_REGBASE(args);
     return;
   }
 
@@ -298,7 +298,7 @@ BUILTIN_FUNCTION(array_shift)
   set_prop_none(context, args[0], gconsts.g_string_length, cint_to_fixnum(len));
   GC_POP(first);
   set_a(context, first);
-  gc_pop_regbase(&args);
+  GC_POP_REGBASE(args);
   return;
 }
 
@@ -319,7 +319,7 @@ BUILTIN_FUNCTION(array_slice)
   JSValue start, end, kValue;
 
   builtin_prologue();
-  gc_push_regbase(&args);
+  GC_PUSH_REGBASE(args);
   o = args[0];
   start = (na >= 1)? args[1]: 0;
   end = (na >= 2)? args[2]: JS_UNDEFINED;
@@ -354,7 +354,7 @@ BUILTIN_FUNCTION(array_slice)
   }
   GC_POP2(a, o);
   set_a(context, a);
-  gc_pop_regbase(&args);
+  GC_POP_REGBASE(args);
   return;
 }
 
@@ -561,7 +561,7 @@ BUILTIN_FUNCTION(array_sort)
   JSArraySize len;
 
   builtin_prologue();
-  gc_push_regbase(&args);
+  GC_PUSH_REGBASE(args);
   obj = args[0];
   comparefn = args[1];
   len = array_length(obj);
@@ -571,7 +571,7 @@ BUILTIN_FUNCTION(array_sort)
     GC_POP(obj);
   }
   set_a(context, obj);
-  gc_pop_regbase(&args);
+  GC_POP_REGBASE(args);
   return;
 }
 
@@ -582,7 +582,7 @@ BUILTIN_FUNCTION(array_debugarray)
   JSArraySize size, length, to, i;
 
   builtin_prologue();
-  gc_push_regbase(&args);
+  GC_PUSH_REGBASE(args);
   a = args[0];
   size = array_size(a);
   length = array_length(a);
@@ -597,7 +597,7 @@ BUILTIN_FUNCTION(array_debugarray)
   }
   GC_POP(a);
   set_a(context, JS_UNDEFINED);
-  gc_pop_regbase(&args);
+  GC_POP_REGBASE(args);
   return;
 }
 

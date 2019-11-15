@@ -19,7 +19,7 @@ BUILTIN_FUNCTION(boolean_constr)
   JSValue rsv;
 
   builtin_prologue();
-  gc_push_regbase(&args);
+  GC_PUSH_REGBASE(args);
   rsv = new_normal_boolean_object(context, JS_TRUE);
   GC_PUSH(rsv);
   set___proto___all(context, rsv, gconsts.g_boolean_proto);
@@ -27,7 +27,7 @@ BUILTIN_FUNCTION(boolean_constr)
     boolean_object_value(rsv) = to_boolean(args[1]);
   set_a(context, rsv);
   GC_POP(rsv);
-  gc_pop_regbase(&args);
+  GC_POP_REGBASE(args);
 }
 
 BUILTIN_FUNCTION(boolean_valueOf)
@@ -35,12 +35,12 @@ BUILTIN_FUNCTION(boolean_valueOf)
   JSValue arg;
 
   builtin_prologue();
-  gc_push_regbase(&args);
+  GC_PUSH_REGBASE(args);
   arg = args[0];
   if (is_boolean_object(arg))
     arg = boolean_object_value(arg);
   set_a(context, arg);
-  gc_pop_regbase(&args);
+  GC_POP_REGBASE(args);
 }
 
 ObjBuiltinProp boolean_funcs[] = {

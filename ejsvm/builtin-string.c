@@ -24,12 +24,12 @@ BUILTIN_FUNCTION(string_constr)
   JSValue rsv;
 
   builtin_prologue();
-  gc_push_regbase(&args);
+  GC_PUSH_REGBASE(args);
   /* printf("In string_constr\n"); */
   rsv =
     new_normal_string_object(context, na > 0? args[1]: gconsts.g_string_empty);
   set_a(context, rsv);
-  gc_pop_regbase(&args);
+  GC_POP_REGBASE(args);
 }
 
 /*
@@ -40,13 +40,13 @@ BUILTIN_FUNCTION(string_constr_nonew)
   JSValue arg;
   
   builtin_prologue();
-  gc_push_regbase(&args);
+  GC_PUSH_REGBASE(args);
   if (na > 0)
     arg = to_string(context, args[1]);
   else
     arg = gconsts.g_string_empty;
   set_a(context, arg);
-  gc_pop_regbase(&args);
+  GC_POP_REGBASE(args);
 }
 
 BUILTIN_FUNCTION(string_valueOf)
@@ -54,14 +54,14 @@ BUILTIN_FUNCTION(string_valueOf)
   JSValue arg;
 
   builtin_prologue();
-  gc_push_regbase(&args); 
+  GC_PUSH_REGBASE(args); 
   arg = args[0];
   if (is_string_object(arg))
     arg = string_object_value(arg);
   else if (!is_string(arg))
     arg = JS_UNDEFINED;
   set_a(context, arg);
-  gc_pop_regbase(&args);
+  GC_POP_REGBASE(args);
 }
 
 #define MAXSTRS 100
@@ -74,7 +74,7 @@ BUILTIN_FUNCTION(string_concat)
   int i, len;
 
   builtin_prologue();
-  gc_push_regbase(&args);
+  GC_PUSH_REGBASE(args);
   /*
    * printf("------\n");
    * printf("In string_concat: na = %d\n", na);
@@ -103,7 +103,7 @@ BUILTIN_FUNCTION(string_concat)
   ret = cstr_to_string(context, s);
   free(s);
   set_a(context, ret);
-  gc_pop_regbase(&args);
+  GC_POP_REGBASE(args);
 }
 
 JSValue to_upper_lower(Context *context, JSValue str, int upper) {
@@ -133,10 +133,10 @@ BUILTIN_FUNCTION(string_toLowerCase)
   JSValue ret;
 
   builtin_prologue();
-  gc_push_regbase(&args);
+  GC_PUSH_REGBASE(args);
   ret = to_upper_lower(context, args[0], FALSE);
   set_a(context, ret);
-  gc_pop_regbase(&args);
+  GC_POP_REGBASE(args);
 }
 
 BUILTIN_FUNCTION(string_toUpperCase)
@@ -144,10 +144,10 @@ BUILTIN_FUNCTION(string_toUpperCase)
   JSValue ret;
 
   builtin_prologue();
-  gc_push_regbase(&args);
+  GC_PUSH_REGBASE(args);
   ret = to_upper_lower(context, args[0], TRUE);
   set_a(context, ret);
-  gc_pop_regbase(&args);
+  GC_POP_REGBASE(args);
 }
 
 BUILTIN_FUNCTION(string_substring)
@@ -158,7 +158,7 @@ BUILTIN_FUNCTION(string_substring)
   char *s, *r;
 
   builtin_prologue();
-  gc_push_regbase(&args);
+  GC_PUSH_REGBASE(args);
 
   ret = is_string(args[0]) ? args[0] : to_string(context, args[0]);
   s = string_to_cstr(ret);
@@ -179,7 +179,7 @@ BUILTIN_FUNCTION(string_substring)
   free(r);
 
   set_a(context, ret);
-  gc_pop_regbase(&args);
+  GC_POP_REGBASE(args);
 
 #if 0
   JSValue endv;
@@ -238,7 +238,7 @@ BUILTIN_FUNCTION(string_slice)
   char *s, *r;
 
   builtin_prologue();
-  gc_push_regbase(&args);
+  GC_PUSH_REGBASE(args);
 
   ret = is_string(args[0]) ? args[0] : to_string(context, args[0]);
   s = string_to_cstr(ret);
@@ -257,7 +257,7 @@ BUILTIN_FUNCTION(string_slice)
   free(r);
 
   set_a(context, ret);
-  gc_pop_regbase(&args);
+  GC_POP_REGBASE(args);
 
 #if 0
   JSValue rsv, startv, endv;
@@ -343,7 +343,7 @@ BUILTIN_FUNCTION(string_charAt)
   char s[2];
 
   builtin_prologue();
-  gc_push_regbase(&args);
+  GC_PUSH_REGBASE(args);
   r = char_code_at(context, args[0], args[1]);
   if (r >= 0) {
     s[0] = r;
@@ -352,7 +352,7 @@ BUILTIN_FUNCTION(string_charAt)
   } else
     ret = gconsts.g_string_blank;
   set_a(context, ret);
-  gc_pop_regbase(&args);
+  GC_POP_REGBASE(args);
 }
 
 BUILTIN_FUNCTION(string_charCodeAt)
@@ -360,10 +360,10 @@ BUILTIN_FUNCTION(string_charCodeAt)
   int r;
 
   builtin_prologue();
-  gc_push_regbase(&args);
+  GC_PUSH_REGBASE(args);
   r = char_code_at(context, args[0], args[1]);
   set_a(context, r >= 0? cint_to_fixnum((cint)r): gconsts.g_flonum_nan);
-  gc_pop_regbase(&args);
+  GC_POP_REGBASE(args);
 }
 
 /*
@@ -426,10 +426,10 @@ BUILTIN_FUNCTION(string_indexOf)
 {
   JSValue ret;
   builtin_prologue();
-  gc_push_regbase(&args);
+  GC_PUSH_REGBASE(args);
   ret = string_indexOf_(context, args, na, FALSE);
   set_a(context, ret);
-  gc_pop_regbase(&args);
+  GC_POP_REGBASE(args);
   return;
 
 
@@ -492,10 +492,10 @@ BUILTIN_FUNCTION(string_lastIndexOf)
 {
   JSValue ret;
   builtin_prologue();
-  gc_push_regbase(&args);
+  GC_PUSH_REGBASE(args);
   ret = string_indexOf_(context, args, na, TRUE);
   set_a(context, ret);
-  gc_pop_regbase(&args);
+  GC_POP_REGBASE(args);
   return;
 
 #if 0
@@ -561,7 +561,7 @@ BUILTIN_FUNCTION(string_fromCharCode)
   int c, i;
 
   builtin_prologue();
-  gc_push_regbase(&args);
+  GC_PUSH_REGBASE(args);
   s = (char *)malloc(sizeof(char) * (na + 1));
   for (i = 1; i <= na; i++) {
     a = args[i];
@@ -582,7 +582,7 @@ BUILTIN_FUNCTION(string_fromCharCode)
   ret = cstr_to_string(context, s);
   free(s);
   set_a(context, ret);
-  gc_pop_regbase(&args);
+  GC_POP_REGBASE(args);
 }
 
 
@@ -593,7 +593,7 @@ BUILTIN_FUNCTION(string_localeCompare)
   int r;
 
   builtin_prologue();
-  gc_push_regbase(&args);
+  GC_PUSH_REGBASE(args);
   s0 = to_string(context, args[0]);
   GC_PUSH(s0);
   if (na >= 1) s1 = to_string(context, args[1]);
@@ -610,7 +610,7 @@ BUILTIN_FUNCTION(string_localeCompare)
 
   ret = cint_to_fixnum(r);
   set_a(context, ret);
-  gc_pop_regbase(&args);
+  GC_POP_REGBASE(args);
   return;
 
 #if 0

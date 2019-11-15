@@ -19,7 +19,7 @@ BUILTIN_FUNCTION(number_constr)
   JSValue rsv;
 
   builtin_prologue();
-  gc_push_regbase(&args);
+  GC_PUSH_REGBASE(args);
   rsv = new_normal_number_object(context, FIXNUM_ZERO);
   GC_PUSH(rsv);
   /* set___proto___all(context, rsv, gconsts.g_number_proto); */
@@ -27,7 +27,7 @@ BUILTIN_FUNCTION(number_constr)
     number_object_value(rsv) = to_number(context, args[1]);
   set_a(context, rsv);
   GC_POP(rsv);
-  gc_pop_regbase(&args);
+  GC_POP_REGBASE(args);
 }
 
 /*
@@ -40,10 +40,10 @@ BUILTIN_FUNCTION(number_constr_nonew)
   JSValue ret;
   
   builtin_prologue();
-  gc_push_regbase(&args);
+  GC_PUSH_REGBASE(args);
   ret = (na > 0)? to_number(context, args[1]): FIXNUM_ZERO;
   set_a(context, ret);
-  gc_pop_regbase(&args);
+  GC_POP_REGBASE(args);
 }
 
 BUILTIN_FUNCTION(number_toString)
@@ -51,7 +51,7 @@ BUILTIN_FUNCTION(number_toString)
   JSValue rsv;
 
   builtin_prologue();
-  gc_push_regbase(&args);
+  GC_PUSH_REGBASE(args);
   rsv = args[0];
   if (is_number_object(rsv)) {
     if (na == 0 || args[1] == FIXNUM_TEN || args[1] == JS_UNDEFINED)
@@ -123,7 +123,7 @@ BUILTIN_FUNCTION(number_toString)
      */ 
     LOG_EXIT("Number Instance's valueOf received not Number Instance\n");
   }
-  gc_pop_regbase(&args);
+  GC_POP_REGBASE(args);
 }
 
 BUILTIN_FUNCTION(number_valueOf)
@@ -131,13 +131,13 @@ BUILTIN_FUNCTION(number_valueOf)
   JSValue rsv;
 
   builtin_prologue();
-  gc_push_regbase(&args);
+  GC_PUSH_REGBASE(args);
   rsv = args[0];
   if (is_number_object(rsv))
     set_a(context, number_object_value(rsv));
   else
     LOG_EXIT("Receiver of valueOf is not a Number instance\n");
-  gc_pop_regbase(&args);
+  GC_POP_REGBASE(args);
 }
 
 ObjBuiltinProp number_funcs[] = {

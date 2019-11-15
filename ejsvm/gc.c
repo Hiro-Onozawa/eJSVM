@@ -107,10 +107,12 @@ STATIC int tmp_roots_sp;
 STATIC JSValue *gc_root_stack[MAX_ROOTS];
 STATIC int gc_root_stack_ptr = 0;
 
+#ifdef GC_IS_MOVING_GC
 /* regbase stack */
 #define MAX_REGBASES 32
 STATIC JSValue **gc_regbase_stack[MAX_REGBASES];
 STATIC int gc_regbase_stack_ptr = 0;
+#endif
 
 STATIC int gc_disabled = 1;
 
@@ -223,6 +225,7 @@ void gc_pop_checked(void *addr)
   gc_root_stack[--gc_root_stack_ptr] = NULL;
 }
 
+#ifdef GC_IS_MOVING_GC
 void gc_push_regbase(JSValue **pregbase)
 {
   gc_regbase_stack[gc_regbase_stack_ptr++] = pregbase;
@@ -238,6 +241,7 @@ void gc_pop_regbase(JSValue **pregbase)
 #endif /* GC_DEBUG */
   gc_regbase_stack[--gc_regbase_stack_ptr] = NULL;
 }
+#endif /* GC_IS_MOVING_GC */
 
 cell_type_t gc_obj_header_type(void *p)
 {

@@ -197,7 +197,7 @@ int vmrun_threaded(Context* context, int border) {
   int headcount = 0;
 #endif
 
-  gc_push_regbase(&regbase);
+  GC_PUSH_REGBASE(regbase);
 
   update_context();
   /*

@@ -25,7 +25,7 @@ BUILTIN_FUNCTION(function_apply) {
   JSValue as = args[2];
   JSValue ret;
   JSArraySize alen = 0;
-  gc_push_regbase(&args);
+  GC_PUSH_REGBASE(args);
 
   if (as == JS_UNDEFINED || as == JS_NULL) {
     as = new_array(context, 0, 0);
@@ -44,18 +44,18 @@ BUILTIN_FUNCTION(function_apply) {
     LOG_EXIT("apply: the receiver has to be a function/builtin");
   }
   set_a(context, ret);
-  gc_pop_regbase(&args);
+  GC_POP_REGBASE(args);
 }
 
 BUILTIN_FUNCTION(function_toString)
 {
   JSValue ret;
   builtin_prologue();
-  gc_push_regbase(&args);
+  GC_PUSH_REGBASE(args);
   args = NULL;     /* suppress warning message */
   ret = cstr_to_string(context, "[function]");
   set_a(context, ret);
-  gc_pop_regbase(&args);
+  GC_POP_REGBASE(args);
   return;
 }
 
@@ -63,11 +63,11 @@ BUILTIN_FUNCTION(builtin_toString)
 {
   JSValue ret;
   builtin_prologue();
-  gc_push_regbase(&args);
+  GC_PUSH_REGBASE(args);
   args = NULL;     /* suppress warning message */
   ret = cstr_to_string(context, "[builtin]");
   set_a(context, ret);
-  gc_pop_regbase(&args);
+  GC_POP_REGBASE(args);
   return;
 }
 

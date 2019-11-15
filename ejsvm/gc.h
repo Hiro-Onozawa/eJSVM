@@ -52,8 +52,16 @@ extern void gc_pop_checked(void* addr);
 #define GC_POP8(a,b,c,d,e,f,g,h)                        \
   do {GC_POP(a); GC_POP7(b,c,d,e,f,g,h);} while(0)
 
+#ifdef GC_IS_MOVING_GC
 extern void gc_push_regbase(JSValue **pregbase);
 extern void gc_pop_regbase(JSValue **pregbase);
+
+#define GC_PUSH_REGBASE(a)  gc_push_regbase(&a)
+#define GC_POP_REGBASE(a)   gc_pop_regbase(&a)
+#else
+#define GC_PUSH_REGBASE(a)  do { } while (0)
+#define GC_POP_REGBASE(a)   do { } while (0)
+#endif
 
 #else
 

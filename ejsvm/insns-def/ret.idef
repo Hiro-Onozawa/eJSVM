@@ -4,7 +4,7 @@
   JSValue *stack;
 
   if (fp == border) {
-    gc_pop_regbase(&regbase);
+    GC_POP_REGBASE(regbase);
     return 1;
   }
   stack = &get_stack(context, 0);
