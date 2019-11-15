@@ -554,13 +554,15 @@ STATIC void update_backward_reference()
       }
 #endif /* GC_DEBUG */
 
-      JSValue *from = (JSValue *)scan;
-      JSValue *end = from + size;
-      JSValue *to = (JSValue *)free;
-      while (from < end) {
-        *to = *from;
-        ++to;
-        ++from;
+      if (scan != free) {
+        JSValue *from = (JSValue *)scan;
+        JSValue *end = from + size;
+        JSValue *to = (JSValue *)free;
+        while (from < end) {
+          *to = *from;
+          ++to;
+          ++from;
+        }
       }
 
       free += size << LOG_BYTES_IN_JSVALUE;
