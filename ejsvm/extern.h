@@ -25,8 +25,8 @@ extern int obcsbc;
 
 extern int run_phase;
 extern int generation;
-extern int gc_sec;
-extern int gc_usec;
+extern time_t gc_sec;
+extern suseconds_t gc_usec;
 
 extern FILE *log_stream;
 

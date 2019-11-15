@@ -108,8 +108,8 @@ STATIC int gc_regbase_stack_ptr = 0;
 STATIC int gc_disabled = 1;
 
 int generation = 0;
-int gc_sec;
-int gc_usec; 
+time_t gc_sec;
+suseconds_t gc_usec; 
 
 #ifdef GC_DEBUG
 STATIC void **top;
@@ -339,6 +339,10 @@ STATIC void garbage_collect(Context *ctx)
     }
     gc_sec += sec;
     gc_usec += usec;
+    if (gc_usec >= 1000000) {
+      gc_usec -= 1000000;
+      ++gc_sec;
+    }
   }
 
   generation++;
