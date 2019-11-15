@@ -72,6 +72,16 @@
 
 #define HEADER_JSVALUES ((HEADER_BYTES + BYTES_IN_JSVALUE - 1) >> LOG_BYTES_IN_JSVALUE)
 
+#if (defined GC_TIMEOUT_SEC) || (defined GC_TIMEOUT_USEC)
+#define GC_TIMEOUT
+#if (defined GC_TIMEOUT_SEC) && !(defined GC_TIMEOUT_USEC)
+#define GC_TIMEOUT_USEC 0
+#endif /* (defined GC_TIMEOUT_SEC) && !(defined GC_TIMEOUT_USEC) */
+#if !(defined GC_TIMEOUT_SEC) && (defined GC_TIMEOUT_USEC)
+#define GC_TIMEOUT_SEC 0
+#endif /* !(defined GC_TIMEOUT_SEC) && (defined GC_TIMEOUT_USEC) */
+#endif /* (defined GC_TIMEOUT_SEC) || (defined GC_TIMEOUT_USEC) */
+
 /*
  *  Types
  */
@@ -343,6 +353,14 @@ STATIC void garbage_collect(Context *ctx)
       gc_usec -= 1000000;
       ++gc_sec;
     }
+#ifdef GC_TIMEOUT
+    if (gc_sec >= GC_TIMEOUT_SEC && gc_usec >= GC_TIMEOUT_USEC) {
+      printf("GC time out =  %d.%d msec (#GC = %d)\n",
+            gc_sec * 1000 + gc_usec / 1000, (int)(gc_usec % 1000), generation);
+      abort();
+      return;
+    }
+#endif /* GC_TIMEOUT_SEC */
   }
 
   generation++;
