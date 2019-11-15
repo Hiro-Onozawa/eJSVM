@@ -10,6 +10,14 @@
 #include "gc_mark_common.c"
 
 /*
+ * If the remaining room is smaller than a certain size,
+ * we do not use the remainder for efficiency.  Rather,
+ * we add it below the chunk being allocated.  In this case,
+ * the size in the header includes the extra words.
+ */
+#define MINIMUM_FREE_CHUNK_JSVALUES 4
+
+/*
  * prototype
  */
 STATIC void sweep(void);

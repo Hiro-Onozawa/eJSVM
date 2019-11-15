@@ -59,19 +59,10 @@
 #define JS_SPACE_BYTES     (10 * 1024 * 1024)
 #endif
 #ifdef GC_COPY
-#define JS_SPACE_GC_THREASHOLD     (JS_SPACE_BYTES >> 2)
+#define JS_SPACE_GC_THREASHOLD     (JS_SPACE_BYTES >> 3)
 #else
-#define JS_SPACE_GC_THREASHOLD     (JS_SPACE_BYTES >> 1)
+#define JS_SPACE_GC_THREASHOLD     (JS_SPACE_BYTES >> 2)
 #endif
-/* #define JS_SPACE_GC_THREASHOLD     (JS_SPACE_BYTES >> 4) */
-
-/*
- * If the remaining room is smaller than a certain size,
- * we do not use the remainder for efficiency.  Rather,
- * we add it below the chunk being allocated.  In this case,
- * the size in the header includes the extra words.
- */
-#define MINIMUM_FREE_CHUNK_JSVALUES 4
 
 #include "cell-header.h"
 
