@@ -15,7 +15,7 @@ int main(int argc, char **argv)
   int N, i;
   double *total, *gc;
   double ttotal, tgc;
-  int count;
+  int count, c;
 
   if (argc < 1) {
     printf("usage : %s <item count>\n", argv[0]);
@@ -37,10 +37,16 @@ int main(int argc, char **argv)
     return 2;
   }
 
+  count = -1;
   while(i < N) {
-    if (fscanf(stdin, "%lf,%lf,%d)", &ttotal, &tgc, &count) != 3) {
+    if (fscanf(stdin, "%lf,%lf,%d)", &ttotal, &tgc, &c) != 3) {
       printf("Error : unknown format\n");
       break;
+    }
+
+    if (count == -1) count = c;
+    else if (count != c) {
+      printf("Warn : gc count is not same. [%d vs %d]\n", count, c);
     }
 
     total[i] = ttotal;
@@ -76,6 +82,8 @@ int main(int argc, char **argv)
 
     printf("GC time    [ %.1f, %.1f, %.1f, %.1f, %.1f ]", min, first, center, third, max);
     printf(" %.2f, %.2f\n", rawavr, avr);
+
+    printf("GC count : %d\n", count);
   }
 
   free(gc);
