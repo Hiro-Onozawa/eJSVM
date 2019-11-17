@@ -231,7 +231,7 @@ STATIC void move_heap_object(void)
 {
   uintptr_t scan = js_space.addr;
   size_t used = 0;
-  struct free_chunk* tail = (struct free_chunk *)scan;
+  struct free_chunk* tail;
 
   while (scan < js_space.addr + js_space.bytes) {
     HeaderCell* header = (HeaderCell *) scan;
@@ -262,13 +262,13 @@ STATIC void move_heap_object(void)
         }
       }
 
-      tail = (struct free_chunk *)fwd;
       used += size;
     }
     scan += (size << LOG_BYTES_IN_JSVALUE);
   }
 
   size_t freesize = (js_space.bytes >> LOG_BYTES_IN_JSVALUE) - used;
+  tail = ((JSValue *) js_space.addr) + used;
   HEADER_COMPOSE(&(tail->header), freesize, HTAG_FREE, NULL);
 #ifdef GC_DEBUG
   HEADER_SET_MAGIC(&(tail->header), HEADER_MAGIC);
