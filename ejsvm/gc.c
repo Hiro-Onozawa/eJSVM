@@ -58,10 +58,12 @@
 #ifndef JS_SPACE_BYTES
 #define JS_SPACE_BYTES     (10 * 1024 * 1024)
 #endif
+#ifndef JS_SPACE_GC_THREASHOLD
 #ifdef GC_COPY
 #define JS_SPACE_GC_THREASHOLD     (JS_SPACE_BYTES >> 3)
 #else
 #define JS_SPACE_GC_THREASHOLD     (JS_SPACE_BYTES >> 2)
+#endif
 #endif
 
 #include "cell-header.h"
