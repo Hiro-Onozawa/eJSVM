@@ -25,6 +25,7 @@ int lastprint_flag;    /* prints the result of the last expression */
 int all_flag;          /* all flag values are true */
 int cputime_flag;      /* prints the cpu time */
 int repl_flag;         /* for REPL */
+int showspec_flag;     /* prints this vm specifications */
 #ifdef HIDDEN_CLASS
 int hcprint_flag;      /* prints all transitive hidden classes */
 #endif
@@ -145,6 +146,7 @@ struct commandline_option  options_table[] = {
   { "-a",         0, &all_flag,       NULL          },
   { "-u",         0, &cputime_flag,   NULL          },
   { "-R",         0, &repl_flag,      NULL          },
+  { "--show-spec",0, &showspec_flag,  NULL          },
 #ifdef HIDDEN_CLASS
   { "-h",         0, &hcprint_flag,   NULL          },
 #endif
@@ -199,6 +201,33 @@ void print_cputime(time_t sec, suseconds_t usec) {
 #ifdef HIDDEN_CLASS
   printf("n_hc = %d, n_enter_hc = %d, n_exit_hc = %d\n",
          n_hc, n_enter_hc, n_exit_hc);
+#endif
+}
+
+void print_spec() {
+#ifdef BIT_64
+  printf("\"BIT_64\" defined\n");
+#endif
+#ifdef BIT_32
+  printf("\"BIT_32\" defined\n");
+#endif
+#ifdef JS_SPACE_BYTES
+  printf("\"JS_SPACE_BYTES\" : %d\n", JS_SPACE_BYTES);
+#endif
+#ifdef JS_SPACE_GC_THREASHOLD
+  printf("\"JS_SPACE_GC_THREASHOLD\" : %d\n", JS_SPACE_GC_THREASHOLD);
+#endif
+#ifdef GC_MARK_SWEEP
+  printf("\"GC_MARK_SWEEP\" defined\n");
+#endif
+#ifdef GC_MARK_COMPACT
+  printf("\"GC_MARK_COMPACT\" defined\n");
+#endif
+#ifdef GC_THREADED_COMPACT
+  printf("\"GC_THREADED_COMPACT\" defined\n");
+#endif
+#ifdef GC_COPY
+  printf("\"GC_COPY\" defined\n");
 #endif
 }
 
@@ -317,6 +346,11 @@ int main(int argc, char *argv[]) {
   }
   if (repl_flag == TRUE)
     lastprint_flag = TRUE;
+
+  if (showspec_flag == TRUE) {
+    print_spec();
+    return 0;
+  }
 
   /* set number of iterations */
   iter = (repl_flag == TRUE)? 0x7fffffff: argc;
