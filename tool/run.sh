@@ -10,17 +10,18 @@ threasholds=( 1 2 3 )
 sizes=( 10485760 7864320 5242880 3932160 2621440 2162688 1310720 )
 
 rm -f ${results_dir}/*.csv*
+date
 for algorithm in ${algorithms[@]}
 do
   for threashold in ${threasholds[@]}
   do
-  for size in ${sizes[@]}
-  do
-      echo ${algorithm}_${size}_t${threashold}
-    for i in `seq 1 ${N}`
+    for size in ${sizes[@]}
     do
-      for test in ${tests[@]}
+      echo ${algorithm}_${size}_t${threashold}
+      for i in `seq 1 ${N}`
       do
+        for test in ${tests[@]}
+        do
           vm=${vms_dir}/ejsvm_64_${algorithm}_${size}_t${threashold}
           out=${results_dir}/${algorithm}_${size}_t${threashold}_${test}.csv
           ${vm} -u ${test_dir}/${test}.sbc &>> ${out}.tmp
@@ -29,19 +30,20 @@ do
     done
   done
 done
+date
 
 for algorithm in ${algorithms[@]}
 do
   for threashold in ${threasholds[@]}
   do
-  for size in ${sizes[@]}
-  do
-      echo ${algorithm}_${size}_t${threashold}
-    for test in ${tests[@]}
+    for size in ${sizes[@]}
     do
+      echo ${algorithm}_${size}_t${threashold}
+      for test in ${tests[@]}
+      do
         out=${results_dir}/${algorithm}_${size}_t${threashold}_${test}.csv
-       grep "total GC time" ${out}.tmp | awk '{ print $5","$11","$15 }' > ${out}
-       ./calc ${N} < ${out} >> ${out}
+#        grep "total GC time" ${out}.tmp | awk '{ print $5","$11","$15 }' > ${out}
+        ./calc ${N} < ${out}.tmp > ${out}
 #        rm ${out}.tmp
       done
     done

@@ -12,9 +12,10 @@ void getavr(double *arr, int N, double *ret);
 
 int main(int argc, char **argv)
 {
-  int N, i;
+  int N, i, t, line;
   double *total, *gc;
   double ttotal, tgc;
+  double *timeout;
   int count, c;
 
   if (argc < 1) {
@@ -30,55 +31,100 @@ int main(int argc, char **argv)
 
   total = (double *) malloc(sizeof(double) * N);
   gc = (double *) malloc(sizeof(double) * N);
-  if(total == NULL || gc == NULL) {
+  timeout = (double *) malloc(sizeof(double) * N);
+  if(total == NULL || gc == NULL || timeout == NULL) {
     printf("Error : memory error\n");
     if (total != NULL) free(total);
     if (gc != NULL) free(gc);
+    if (timeout != NULL) free(timeout);
     return 2;
   }
 
   count = -1;
-  while(i < N) {
-    if (fscanf(stdin, "%lf,%lf,%d)", &ttotal, &tgc, &c) != 3) {
-      printf("Error : unknown format\n");
+  i = 0;
+  t = 0;
+  line = 0;
+  while(i + t < N) {
+    char *buf;
+    size_t bufsize, result;
+
+    buf = NULL;
+    bufsize = 0;
+    result = getline(&buf, &bufsize, stdin);
+    if (buf == NULL || result == -1) {
+      if (buf != NULL) free(buf);
       break;
     }
+    ++line;
+    
+    if (sscanf(buf, "total CPU time = %lf msec, total GC time =  %lf msec (#GC = %d)", &ttotal, &tgc, &c) == 3) {
+      if (count == -1) count = c;
+      else if (count != c) {
+        printf("Warn : gc count is not same. [%d vs %d]\n", count, c);
+      }
 
-    if (count == -1) count = c;
-    else if (count != c) {
-      printf("Warn : gc count is not same. [%d vs %d]\n", count, c);
+      total[i] = ttotal;
+      gc[i] = tgc;
+      ++i;
     }
-
-    total[i] = ttotal;
-    gc[i] = tgc;
-    ++i;
+    else if (sscanf(buf, "GC time out =  %lf msec (#GC = %d)", &tgc, &c) == 2) {
+      timeout[t] = (double) c;
+      ++t;
+    }
+    else {
+      int dummy[3];
+      if (sscanf(buf, "n_hc = %d, n_enter_hc = %d, n_exit_hc = %d", dummy, dummy+1, dummy+2) != 3) {
+        printf("line %d; Error : unknown format\n");
+        free(buf);
+        i = -1;
+        break;
+      }
+    }
+    free(buf);
   }
 
-  if (i == N) {
+  if (t > 0) {
     double min, first, center, third, max;
     double rawavr, avr;
 
-    sort(total, N);
-    sort(gc, N);
+    sort(timeout, t);
 
-    getmin(total, N, &min);
-    getfirst(total, N, &first);
-    getcenter(total, N, &center);
-    getthird(total, N, &third);
-    getmax(total, N, &max);
-    getrawavr(total, N, &rawavr);
-    getavr(total, N, &avr);
+    getmin(timeout, t, &min);
+    getfirst(timeout, t, &first);
+    getcenter(timeout, t, &center);
+    getthird(timeout, t, &third);
+    getmax(timeout, t, &max);
+    getrawavr(timeout, t, &rawavr);
+    getavr(timeout, t, &avr);
+
+    printf("timeout GC count [ %.1f, %.1f, %.1f, %.1f, %.1f ]", min, first, center, third, max);
+    printf(" %.2f, %.2f\n", rawavr, avr);
+  }
+  if (i > 0) {
+    double min, first, center, third, max;
+    double rawavr, avr;
+
+    sort(total, i);
+    sort(gc, i);
+
+    getmin(total, i, &min);
+    getfirst(total, i, &first);
+    getcenter(total, i, &center);
+    getthird(total, i, &third);
+    getmax(total, i, &max);
+    getrawavr(total, i, &rawavr);
+    getavr(total, i, &avr);
 
     printf("total time [ %.1f, %.1f, %.1f, %.1f, %.1f ]", min, first, center, third, max);
     printf(" %.2f, %.2f\n", rawavr, avr);
 
-    getmin(gc, N, &min);
-    getfirst(gc, N, &first);
-    getcenter(gc, N, &center);
-    getthird(gc, N, &third);
-    getmax(gc, N, &max);
-    getrawavr(gc, N, &rawavr);
-    getavr(gc, N, &avr);
+    getmin(gc, i, &min);
+    getfirst(gc, i, &first);
+    getcenter(gc, i, &center);
+    getthird(gc, i, &third);
+    getmax(gc, i, &max);
+    getrawavr(gc, i, &rawavr);
+    getavr(gc, i, &avr);
 
     printf("GC time    [ %.1f, %.1f, %.1f, %.1f, %.1f ]", min, first, center, third, max);
     printf(" %.2f, %.2f\n", rawavr, avr);
@@ -86,6 +132,7 @@ int main(int argc, char **argv)
     printf("GC count : %d\n", count);
   }
 
+  free(timeout);
   free(gc);
   free(total);
 }
