@@ -1,4 +1,6 @@
 vms/*
 results/*
+dat_in/*
+dat_out/*
 
 calc
