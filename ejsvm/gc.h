@@ -63,6 +63,10 @@ extern void gc_pop_regbase(JSValue **pregbase);
 #define GC_POP_REGBASE(a)   do { } while (0)
 #endif
 
+#ifdef GC_PROFILE
+extern void print_gc_alloc_profile();
+#endif
+
 #else
 
 #error Boehm GC is no longer supported

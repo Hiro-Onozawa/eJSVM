@@ -25,6 +25,12 @@
  * GC_COPY             : copy gc
  * 
  * GC_CLEAR_MEM : clear unused memory with this value
+ * 
+ * GC_TIMEOUT      : enable timeout of gc
+ * GC_TIMEOUT_SEC  : timeout second
+ * GC_TIMEOUT_USEC : timeout usec
+ * 
+ * GC_PROFILE : enable gc profiling
  */
 
 #ifndef NDEBUG
@@ -128,6 +134,23 @@ STATIC void **top;
 STATIC void sanity_check();
 #endif /* GC_DEBUG */
 
+#ifdef GC_PROFILE
+struct doubled_size {
+  size_t low;  /* count lower 10 digits */
+  size_t high; /* count higher 10 digits */
+};
+
+typedef struct alloc_profile {
+  int count;
+  struct doubled_size request;
+  struct doubled_size allocate;
+  struct doubled_size header;
+  struct doubled_size waste;
+} AllocProfile;
+
+STATIC AllocProfile gc_alloc_profiles[(1 << HEADER_BYTES)];
+#endif /* GC_PROFILE */
+
 /*
  * prototype
  */
@@ -149,12 +172,21 @@ STATIC void collect(Context *ctx);
 STATIC void check_invariant(void);
 STATIC void print_memory_status(void);
 STATIC void print_heap_stat(void);
-STATIC const char *get_name_HTAG(cell_type_t htag);
 #endif /* GC_DEBUG */
+#if (defined GC_DEBUG) || (defined GC_PROFILE)
+STATIC const char *get_name_HTAG(cell_type_t htag);
+#endif /* (defined GC_DEBUG) || (defined GC_PROFILE) */
 
 #ifdef GC_CLEAR_MEM
 STATIC void fill_free_cell(struct space *p, JSValue val);
 #endif /* GC_CLEAR_MEM */
+
+#ifdef GC_PROFILE
+STATIC void add_doubled_size(struct doubled_size *pdsize, size_t size);
+STATIC void print_doubled_size(struct doubled_size *pdsize);
+STATIC void regist_alloc_profile(cell_type_t type, size_t request, size_t allocate, size_t header, size_t waste);
+STATIC void print_profile(cell_type_t type);
+#endif /* GC_PROFILE */
 
 /*
  * Implementation
@@ -294,6 +326,14 @@ JSValue* gc_jsalloc(Context *ctx, uintptr_t request_bytes, uint32_t type)
   *shadow = *hdrp;
   }
 #endif /* GC_DEBUG */
+#ifdef GC_PROFILE
+  {
+    size_t allocate = HEADER_GET_SIZE(VALPTR_TO_HEADERPTR(addr)) << LOG_BYTES_IN_JSVALUE;
+    size_t header = HEADER_BYTES;
+    size_t waste = allocate - header - request_bytes;
+    regist_alloc_profile(type, request_bytes, allocate, header, waste);
+  }
+#endif /* GC_PROFILE */
   return addr;
 }
 
@@ -369,7 +409,7 @@ STATIC void garbage_collect(Context *ctx)
   /* printf("Exit gc, generation = %d\n", generation); */
 }
 
-#ifdef GC_DEBUG
+#if (defined GC_DEBUG) || (defined GC_PROFILE)
 STATIC const char *get_name_HTAG(cell_type_t htag)
 {
   switch(htag) {
@@ -402,7 +442,78 @@ STATIC const char *get_name_HTAG(cell_type_t htag)
       default: return "UNKNOWN";
   }
 }
-#endif /* GC_DEBUG */
+#endif /* (defined GC_DEBUG) || (defined GC_PROFILE) */
+
+#ifdef GC_PROFILE
+#define GC_PROFILE_SIZE_BORDER 1000000000
+
+STATIC void add_doubled_size(struct doubled_size *pdsize, size_t size)
+{
+  while (size >= GC_PROFILE_SIZE_BORDER) {
+    size -= GC_PROFILE_SIZE_BORDER;
+    ++(pdsize->high);
+  }
+  if (pdsize->low > GC_PROFILE_SIZE_BORDER - size) { /* low + size > GC_PROFILE_SIZE_BORDER */
+    pdsize->low = pdsize->low - (GC_PROFILE_SIZE_BORDER - size); /* low + size - GC_PROFILE_SIZE_BORDER */
+    ++(pdsize->high);
+  }
+  else {
+    pdsize->low += size;
+  }
+}
+
+STATIC void print_doubled_size(struct doubled_size *pdsize)
+{
+  if (pdsize->high == 0) printf("%ld", pdsize->low);
+  else printf("%ld%010ld", pdsize->high, pdsize->low);
+}
+
+STATIC void regist_alloc_profile(cell_type_t type, size_t request, size_t allocate, size_t header, size_t waste)
+{
+  AllocProfile *p;
+
+  p = &(gc_alloc_profiles[type]);
+
+  ++(p->count);
+  add_doubled_size(&(p->request), request);
+  add_doubled_size(&(p->allocate), allocate);
+  add_doubled_size(&(p->header), header);
+  add_doubled_size(&(p->waste), waste);
+}
+
+STATIC void print_profile(cell_type_t type) {
+  AllocProfile *p;
+
+  p = &(gc_alloc_profiles[type]);
+  printf("type %s : allocated %d times, ", get_name_HTAG(type), p->count);
+  printf("request ");   print_doubled_size(&(p->request));  printf(" bytes, ");
+  printf("allocated "); print_doubled_size(&(p->allocate)); printf(" bytes, ");
+  printf("header ");    print_doubled_size(&(p->header));   printf(" bytes, ");
+  printf("waste ");     print_doubled_size(&(p->waste));    printf(" bytes\n");
+}
+
+void print_gc_alloc_profile()
+{
+  print_profile(HTAG_STRING);
+  print_profile(HTAG_FLONUM);
+  print_profile(HTAG_SIMPLE_OBJECT);
+  print_profile(HTAG_ARRAY);
+  print_profile(HTAG_FUNCTION);
+  print_profile(HTAG_BUILTIN);
+  print_profile(HTAG_ITERATOR);
+  print_profile(HTAG_BOXED_STRING);
+  print_profile(HTAG_BOXED_NUMBER);
+  print_profile(HTAG_BOXED_BOOLEAN);
+  print_profile(HTAG_PROP);
+  print_profile(HTAG_ARRAY_DATA);
+  print_profile(HTAG_FUNCTION_FRAME);
+  print_profile(HTAG_HASH_BODY);
+  print_profile(HTAG_STR_CONS);
+  print_profile(HTAG_STACK);
+  print_profile(HTAG_HIDDEN_CLASS);
+}
+#endif /* GC_PROFILE */
+
 
 /* Local Variables:      */
 /* mode: c               */

@@ -36,6 +36,9 @@ int coverage_flag;     /* print the coverage */
 int icount_flag;       /* print instruction count */
 int forcelog_flag;     /* treat every instruction as ``_log'' one */
 #endif
+#ifdef GC_PROFILE
+int gcprofile_flag;    /* print the gc profile information */
+#endif
 
 /*
 #define DEBUG_TESTTEST
@@ -156,6 +159,9 @@ struct commandline_option  options_table[] = {
   { "--coverage", 0, &coverage_flag,  NULL          },
   { "--icount",   0, &icount_flag,    NULL          },
   { "--forcelog", 0, &forcelog_flag,  NULL          },
+#endif
+#ifdef GC_PROFILE
+  { "--gcprofile",0, &gcprofile_flag, NULL          },
 #endif
   { "-s",         1, &regstack_limit, NULL          },  /* not used yet */
   { (char *)NULL, 0, NULL,            NULL          }
@@ -489,6 +495,12 @@ int main(int argc, char *argv[]) {
       }
       print_cputime(sec, usec);
     }
+
+#ifdef GC_PROFILE
+    if (gcprofile_flag == TRUE) {
+      print_gc_alloc_profile();
+    }
+#endif
     
     if (repl_flag == TRUE) {
       printf("\xff");
