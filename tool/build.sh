@@ -1,7 +1,7 @@
 #!/bin/bash
 
 build_dir=../build
-vms_dir=./vms
+vms_dir=./dats/vms
 algorithms=( "mark_sweep" "mark_compact" "threaded_compact" "copy" )
 threasholds=( 1 2 3 )
 sizes=( 10485760 7864320 5242880 3932160 2621440 2162688 1310720 )

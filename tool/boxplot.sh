@@ -1,9 +1,9 @@
 #!/bin/bash
 
 test_dir=../regression-test/bc/testcases
-results_dir=./results
-dat_dir=./dat_in
-graph_dir=./dat_out
+results_dir=./dats/results
+dat_dir=./dats/dat_in
+graph_dir=./dats/dat_out
 algorithms=( "mark_sweep" "mark_compact" "threaded_compact" "copy" )
 tests=( "3d-cube" "3d-morph" "base64" "binaryTree" "cordic" "fasta" "spectralnorm" "string-intensive" )
 threasholds=( 1 2 3 )
@@ -34,6 +34,6 @@ for threashold in ${threasholds[@]}
 do
   for test in ${tests[@]}
   do
-    gnuplot -e "indir='${dat_dir}'; outdir='${graph_dir}'; benchname='${test}'; threashold='t${threashold}'" boxplot.gp
+    gnuplot -e "indir='${dat_dir}'; outdir='${graph_dir}'; benchname='${test}'; threashold='t${threashold}'" ./scripts/boxplot.gp
   done
 done

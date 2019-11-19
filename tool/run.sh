@@ -2,8 +2,8 @@
 
 N=100
 test_dir=../regression-test/bc/testcases
-vms_dir=./vms
-results_dir=./results
+vms_dir=./dats/vms
+results_dir=./dats/results
 algorithms=( "mark_sweep" "mark_compact" "threaded_compact" "copy" )
 tests=( "3d-cube" "3d-morph" "base64" "binaryTree" "cordic" "fasta" "spectralnorm" "string-intensive" )
 threasholds=( 1 2 3 )
@@ -43,7 +43,7 @@ do
       do
         out=${results_dir}/${algorithm}_${size}_t${threashold}_${test}.csv
 #        grep "total GC time" ${out}.tmp | awk '{ print $5","$11","$15 }' > ${out}
-        ./calc ${N} < ${out}.tmp > ${out}
+        ./bin/calc ${N} < ${out}.tmp > ${out}
 #        rm ${out}.tmp
       done
     done
