@@ -6,6 +6,11 @@ algorithms=( "mark_sweep" "mark_compact" "threaded_compact" "copy" )
 threasholds=( 1 2 3 )
 sizes=( 10485760 7864320 5242880 3932160 2621440 2162688 1310720 )
 
+if [ $# -ge 1 ] && [ "$1" = "--profile" ]; then
+suffix="_profile"
+else
+suffix=""
+fi
 
 cd `dirname $0`
 current_dir=`pwd`
@@ -21,15 +26,18 @@ do
     do
       rm *.o cell-header.h
       if [ ${algorithm} = "copy" ]; then
-        echo "CFLAGS += -DJS_SPACE_GC_THREASHOLD='(${size}>>(${threashold}+1))'" > THREASHOLD.txt
+        echo "CFLAGS += -DJS_SPACE_GC_THREASHOLD='(${size}>>(${threashold}+1))'" > CFLAGS.txt
       else
-        echo "CFLAGS += -DJS_SPACE_GC_THREASHOLD='(${size}>>${threashold})'" > THREASHOLD.txt
+        echo "CFLAGS += -DJS_SPACE_GC_THREASHOLD='(${size}>>${threashold})'" > CFLAGS.txt
+      fi
+      if [ $# -ge 1 ] && [ "$1" = "--profile" ]; then
+        echo "CFLAGS += -DGC_PROFILE" >> CFLAGS.txt
       fi
       echo "HEAPSIZE = -DJS_SPACE_BYTES=${size}" > HEAPSIZE.txt
       echo "(${algorithm}, ${size}, ${threashold})"
 #      cat ALGORITHM.txt HEAPSIZE.txt
       make -j &> /dev/null
-      cp ejsvm ${current_dir}/${vms_dir}/ejsvm_64_${algorithm}_${size}_t${threashold}
+      cp ejsvm ${current_dir}/${vms_dir}/ejsvm_64_${algorithm}_${size}_t${threashold}${suffix}
     done
   done
 done
