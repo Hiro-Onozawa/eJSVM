@@ -577,29 +577,24 @@ STATIC void *copy(void *fromRef)
 {
   HeaderCell *hdrp_from;
   size_t size;
-  JSValue *from;
-  JSValue *to;
+  void *from;
+  void *to;
   void *toRef;
 
   hdrp_from = VALPTR_TO_HEADERPTR(fromRef);
   size = HEADER_GET_SIZE(hdrp_from);
-  from = (JSValue *) hdrp_from;
-  to = (JSValue *) js_space.free;
+  from = (void *) hdrp_from;
+  to = (void *) js_space.free;
   toRef = (void *) HEADERPTR_TO_VALPTR(to);
 
 #ifdef GC_DEBUG
   assert(HEADER_GET_MAGIC(hdrp_from) == HEADER_MAGIC);
 #endif /* GC_DEBUG */
 
-  js_space.free = (uintptr_t) (to + size);
+  js_space.free = (uintptr_t) (((JSValue *) to) + size);
   js_space.free_bytes -= size;
 
-  while (size > 0) {
-    *to = *from;
-    ++to;
-    ++from;
-    --size;
-  }
+  copy_object(from, to, size);
 
   hdrp_from->header0 = (header_word_t) toRef;
   wl_add(&worklist, toRef);

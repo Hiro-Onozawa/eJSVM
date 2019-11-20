@@ -238,7 +238,7 @@ STATIC void move_heap_object(void)
     size_t size = HEADER_GET_SIZE(header);
 
     if (((void *) HEADER_GET_FWD(header)) != NULL) {
-      JSValue* fwd = (JSValue *)VALPTR_TO_HEADERPTR(HEADER_GET_FWD(header));
+      void *fwd = (void *)VALPTR_TO_HEADERPTR(HEADER_GET_FWD(header));
       cell_type_t type = HEADER_GET_TYPE(header);
 #ifdef GC_DEBUG
       assert(HEADER_GET_MAGIC(header) == HEADER_MAGIC);
@@ -254,14 +254,8 @@ STATIC void move_heap_object(void)
         *shadow = *header;
       }
 #endif /* GC_DEBUG */
-      if ((JSValue *)header != fwd) {
-        JSValue* p = (JSValue *)header;
-        JSValue* end = (JSValue *)header + size;
-        for(; p < end; ++p, ++fwd) {
-          *fwd = *p;
-        }
-      }
 
+      copy_object((void *) scan, fwd, size);
       used += size;
     }
     scan += (size << LOG_BYTES_IN_JSVALUE);

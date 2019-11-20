@@ -121,7 +121,7 @@ STATIC int gc_root_stack_ptr = 0;
 #define MAX_REGBASES 32
 STATIC JSValue **gc_regbase_stack[MAX_REGBASES];
 STATIC int gc_regbase_stack_ptr = 0;
-#endif
+#endif /* GC_IS_MOVING_GC */
 
 STATIC int gc_disabled = 1;
 
@@ -167,6 +167,10 @@ STATIC void* space_alloc(struct space *space,
 STATIC int check_gc_request(Context *);
 STATIC void garbage_collect(Context *ctx);
 STATIC void collect(Context *ctx);
+
+#ifdef GC_IS_MOVING_GC
+STATIC void copy_object(void *from, void *to, size_t num_jsvalues);
+#endif /* GC_IS_MOVING_GC */
 
 #ifdef GC_DEBUG
 STATIC void check_invariant(void);
@@ -408,6 +412,25 @@ STATIC void garbage_collect(Context *ctx)
   generation++;
   /* printf("Exit gc, generation = %d\n", generation); */
 }
+
+#ifdef GC_IS_MOVING_GC
+STATIC void copy_object(void *from, void *to, size_t num_jsvalues)
+{
+  JSValue *pfrom, *pend, *pto;
+
+  pfrom = (JSValue *) from;
+  pto = (JSValue *) to;
+
+  if (pfrom == pto) return;
+
+  pend = pfrom + num_jsvalues;
+  while (pfrom < pend) {
+    *pto = *pfrom;
+    ++pto;
+    ++pfrom;
+  }
+}
+#endif /* GC_IS_MOVING_GC */
 
 #if (defined GC_DEBUG) || (defined GC_PROFILE)
 STATIC const char *get_name_HTAG(cell_type_t htag)
