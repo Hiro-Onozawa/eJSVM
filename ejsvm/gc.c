@@ -149,6 +149,9 @@ typedef struct alloc_profile {
 } AllocProfile;
 
 STATIC AllocProfile gc_alloc_profiles[(1 << HEADER_BYTES)];
+
+STATIC size_t moved_object_bytes;
+STATIC size_t moved_object_count;
 #endif /* GC_PROFILE */
 
 /*
@@ -379,6 +382,8 @@ STATIC void garbage_collect(Context *ctx)
 
 #ifdef GC_PROFILE
   allocated_bytes_old = gc_get_allocated_bytes();
+  moved_object_bytes = 0;
+  moved_object_count = 0;
 #endif /* GC_PROFILE */
 
   collect(ctx);
@@ -393,6 +398,12 @@ STATIC void garbage_collect(Context *ctx)
     collect_rate = (double) collect_bytes / (double) allocated_bytes_old * 100.0;
 
     printf("allocated bytes : %zu to %zu : %zu bytes ( %.2f %%) collected\n", allocated_bytes_old, allocated_bytes_new, collect_bytes, collect_rate);
+  }
+  if (movinginfo_flag == TRUE) {
+    double moving_rate;
+
+    moving_rate = (double) moved_object_bytes / (double) allocated_bytes_new * 100.0;
+    printf("%zu objects moved : %zu bytes ( %.2f %%)\n", moved_object_count, moved_object_bytes, moving_rate);
   }
 #endif /* GC_PROFILE */
 
@@ -443,6 +454,11 @@ STATIC void copy_object(void *from, void *to, size_t num_jsvalues)
   pto = (JSValue *) to;
 
   if (pfrom == pto) return;
+
+#ifdef GC_PROFILE
+  moved_object_bytes += num_jsvalues << LOG_BYTES_IN_JSVALUE;
+  ++moved_object_count;
+#endif
 
   pend = pfrom + num_jsvalues;
   while (pfrom < pend) {

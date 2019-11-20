@@ -39,6 +39,7 @@ int forcelog_flag;     /* treat every instruction as ``_log'' one */
 #ifdef GC_PROFILE
 int allocinfo_flag;    /* print the gc allocating information */
 int collectinfo_flag;  /* print the collector information */
+int movinginfo_flag;   /* print the moved objects information */
 #endif
 
 /*
@@ -164,6 +165,7 @@ struct commandline_option  options_table[] = {
 #ifdef GC_PROFILE
   { "--alloc-info",   0, &allocinfo_flag,   NULL    },
   { "--collect-info", 0, &collectinfo_flag, NULL    },
+  { "--moving-info",  0, &movinginfo_flag,  NULL    },
 #endif
   { "-s",         1, &regstack_limit, NULL          },  /* not used yet */
   { (char *)NULL, 0, NULL,            NULL          }
