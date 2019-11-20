@@ -190,6 +190,7 @@ STATIC void add_doubled_size(struct doubled_size *pdsize, size_t size);
 STATIC void print_doubled_size(struct doubled_size *pdsize);
 STATIC void regist_alloc_profile(cell_type_t type, size_t request, size_t allocate, size_t header, size_t waste);
 STATIC void print_profile(cell_type_t type);
+STATIC size_t gc_get_allocated_bytes();
 #endif /* GC_PROFILE */
 
 /*
@@ -367,13 +368,33 @@ void try_gc(Context *ctx)
 STATIC void garbage_collect(Context *ctx)
 {
   struct rusage ru0, ru1;
+#ifdef GC_PROFILE
+  size_t allocated_bytes_old, allocated_bytes_new;
+#endif /* GC_PROFILE */
 
   /* printf("Enter gc, generation = %d\n", generation); */
   GCLOG("Before Garbage Collection\n");
   /* print_memory_status(); */
   if (cputime_flag == TRUE) getrusage(RUSAGE_SELF, &ru0);
 
+#ifdef GC_PROFILE
+  allocated_bytes_old = gc_get_allocated_bytes();
+#endif /* GC_PROFILE */
+
   collect(ctx);
+
+#ifdef GC_PROFILE
+  allocated_bytes_new = gc_get_allocated_bytes();
+  if (collectinfo_flag == TRUE) {
+    size_t collect_bytes;
+    double collect_rate;
+
+    collect_bytes = (size_t) (allocated_bytes_old - allocated_bytes_new);
+    collect_rate = (double) collect_bytes / (double) allocated_bytes_old * 100.0;
+
+    printf("allocated bytes : %zu to %zu : %zu bytes ( %.2f %%) collected\n", allocated_bytes_old, allocated_bytes_new, collect_bytes, collect_rate);
+  }
+#endif /* GC_PROFILE */
 
 #ifdef GC_CLEAR_MEM
   fill_free_cell(&js_space, (JSValue)GC_CLEAR_MEM);

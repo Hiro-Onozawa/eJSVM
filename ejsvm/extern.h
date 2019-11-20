@@ -19,6 +19,11 @@ extern int cputime_flag;
 extern int repl_flag;
 extern int regstack_limit;
 
+#ifdef GC_PROFILE
+extern int allocinfo_flag;
+extern int collectinfo_flag;
+#endif
+
 #if defined(USE_OBC) && defined(USE_SBC)
 extern int obcsbc;
 #endif

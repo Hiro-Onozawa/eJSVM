@@ -37,7 +37,8 @@ int icount_flag;       /* print instruction count */
 int forcelog_flag;     /* treat every instruction as ``_log'' one */
 #endif
 #ifdef GC_PROFILE
-int gcprofile_flag;    /* print the gc profile information */
+int allocinfo_flag;    /* print the gc allocating information */
+int collectinfo_flag;  /* print the collector information */
 #endif
 
 /*
@@ -161,7 +162,8 @@ struct commandline_option  options_table[] = {
   { "--forcelog", 0, &forcelog_flag,  NULL          },
 #endif
 #ifdef GC_PROFILE
-  { "--gcprofile",0, &gcprofile_flag, NULL          },
+  { "--alloc-info",   0, &allocinfo_flag,   NULL    },
+  { "--collect-info", 0, &collectinfo_flag, NULL    },
 #endif
   { "-s",         1, &regstack_limit, NULL          },  /* not used yet */
   { (char *)NULL, 0, NULL,            NULL          }
@@ -497,7 +499,7 @@ int main(int argc, char *argv[]) {
     }
 
 #ifdef GC_PROFILE
-    if (gcprofile_flag == TRUE) {
+    if (allocinfo_flag == TRUE) {
       print_gc_alloc_profile();
     }
 #endif
