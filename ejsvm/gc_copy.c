@@ -95,7 +95,7 @@ STATIC void* space_alloc(struct space *space,
   newfree = space->free + (alloc_jsvalues << LOG_BYTES_IN_JSVALUE);
 
   if (newfree > space->top) {
-    printf("memory exhausted\n");
+    printf("memory exhausted\n"); fflush(stdout);
     return NULL;
   }
   space->free = newfree;

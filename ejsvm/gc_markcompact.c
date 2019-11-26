@@ -92,7 +92,7 @@ STATIC void* space_alloc(struct space *space,
     }
   }
 
-  printf("memory exhausted\n");
+  printf("memory exhausted\n"); fflush(stdout);
   return NULL;
 }
 
