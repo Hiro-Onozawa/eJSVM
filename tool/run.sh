@@ -34,6 +34,9 @@ do
           vm=${vms_dir}/ejsvm_64_${algorithm}_${size}_t${threashold}${suffix}
           out=${results_dir}/${algorithm}_${size}_t${threashold}_${test}${suffix}.csv
           ${vm} ${option} ${test_dir}/${test}.sbc &>> ${out}.tmp
+          if [ $? -eq 139 ]; then
+            echo "Segmentation fault" >> ${out}.tmp
+          fi
         done
       done
     done
