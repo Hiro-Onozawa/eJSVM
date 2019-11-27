@@ -592,7 +592,7 @@ STATIC void *copy(void *fromRef)
 #endif /* GC_DEBUG */
 
   js_space.free = (uintptr_t) (((JSValue *) to) + size);
-  js_space.free_bytes -= size;
+  js_space.free_bytes -= size << LOG_BYTES_IN_JSVALUE;
 
   copy_object(from, to, size);
 
