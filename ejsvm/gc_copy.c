@@ -124,7 +124,9 @@ STATIC int  wl_isEmpty(void **worklist);
 STATIC void wl_add(void **worklist, void *ref);
 STATIC void *wl_remove(void **worklist);
 STATIC void scan_HiddenClass(HiddenClass *phc);
-STATIC void scan_StrCons(StrCons *pcons);
+STATIC void scan_StrCons(StrCons **pstrcons);
+STATIC void scan_StrCons_ptr_array(StrCons **ptrarr, size_t size);
+STATIC void scan_StrTable(StrTable *pstrtable);
 STATIC void scan_HashCell(HashCell *hash);
 STATIC void scan_HashBody(HashCell **pbody);
 STATIC void scan_FnctionFrame(FunctionFrame *pfframe);
@@ -148,8 +150,6 @@ STATIC void process_roots(Context *ctx);
 STATIC void *forwardingAddress(void *fromRef);
 STATIC void *forward(void *fromRef);
 STATIC void *copy(void *fromRef);
-STATIC void weak_clear();
-STATIC void weak_clear_StrTable(StrTable *table);
 
 STATIC void flip()
 {
@@ -272,10 +272,39 @@ STATIC void scan_HashCell(HashCell *hash)
   }
 }
 
-STATIC void scan_StrCons(StrCons *pcons)
+STATIC void scan_StrTable(StrTable *pstrtable)
 {
-  process_JSValue(&(pcons->str));
-  process((void **) &(pcons->next));
+  scan_StrCons_ptr_array(pstrtable->obvector, pstrtable->size);
+}
+
+STATIC void scan_StrCons_ptr_array(StrCons **ptrarr, size_t size)
+{
+  size_t i;
+
+  for (i = 0; i < size; ++i) {
+    StrCons **pstrcons;
+
+    pstrcons = ptrarr + i;
+    if (*pstrcons != NULL) {
+      scan_StrCons(pstrcons);
+    }
+  }
+}
+
+STATIC void scan_StrCons(StrCons **pstrcons)
+{
+  StringCell *cell = remove_normal_string_tag((*pstrcons)->str);
+  void *toRef = forwardingAddress(cell);
+
+  if (toRef != NULL) {
+    (*pstrcons)->str = put_tag(toRef, T_STRING);
+    process((void **) pstrcons);
+    pstrcons = &((*pstrcons)->next);
+  }
+  else {
+    *pstrcons = (*pstrcons)->next;
+  }
+  if (*pstrcons != NULL) scan_StrCons(pstrcons);
 }
 
 STATIC void scan_HiddenClass(HiddenClass *phc)
@@ -350,7 +379,7 @@ STATIC void scan(void *ref)
       scan_HashBody((HashCell**) ptr);
       break;
     case HTAG_STR_CONS:
-      scan_StrCons((StrCons *) ptr);
+      // StrCons should be scaned after that scan heap.
       break;
     case HTAG_CONTEXT:
       LOG_EXIT("Unreachable Code\n");
@@ -517,7 +546,7 @@ STATIC void process_root_ptr(void **ptrp)
     process((void **) ((HashCell ***) ptrp));
     break;
   case HTAG_STR_CONS:
-    process((void **) ((StrCons **) ptrp));
+    printf("HTAG_STR_CONS in process_root_ptr\n");
     break;
   case HTAG_CONTEXT:
     printf("HTAG_CONTEXT in process_root_ptr\n");
@@ -628,8 +657,10 @@ STATIC void process_roots(Context *ctx)
    *                 Used slots should be traced through Function objects
    */
 
-  /* string table */
-  process_StrCons_ptr_array(string_table.obvector, string_table.size);
+  /* string table: do not trace.
+   *               Used slot should be traced after that scan heap.
+   */
+//  process_StrCons_ptr_array(string_table.obvector, string_table.size);
 
   /*
    * Context
@@ -650,28 +681,6 @@ STATIC void process_roots(Context *ctx)
     process_root_ptr((void **)gc_root_stack[i]);
 }
 
-STATIC void weak_clear()
-{
-  weak_clear_StrTable(&string_table);
-}
-
-STATIC void weak_clear_StrTable(StrTable *table)
-{
-  size_t i;
-  for (i = 0; i < table->size; i++) {
-    StrCons ** p = table->obvector + i;
-    while (*p != NULL) {
-      StringCell *cell = remove_normal_string_tag((*p)->str);
-      void *toRef = forwardingAddress(cell);
-      if (toRef == NULL) {
-        (*p)->str = JS_UNDEFINED;
-        *p = (*p)->next;
-      } else
-        p = &(*p)->next;
-    }
-  }
-}
-
 STATIC void collect(Context *ctx)
 {
   flip();
@@ -685,7 +694,7 @@ STATIC void collect(Context *ctx)
     scan(ref);
   }
 
-  weak_clear();
+  scan_StrTable(&string_table);
 }
 
 
