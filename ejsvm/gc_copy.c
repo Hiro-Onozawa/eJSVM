@@ -716,7 +716,7 @@ STATIC void fill_free_cell(struct space *space, JSValue val)
 #ifdef GC_PROFILE
 STATIC size_t gc_get_allocated_bytes()
 {
-  return (size_t) (js_space.extent - js_space.free_bytes) << LOG_BYTES_IN_JSVALUE;
+  return (size_t) (js_space.extent - js_space.free_bytes);
 }
 #endif /* GC_PROFILE */
 
