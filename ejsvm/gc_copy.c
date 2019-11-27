@@ -411,9 +411,6 @@ STATIC void process_JSValue(JSValue *pjsv)
   tag = get_tag(jsv);
   fromRef = (void *) clear_tag(jsv);
 
-  assert(fromRef != NULL);
-  assert(in_js_from_space(fromRef));
-
   toRef = forward(fromRef);
 
   *pjsv = put_tag(toRef, tag);
@@ -593,6 +590,10 @@ STATIC void *forwardingAddress(void *fromRef)
 STATIC void *forward(void *fromRef)
 {
   void *toRef;
+
+  if (fromRef == NULL) return NULL;
+
+  assert(in_js_from_space(fromRef));
 
   toRef = forwardingAddress(fromRef);
   if (toRef == NULL) {
