@@ -7,7 +7,7 @@ graph_dir=./dats/dat_out
 algorithms=( "mark_sweep" "mark_compact" "threaded_compact" "copy" )
 tests=( "3d-cube" "3d-morph" "base64" "binaryTree" "cordic" "fasta" "spectralnorm" "string-intensive" )
 threasholds=( 1 2 3 )
-sizes=( 10485760 7864320 5242880 3932160 2621440 2162688 1310720 )
+sizes=( 10485760 7864320 5242880 3932160 2621440 1966080 1310720 )
 
 for algorithm in ${algorithms[@]}
 do
