@@ -12,6 +12,8 @@ else
 suffix=""
 fi
 
+mkdir -p ${vms_dir}
+
 cd `dirname $0`
 current_dir=`pwd`
 echo ${current_dir}

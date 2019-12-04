@@ -20,6 +20,9 @@ threasholds=( 1 2 3 )
 sizes=( 10485760 7864320 5242880 3932160 2621440 1966080 1310720 )
 
 # rm -f ${results_dir}/*.csv*
+mkdir -p ${results_dir}
+mkdir -p ${results_dir}/tmp
+
 date
 for algorithm in ${algorithms[@]}
 do

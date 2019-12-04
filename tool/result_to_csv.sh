@@ -9,6 +9,8 @@ tests=( "3d-cube" "3d-morph" "base64" "binaryTree" "cordic" "fasta" "spectralnor
 threasholds=( 1 2 3 )
 sizes=( 10485760 7864320 5242880 3932160 2621440 1966080 1310720 )
 
+mkdir -p ${dat_dir}
+
 for algorithm in ${algorithms[@]}
 do
   for threashold in ${threasholds[@]}
