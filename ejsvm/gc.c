@@ -128,6 +128,8 @@ STATIC int gc_disabled = 1;
 int generation = 0;
 time_t gc_sec;
 suseconds_t gc_usec; 
+time_t gc_sec_max;
+suseconds_t gc_usec_max; 
 
 #ifdef GC_DEBUG
 STATIC void **top;
@@ -228,6 +230,8 @@ void init_memory()
   generation = 1;
   gc_sec = 0;
   gc_usec = 0;
+  gc_sec_max = 0;
+  gc_usec_max = 0;
 }
 
 void gc_push_tmp_root(JSValue *loc)
@@ -433,6 +437,11 @@ STATIC void garbage_collect(Context *ctx)
     if (gc_usec >= 1000000) {
       gc_usec -= 1000000;
       ++gc_sec;
+    }
+
+    if (sec > gc_sec_max || (sec == gc_sec_max && usec > gc_usec_max)) {
+      gc_sec_max = sec;
+      gc_usec_max = usec;
     }
 #ifdef GC_TIMEOUT
     if (gc_sec >= GC_TIMEOUT_SEC && gc_usec >= GC_TIMEOUT_USEC) {

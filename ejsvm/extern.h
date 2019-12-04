@@ -33,6 +33,8 @@ extern int run_phase;
 extern int generation;
 extern time_t gc_sec;
 extern suseconds_t gc_usec;
+extern time_t gc_sec_max;
+extern suseconds_t gc_usec_max;
 
 extern FILE *log_stream;
 
