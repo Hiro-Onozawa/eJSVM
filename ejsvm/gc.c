@@ -445,8 +445,9 @@ STATIC void garbage_collect(Context *ctx)
     }
 #ifdef GC_TIMEOUT
     if (gc_sec >= GC_TIMEOUT_SEC && gc_usec >= GC_TIMEOUT_USEC) {
-      printf("GC time out =  %ld.%03d msec (#GC = %d)\n",
-            gc_sec * 1000 + gc_usec / 1000, (int)(gc_usec % 1000), generation);
+      printf("GC time out = %ld.%03d msec, max GC time = %ld.%03d msec (#GC = %d)\n",
+            gc_sec * 1000 + gc_usec / 1000, (int)(gc_usec % 1000),
+            gc_sec_max * 1000 + gc_usec_max / 1000, (int)(gc_usec_max % 1000), generation);
       abort();
       return;
     }
