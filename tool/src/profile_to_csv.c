@@ -79,11 +79,11 @@ int get_value(FILE *fp, Value *pval)
   }
 
   if (!scan_val_1(buf, pval)) {
-    double dummy1, dummy2;
-    size_t dummy3;
+    double dummy1, dummy2, dummy3;
+    size_t dummy4;
 
-    if (sscanf(buf, "total CPU time = %lf msec, total GC time =  %lf msec (#GC = %zu)",
-        &dummy1, &dummy2, &dummy3) == 3) {
+  if (sscanf(buf, "total CPU time = %lf msec, total GC time = %lf msec, max GC time = %lf msec (#GC = %zu)",
+        &dummy1, &dummy2, &dummy3, &dummy4) == 3) {
       free(buf);
       return 0;
     }
