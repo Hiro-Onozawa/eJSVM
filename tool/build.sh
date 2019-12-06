@@ -1,5 +1,7 @@
 #!/bin/bash
 
+basebit=64
+# basebit=32
 build_dir=../build
 vms_dir=./dats/vms
 algorithms=( "mark_sweep" "mark_compact" "threaded_compact" "copy" )
@@ -18,6 +20,8 @@ cd `dirname $0`
 current_dir=`pwd`
 echo ${current_dir}
 cd ${build_dir}
+
+echo "OPT_BASEBIT = ${basebit}" > BASEBIT.txt
 
 for algorithm in ${algorithms[@]}
 do
@@ -39,7 +43,7 @@ do
       echo "(${algorithm}, ${size}, ${threashold})"
 #      cat ALGORITHM.txt HEAPSIZE.txt
       make -j &> /dev/null
-      cp ejsvm ${current_dir}/${vms_dir}/ejsvm_64_${algorithm}_${size}_t${threashold}${suffix}
+      cp ejsvm ${current_dir}/${vms_dir}/ejsvm_${basebit}_${algorithm}_${size}_t${threashold}${suffix}
     done
   done
 done

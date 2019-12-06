@@ -1,5 +1,7 @@
 #!/bin/bash
 
+basebit=64
+# basebit=32
 if [ $# -ge 1 ] && [ "$1" = "--profile" ]; then
 N=1
 suffix="_profile"
@@ -35,7 +37,7 @@ do
       do
         for test in ${tests[@]}
         do
-          vm=${vms_dir}/ejsvm_64_${algorithm}_${size}_t${threashold}${suffix}
+          vm=${vms_dir}/ejsvm_${basebit}_${algorithm}_${size}_t${threashold}${suffix}
           out=${results_dir}/tmp/${algorithm}_${size}_t${threashold}_${test}${suffix}.csv
           ${vm} ${option} ${test_dir}/${test}.sbc &>> ${out}.tmp
           if [ $? -eq 139 ]; then
