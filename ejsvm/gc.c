@@ -448,6 +448,7 @@ STATIC void garbage_collect(Context *ctx)
       printf("GC time out = %ld.%03d msec, max GC time = %ld.%03d msec (#GC = %d)\n",
             gc_sec * 1000 + gc_usec / 1000, (int)(gc_usec % 1000),
             gc_sec_max * 1000 + gc_usec_max / 1000, (int)(gc_usec_max % 1000), generation);
+      fflush(stdout);
       abort();
       return;
     }
