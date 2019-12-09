@@ -23,6 +23,7 @@ extern int regstack_limit;
 extern int allocinfo_flag;
 extern int collectinfo_flag;
 extern int movinginfo_flag;
+extern int collecttime_flag;
 #endif
 
 #if defined(USE_OBC) && defined(USE_SBC)

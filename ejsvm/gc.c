@@ -433,6 +433,12 @@ STATIC void garbage_collect(Context *ctx)
       return;
     }
 #endif /* GC_TIMEOUT_SEC */
+#ifdef GC_PROFILE
+    if (collecttime_flag == TRUE) {
+      printf("GC time = %ld.%03d msec (#gen = %d)\n",
+            sec * 1000 + usec / 1000, (int)(usec % 1000), generation);
+    }
+#endif /* GC_PROFILE */
   }
 
 #ifdef GC_PROFILE
