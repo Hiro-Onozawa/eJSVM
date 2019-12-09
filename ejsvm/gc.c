@@ -394,26 +394,6 @@ STATIC void garbage_collect(Context *ctx)
 
   collect(ctx);
 
-#ifdef GC_PROFILE
-  allocated_bytes_new = gc_get_allocated_bytes();
-  if (collectinfo_flag == TRUE) {
-    size_t collect_bytes;
-    double collect_rate;
-
-    collect_bytes = (size_t) (allocated_bytes_old - allocated_bytes_new);
-    collect_rate = (double) collect_bytes / (double) allocated_bytes_old * 100.0;
-
-    printf("allocated bytes : %zu to %zu : %zu bytes ( %.2f %%) collected\n", allocated_bytes_old, allocated_bytes_new, collect_bytes, collect_rate);
-  }
-  if (movinginfo_flag == TRUE) {
-    double moving_count_rate, moving_byte_rate;
-
-    moving_count_rate = (double) moved_object_count / (double) scaned_object_count * 100.0;
-    moving_byte_rate = (double) moved_object_bytes / (double) allocated_bytes_new * 100.0;
-    printf("%zu / %zu ( %.2f %%) objects moved : %zu bytes ( %.2f %%)\n", moved_object_count, scaned_object_count, moving_count_rate, moved_object_bytes, moving_byte_rate);
-  }
-#endif /* GC_PROFILE */
-
 #ifdef GC_CLEAR_MEM
   fill_free_cell(&js_space, (JSValue)GC_CLEAR_MEM);
 #endif
@@ -454,6 +434,26 @@ STATIC void garbage_collect(Context *ctx)
     }
 #endif /* GC_TIMEOUT_SEC */
   }
+
+#ifdef GC_PROFILE
+  allocated_bytes_new = gc_get_allocated_bytes();
+  if (collectinfo_flag == TRUE) {
+    size_t collect_bytes;
+    double collect_rate;
+
+    collect_bytes = (size_t) (allocated_bytes_old - allocated_bytes_new);
+    collect_rate = (double) collect_bytes / (double) allocated_bytes_old * 100.0;
+
+    printf("allocated bytes : %zu to %zu : %zu bytes ( %.2f %%) collected\n", allocated_bytes_old, allocated_bytes_new, collect_bytes, collect_rate);
+  }
+  if (movinginfo_flag == TRUE) {
+    double moving_count_rate, moving_byte_rate;
+
+    moving_count_rate = (double) moved_object_count / (double) scaned_object_count * 100.0;
+    moving_byte_rate = (double) moved_object_bytes / (double) allocated_bytes_new * 100.0;
+    printf("%zu / %zu ( %.2f %%) objects moved : %zu bytes ( %.2f %%)\n", moved_object_count, scaned_object_count, moving_count_rate, moved_object_bytes, moving_byte_rate);
+  }
+#endif /* GC_PROFILE */
 
   generation++;
   /* printf("Exit gc, generation = %d\n", generation); */
