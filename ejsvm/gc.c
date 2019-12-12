@@ -383,7 +383,6 @@ STATIC void garbage_collect(Context *ctx)
   /* printf("Enter gc, generation = %d\n", generation); */
   GCLOG("Before Garbage Collection\n");
   /* print_memory_status(); */
-  if (cputime_flag == TRUE) getrusage(RUSAGE_SELF, &ru0);
 
 #ifdef GC_PROFILE
   allocated_bytes_old = gc_get_allocated_bytes();
@@ -391,6 +390,8 @@ STATIC void garbage_collect(Context *ctx)
   moved_object_count = 0;
   scaned_object_count = 0;
 #endif /* GC_PROFILE */
+
+  if (cputime_flag == TRUE) getrusage(RUSAGE_SELF, &ru0);
 
   collect(ctx);
 
