@@ -462,6 +462,7 @@ STATIC void process_stack(JSValue **pstack, int sp, int fp)
     return;
   }
 
+  if (sp == 0 && fp == 0) return;
   while (1) {
     while (sp >= fp) {
       process_JSValue(stack + sp);

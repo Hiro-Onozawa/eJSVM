@@ -467,6 +467,7 @@ STATIC void scan_roots(Context *ctx)
 
 STATIC void scan_stack(JSValue* stack, int sp, int fp)
 {
+  if (sp == 0 && fp == 0) return;
   while (1) {
     while (sp >= fp) {
       trace_slot(stack + sp);
