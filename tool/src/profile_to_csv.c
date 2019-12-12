@@ -11,6 +11,7 @@ typedef struct value {
   double move_object_rate;
   size_t move_size;
   double move_size_rate;
+  double collect_time;
 } Value;
 
 void convert(size_t N, FILE *fp);
@@ -65,6 +66,17 @@ int scan_val_2(char *buf, Value *pval)
   return 0;
 }
 
+int scan_val_3(char *buf, Value *pval)
+{
+  int dummy;
+  if (sscanf(buf, "GC time = %lf msec (#gen = %d)",
+      &pval->collect_time, &dummy) == 2) {
+    return 1;
+  }
+  
+  return 0;
+}
+
 int get_value(FILE *fp, Value *pval)
 {
   char *buf;
@@ -78,15 +90,30 @@ int get_value(FILE *fp, Value *pval)
     return -1;
   }
 
-  if (!scan_val_1(buf, pval)) {
+  if (!scan_val_3(buf, pval)) {
     double dummy1, dummy2, dummy3;
     size_t dummy4;
 
-  if (sscanf(buf, "total CPU time = %lf msec, total GC time = %lf msec, max GC time = %lf msec (#GC = %zu)",
-        &dummy1, &dummy2, &dummy3, &dummy4) == 3) {
+    if (sscanf(buf, "total CPU time = %lf msec, total GC time = %lf msec, max GC time = %lf msec (#GC = %zu)",
+        &dummy1, &dummy2, &dummy3, &dummy4) == 4) {
       free(buf);
       return 0;
     }
+  }
+  free(buf);
+    
+
+  buf = NULL;
+  bufsize = 0;
+  result = getline(&buf, &bufsize, fp);
+  if (buf == NULL || result == -1) {
+    if (buf != NULL) free(buf);
+    return -1;
+  }
+
+  if (!scan_val_1(buf, pval)) {
+    free(buf);
+    return -1;
   }
   free(buf);
     
@@ -119,7 +146,8 @@ void convert(size_t N, FILE *fp)
   printf("%s, ", "alloced_object_count");
   printf("%s, ", "move_object_rate");
   printf("%s, ", "move_size");
-  printf("%s\n", "move_size_rate");
+  printf("%s, ", "move_size_rate");
+  printf("%s\n", "collect_time");
 
   while (1) {
     Value val;
@@ -136,7 +164,8 @@ void convert(size_t N, FILE *fp)
     printf("%zu, ", val.alloced_object_count);
     printf("%lf, ", val.move_object_rate);
     printf("%zu, ", val.move_size);
-    printf("%lf\n", val.move_size_rate);
+    printf("%lf, ", val.move_size_rate);
+    printf("%lf\n", val.collect_time);
 
     if (result == 0) break;
   }
