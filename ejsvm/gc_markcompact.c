@@ -73,23 +73,23 @@ STATIC void* space_alloc(struct space *space,
   alloc_jsvalues += HEADER_JSVALUES;
 
   /* allocate from freelist */
-  for (p = &space->freelist; *p != NULL; p = &(*p)->next) {
-    struct free_chunk *chunk = *p;
-    size_t chunk_jsvalues = HEADER_GET_SIZE(&chunk->header);
-    if (chunk_jsvalues >= alloc_jsvalues) {
-      /* This chunk is large enough to leave a part unused.  Split it */
-      size_t new_chunk_jsvalues = chunk_jsvalues - alloc_jsvalues;
-      uintptr_t addr =
-        ((uintptr_t) chunk) + (new_chunk_jsvalues << LOG_BYTES_IN_JSVALUE);
-      HEADER_SET_SIZE(&chunk->header, new_chunk_jsvalues);
-      HEADER_COMPOSE((HeaderCell *) addr, alloc_jsvalues, type, NULL);
+  /* but, compaction algorithm keeps free_chunks in one. */
+  p = &space->freelist;
+  struct free_chunk *chunk = *p;
+  size_t chunk_jsvalues = HEADER_GET_SIZE(&chunk->header);
+  if (chunk_jsvalues >= alloc_jsvalues) {
+    /* This chunk is large enough to leave a part unused.  Split it */
+    size_t new_chunk_jsvalues = chunk_jsvalues - alloc_jsvalues;
+    uintptr_t addr =
+      ((uintptr_t) chunk) + (new_chunk_jsvalues << LOG_BYTES_IN_JSVALUE);
+    HEADER_SET_SIZE(&chunk->header, new_chunk_jsvalues);
+    HEADER_COMPOSE((HeaderCell *) addr, alloc_jsvalues, type, NULL);
 #ifdef GC_DEBUG
-      HEADER_SET_MAGIC((HeaderCell *) addr, HEADER_MAGIC);
-      HEADER_SET_GEN_MASK((HeaderCell *) addr, generation);
+    HEADER_SET_MAGIC((HeaderCell *) addr, HEADER_MAGIC);
+    HEADER_SET_GEN_MASK((HeaderCell *) addr, generation);
 #endif /* GC_DEBUG */
-      space->free_bytes -= alloc_jsvalues << LOG_BYTES_IN_JSVALUE;
-      return HEADERPTR_TO_VALPTR(addr);
-    }
+    space->free_bytes -= alloc_jsvalues << LOG_BYTES_IN_JSVALUE;
+    return HEADERPTR_TO_VALPTR(addr);
   }
 
   printf("memory exhausted\n"); fflush(stdout);
@@ -262,7 +262,11 @@ STATIC void move_heap_object(void)
   }
 
   size_t freesize = (js_space.bytes >> LOG_BYTES_IN_JSVALUE) - used;
-  tail = ((JSValue *) js_space.addr) + used;
+  tail = (struct free_chunk *) (((JSValue *) js_space.addr) + used);
+#ifdef GC_DEBUG
+  assert(in_js_space(tail));
+  printf("gen : %d %p, free %zu\n", generation, tail, freesize);fflush(stdout);
+#endif
   HEADER_COMPOSE(&(tail->header), freesize, HTAG_FREE, NULL);
 #ifdef GC_DEBUG
   HEADER_SET_MAGIC(&(tail->header), HEADER_MAGIC);
