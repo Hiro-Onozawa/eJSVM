@@ -502,6 +502,8 @@ STATIC void process_FunctionTable(FunctionTable *pft)
   JSValue *table;
   size_t n_constants;
 
+  if (pft->insns == NULL) return;
+
   table = (JSValue *) (pft->insns + pft->n_insns);
   n_constants = (size_t) pft->n_constants;
 

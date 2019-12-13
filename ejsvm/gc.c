@@ -150,7 +150,7 @@ typedef struct alloc_profile {
   struct doubled_size waste;
 } AllocProfile;
 
-STATIC AllocProfile gc_alloc_profiles[(1 << HEADER_BYTES)];
+STATIC AllocProfile gc_alloc_profiles[(1 << HEADER_TYPE_BITS)];
 
 STATIC size_t moved_object_bytes;
 STATIC size_t moved_object_count;
