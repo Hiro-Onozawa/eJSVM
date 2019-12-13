@@ -1,49 +1,51 @@
 #!/bin/bash
 
-basebit=64
-# basebit=32
-build_dir=../build
-vms_dir=./dats/vms
-algorithms=( "mark_sweep" "mark_compact" "threaded_compact" "copy" )
-threasholds=( 1 2 3 )
-sizes=( 10485760 7864320 5242880 3932160 2621440 1966080 1310720 )
+. ./params/arg_parser.sh $@ || exit 1
 
-if [ $# -ge 1 ] && [ "$1" = "--profile" ]; then
-suffix="_profile"
+echo "DIR_VMS : ${DIR_VMS}"
+echo "PROFILE : ${PROFILE}"
+echo "BASEBIT : ${BASEBIT}"
+
+DIR_BUILD=../build
+
+if [[ $PROFILE = "TRUE" ]]; then
+  SUFFIX="_profile"
 else
-suffix=""
+  SUFFIX=""
 fi
 
-mkdir -p ${vms_dir}
+mkdir -p ${DIR_VMS}
 
 cd `dirname $0`
-current_dir=`pwd`
-echo ${current_dir}
-cd ${build_dir}
+DIR_CURRENT=`pwd`
+echo ${DIR_CURRENT}
+cd ${DIR_BUILD}
 
-echo "OPT_BASEBIT = ${basebit}" > BASEBIT.txt
+make clean
 
-for algorithm in ${algorithms[@]}
+echo "OPT_BASEBIT = ${BASEBIT}" > BASEBIT.txt
+
+for ALGORITHM in ${ALGORITHMS[@]}
 do
-  for threashold in ${threasholds[@]}
+  for THREASHOLD in ${THREASHOLDS[@]}
   do
-    echo "OPT_GC_ALGORITHM = ${algorithm}" > ALGORITHM.txt
-    for size in ${sizes[@]}
+    echo "OPT_GC_ALGORITHM = ${ALGORITHM}" > ALGORITHM.txt
+    for SIZE in ${SIZES[@]}
     do
-      rm *.o cell-header.h
-      if [ ${algorithm} = "copy" ]; then
-        echo "CFLAGS += -DJS_SPACE_GC_THREASHOLD='(${size}>>(${threashold}+1))'" > CFLAGS.txt
+      rm -f *.o cell-header.h
+      if [[ ${ALGORITHM} = "copy" ]]; then
+        echo "CFLAGS += -DJS_SPACE_GC_THREASHOLD='(${SIZE}>>(${THREASHOLD}+1))'" > CFLAGS.txt
       else
-        echo "CFLAGS += -DJS_SPACE_GC_THREASHOLD='(${size}>>${threashold})'" > CFLAGS.txt
+        echo "CFLAGS += -DJS_SPACE_GC_THREASHOLD='(${SIZE}>>${THREASHOLD})'" > CFLAGS.txt
       fi
-      if [ $# -ge 1 ] && [ "$1" = "--profile" ]; then
+      if [[ $PROFILE = "TRUE" ]]; then
         echo "CFLAGS += -DGC_PROFILE" >> CFLAGS.txt
       fi
-      echo "HEAPSIZE = -DJS_SPACE_BYTES=${size}" > HEAPSIZE.txt
-      echo "(${algorithm}, ${size}, ${threashold})"
+      echo "HEAPSIZE = -DJS_SPACE_BYTES=${SIZE}" > HEAPSIZE.txt
+      echo "(${ALGORITHM}, ${SIZE}, ${THREASHOLD})"
 #      cat ALGORITHM.txt HEAPSIZE.txt
       make -j &> /dev/null
-      cp ejsvm ${current_dir}/${vms_dir}/ejsvm_${basebit}_${algorithm}_${size}_t${threashold}${suffix}
+      cp ejsvm ${DIR_CURRENT}/${DIR_VMS}/ejsvm_${BASEBIT}_${ALGORITHM}_${SIZE}_t${THREASHOLD}${SUFFIX}
     done
   done
 done

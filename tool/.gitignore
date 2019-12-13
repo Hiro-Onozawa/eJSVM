@@ -1,2 +1,6 @@
 dats/*
 bin/*
+
+dats_64/*
+dats_32/*
+*.gz

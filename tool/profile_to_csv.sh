@@ -1,32 +1,25 @@
 #!/bin/bash
 
-test_dir=../regression-test/bc/testcases
-bin_dir=./bin
-results_dir=./dats/profile/tmp
-dat_dir=./dats/profile
-algorithms=( "mark_sweep" "mark_compact" "threaded_compact" "copy" )
-tests=( "3d-cube" "3d-morph" "base64" "binaryTree" "cordic" "fasta" "spectralnorm" "string-intensive" )
-threasholds=( 1 2 3 )
-sizes=( 10485760 7864320 5242880 3932160 2621440 1966080 1310720 )
+. ./params/arg_parser.sh || exit 1
 
-mkdir -p ${dat_dir}
+mkdir -p ${DIR_PROFILE}
 
-for algorithm in ${algorithms[@]}
+for ALGORITHM in ${ALGORITHMS[@]}
 do
-  for threashold in ${threasholds[@]}
+  for THREASHOLD in ${THREASHOLDS[@]}
   do
-    for size in ${sizes[@]}
+    for SIZE in ${SIZES[@]}
     do
-      for test in ${tests[@]}
+      for TEST in ${TESTS[@]}
       do
-        in=${results_dir}/${algorithm}_${size}_t${threashold}_${test}_profile.csv.tmp
-        out=${dat_dir}/${algorithm}_${size}_t${threashold}_${test}.csv
+        in=${DIR_PROFILE_RAW}/${ALGORITHM}_${SIZE}_t${THREASHOLD}_${TEST}_profile.txt
+        out=${DIR_PROFILE}/${ALGORITHM}_${SIZE}_t${THREASHOLD}_${TEST}.csv
         if [ `grep "Segmentation" ${in} | wc -l` -eq 0 ] && [ `grep "time out" ${in} | wc -l` -eq 0 ]; then
-          echo "# アルゴリズム : ${algorithm}" > ${out}
-          echo "# ベンチマーク : ${test}" >> ${out}
-          echo "# スレッショルド : ${threashold}" >> ${out}
+          echo "# アルゴリズム : ${ALGORITHM}" > ${out}
+          echo "# ベンチマーク : ${TEST}" >> ${out}
+          echo "# スレッショルド : ${THREASHOLD}" >> ${out}
           echo "# 生データ : ${in}" >> ${out}
-          ${bin_dir}/profile_to_csv 1 ${in} >> ${out}
+          ${DIR_BIN}/profile_to_csv 1 ${in} >> ${out}
         fi
       done
     done
