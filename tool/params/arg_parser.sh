@@ -12,6 +12,7 @@ usage() {
     echo "      --version"
     echo "  -b, --basebit { 32 | 64 }"
     echo "  -s, --size { big | small | all }"
+    echo "  -t, --threashold \"{ 1 | 2 | 3 }\""
 #    echo "  -a, --long-a [ARG]"
     echo "  -p, --profile"
     echo
@@ -51,6 +52,21 @@ do
                 exit 1
             fi
             SIZE_TYPE=$2
+            shift 2
+            ;;
+        -t | --threashold)
+            if [[ -z "$2" ]] || [[ "$2" =~ ^-+ ]]; then
+                echo "$PROGNAME: option requires an argument -- $1" 1>&2
+                exit 1
+            fi
+            THREASHOLDS=(${2// / })
+            for THREASHOLD in ${THREASHOLDS[@]}
+            do
+                if [[ "$THREASHOLD" != "1" ]] && [[ "$THREASHOLD" != "2" ]] && [[ "$THREASHOLD" != "3" ]]; then
+                    echo "$PROGNAME: option requires an argument { 1 | 2 | 3 } -- $1" 1>&2
+                    exit 1
+                fi
+            done
             shift 2
             ;;
 #        -a | --long-a)
@@ -99,7 +115,9 @@ DIR_PROFILE_RAW_64=$DIR_DATS_64/profiles/raw
 
 ALGORITHMS=( "mark_sweep" "mark_compact" "threaded_compact" "copy" )
 TESTS=( "3d-cube" "3d-morph" "base64" "binaryTree" "cordic" "fasta" "spectralnorm" "string-intensive" )
-THREASHOLDS=( 1 2 3 )
+if [[ $THREASHOLDS = "" ]]; then
+    THREASHOLDS=( 1 2 3 )
+fi
 SIZES_ALL=( 10485760 7864320 5242880 3932160 2621440 1966080 1310720 983040 655360 491520 )
 SIZES_BIG=( 10485760 7864320 5242880 3932160 2621440 1966080 1310720 )
 SIZES_SMALL=( 3932160 2621440 1966080 1310720 983040 655360 491520 )
