@@ -1,10 +1,30 @@
 #!/bin/bash
 
+# PARAM :
+# 1 : total_CPU_time
+# 2 : total_GC_time
+# 3 : non_CPU_time
+# 4 : max_GC_time
+# 5 : avr_GC_time
+# 6 : GC_count
+
 . ./params/arg_parser.sh $@ || exit 1
 
 if [[ $PROFILE = "TRUE" ]]; then
   echo "cannot use option \"PROFILE\""
   exit 1
+fi
+if [[ $PARAM -lt "1" ]] || [[ $PARAM -gt "6" ]]; then
+echo "Usage: $(basename $0) [OPTIONS]  <--param Params>"
+echo ""
+echo "Params :"
+echo "    1 : total_CPU_time"
+echo "    2 : total_GC_time"
+echo "    3 : non_CPU_time"
+echo "    4 : max_GC_time"
+echo "    5 : avr_GC_time"
+echo "    6 : GC_count"
+exit 1
 fi
 
 DIR_INFILE=${DIR_DATS}/tmp
@@ -28,8 +48,7 @@ do
         in=${DIR_RESULT}/${ALGORITHM}_${SIZE}_t${THREASHOLD}_${TEST}.csv
         echo "# ソースファイル : ${in}" >> ${out}
         if [ -e ${in} ]; then
-          #total_CPU_time, total_GC_time, non_CPU_time, max_GC_time, avr_GC_time, GC_count
-          tail +6 ${in} | cut -d "," -f 5 | awk -v s=${SIZE} '{ print s" "$1 }' >> ${out}
+          tail +6 ${in} | cut -d "," -f ${PARAM} | awk -v s=${SIZE} '{ print s" "$1 }' >> ${out}
           echo "" >> ${out}
           echo "" >> ${out}
         else
