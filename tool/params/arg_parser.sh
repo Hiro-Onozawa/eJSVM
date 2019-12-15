@@ -109,7 +109,7 @@ DIR_BIN=./bin
 
 if [[ $BASEBIT -eq 32 ]]; then
     ARCHITECTURE="x86"
-    SIZES=${SIZES_SMALL[@]}
+    SIZES=(${SIZES_SMALL[@]})
     DIR_DATS=$DIR_DATS_32
     DIR_VMS=$DIR_VMS_32
     DIR_RESULT=$DIR_RESULT_32
@@ -119,7 +119,7 @@ if [[ $BASEBIT -eq 32 ]]; then
 else
     BASEBIT=64
     ARCHITECTURE="x64"
-    SIZES=${SIZES_BIG[@]}
+    SIZES=(${SIZES_BIG[@]})
     DIR_DATS=$DIR_DATS_64
     DIR_VMS=$DIR_VMS_64
     DIR_RESULT=$DIR_RESULT_64
@@ -129,12 +129,12 @@ else
 fi
 
 if [[ $SIZE_TYPE = "big" ]]; then
-    SIZES=${SIZES_BIG[@]}
+    SIZES=(${SIZES_BIG[@]})
 fi
 if [[ $SIZE_TYPE = "small" ]]; then
-    SIZES=${SIZES_SMALL[@]}
+    SIZES=(${SIZES_SMALL[@]})
 fi
 if [[ $SIZE_TYPE = "all" ]]; then
-    SIZES=${SIZES_ALL[@]}
+    SIZES=(${SIZES_ALL[@]})
 fi
 
