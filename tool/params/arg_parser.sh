@@ -12,7 +12,8 @@ usage() {
     echo "      --version"
     echo "  -b, --basebit { 32 | 64 }"
     echo "  -s, --size { big | small | all }"
-    echo "  -t, --threashold \"{ 1 | 2 | 3 }\""
+    echo "      --benchmark \"{ 3d-cube | 3d-morph | base64 | binaryTree | cordic | fasta | spectralnorm | string-intensive }\""
+    echo "      --threashold \"{ 1 | 2 | 3 }\""
 #    echo "  -a, --long-a [ARG]"
     echo "  -p, --profile"
     echo
@@ -54,7 +55,22 @@ do
             SIZE_TYPE=$2
             shift 2
             ;;
-        -t | --threashold)
+             --benchmark)
+            if [[ -z "$2" ]] || [[ "$2" =~ ^-+ ]]; then
+                echo "$PROGNAME: option requires an argument -- $1" 1>&2
+                exit 1
+            fi
+            TESTS=(${2// / })
+            for TEST in ${TESTS[@]}
+            do
+                if [[ "$TEST" != "3d-cube" ]] && [[ "$TEST" != "3d-morph" ]] && [[ "$TEST" != "base64" ]] && [[ "$TEST" != "binaryTree" ]] && [[ "$TEST" != "cordic" ]] && [[ "$TEST" != "fasta" ]] && [[ "$TEST" != "spectralnorm" ]] && [[ "$TEST" != "string-intensive" ]]; then
+                    echo "$PROGNAME: option requires an argument { 3d-cube | 3d-morph | base64 | binaryTree | cordic | fasta | spectralnorm | string-intensive } -- $1" 1>&2
+                    exit 1
+                fi
+            done
+            shift 2
+            ;;
+             --threashold)
             if [[ -z "$2" ]] || [[ "$2" =~ ^-+ ]]; then
                 echo "$PROGNAME: option requires an argument -- $1" 1>&2
                 exit 1
@@ -114,7 +130,9 @@ DIR_PROFILE_64=$DIR_DATS_64/profiles
 DIR_PROFILE_RAW_64=$DIR_DATS_64/profiles/raw
 
 ALGORITHMS=( "mark_sweep" "mark_compact" "threaded_compact" "copy" )
-TESTS=( "3d-cube" "3d-morph" "base64" "binaryTree" "cordic" "fasta" "spectralnorm" "string-intensive" )
+if [[ $TESTS = "" ]]; then
+    TESTS=( "3d-cube" "3d-morph" "base64" "binaryTree" "cordic" "fasta" "spectralnorm" "string-intensive" )
+fi
 if [[ $THREASHOLDS = "" ]]; then
     THREASHOLDS=( 1 2 3 )
 fi
