@@ -1,39 +1,51 @@
 #!/bin/bash
 
-test_dir=../regression-test/bc/testcases
-results_dir=./dats/results
-dat_dir=./dats/dat_in
-graph_dir=./dats/dat_out
-algorithms=( "mark_sweep" "mark_compact" "threaded_compact" "copy" )
-tests=( "3d-cube" "3d-morph" "base64" "binaryTree" "cordic" "fasta" "spectralnorm" "string-intensive" )
-threasholds=( 1 2 3 )
-sizes=( 10485760 7864320 5242880 3932160 2621440 1966080 1310720 )
+. ./params/arg_parser.sh $@ || exit 1
 
-for algorithm in ${algorithms[@]}
+echo "DIR_VMS : ${DIR_VMS}"
+echo "PROFILE : ${PROFILE}"
+echo "BASEBIT : ${BASEBIT}"
+
+DIR_INFILE=${DIR_DATS}/tmp
+DIR_GRAPH=${DIR_DATS}/graph/boxplot
+
+mkdir -p ${DIR_INFILE}
+mkdir -p ${DIR_GRAPH}
+
+for ALGORITHM in ${ALGORITHMS[@]}
 do
-  for threashold in ${threasholds[@]}
+  for THREASHOLD in ${THREASHOLDS[@]}
   do
-    for test in ${tests[@]}
+    for TEST in ${TESTS[@]}
     do
-      out=${dat_dir}/${algorithm}_t${threashold}_${test}.txt
-      echo "# アルゴリズム : ${algorithm}" > ${out}
-      echo "# スレッショルド : ${threashold}" >> ${out}
-      echo "# ベンチマーク : ${test}" >> ${out}
-      for size in ${sizes[@]}
+      out=${DIR_INFILE}/${ALGORITHM}_t${THREASHOLD}_${TEST}.txt
+      echo "# アルゴリズム : ${ALGORITHM}" > ${out}
+      echo "# スレッショルド : ${THREASHOLD}" >> ${out}
+      echo "# ベンチマーク : ${TEST}" >> ${out}
+      for SIZE in ${SIZES[@]}
       do
-        in=${results_dir}/${algorithm}_${size}_t${threashold}_${test}.csv.tmp
-        grep "total GC time" ${in} | awk -v s=${size} -e '{ print s" "$11 }' >> ${out}
-        echo "" >> ${out}
-        echo "" >> ${out}
+        in=${DIR_RESULT}/${ALGORITHM}_${SIZE}_t${THREASHOLD}_${TEST}.csv
+        echo "# ソースファイル : ${in}" >> ${out}
+        if [ -e ${in} ]; then
+          #total_CPU_time, total_GC_time, non_CPU_time, max_GC_time, avr_GC_time, GC_count
+          tail +6 ${in} | cut -d "," -f 5 | awk -v s=${SIZE} '{ print s" "$1 }' >> ${out}
+          echo "" >> ${out}
+          echo "" >> ${out}
+        else
+          echo "# ファイルが存在しません" >> ${out}
+          echo "" >> ${out}
+        fi
       done
     done
   done
 done
 
-for threashold in ${threasholds[@]}
+label_max=${SIZES[0]}
+label_min=${SIZES[$((${#SIZES[@]}-1))]}
+for THREASHOLD in ${THREASHOLDS[@]}
 do
-  for test in ${tests[@]}
+  for TEST in ${TESTS[@]}
   do
-    gnuplot -e "indir='${dat_dir}'; outdir='${graph_dir}'; benchname='${test}'; threashold='t${threashold}'" ./scripts/boxplot.gp
+    gnuplot -e "indir='${DIR_INFILE}'; outdir='${DIR_GRAPH}'; benchname='${TEST}'; threashold='t${THREASHOLD}'; label_max='${label_max}'; label_min='${label_min}'" ./scripts/boxplot.gp
   done
 done
