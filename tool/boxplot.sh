@@ -2,9 +2,10 @@
 
 . ./params/arg_parser.sh $@ || exit 1
 
-echo "DIR_VMS : ${DIR_VMS}"
-echo "PROFILE : ${PROFILE}"
-echo "BASEBIT : ${BASEBIT}"
+if [[ $PROFILE = "TRUE" ]]; then
+  echo "cannot use option \"PROFILE\""
+  exit 1
+fi
 
 DIR_INFILE=${DIR_DATS}/tmp
 DIR_GRAPH=${DIR_DATS}/graph/boxplot

@@ -2,6 +2,11 @@
 
 . ./params/arg_parser.sh || exit 1
 
+if [[ $PROFILE = "TRUE" ]]; then
+  echo "cannot use option \"PROFILE\""
+  exit 1
+fi
+
 mkdir -p ${DIR_RESULT}
 
 for ALGORITHM in ${ALGORITHMS[@]}

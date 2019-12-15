@@ -2,6 +2,11 @@
 
 . ./params/arg_parser.sh || exit 1
 
+if [[ $PROFILE = "TRUE" ]]; then
+  echo "cannot use option \"PROFILE\""
+  exit 1
+fi
+
 DIR_OUT=${DIR_DATS}/table
 
 # total_CPU_time, total_GC_time, non_CPU_time, max_GC_time, avr_GC_time, GC_count
