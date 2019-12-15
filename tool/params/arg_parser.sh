@@ -16,6 +16,7 @@ usage() {
     echo "      --threashold \"{ 1 | 2 | 3 }\""
 #    echo "  -a, --long-a [ARG]"
     echo "  -p, --profile"
+    echo "      --param <param>"
     echo
     exit 1
 }
@@ -95,6 +96,14 @@ do
         -p | --profile)
             PROFILE="TRUE"
             shift 1
+            ;;
+             --param)
+            if [[ -z "$2" ]] || [[ "$2" =~ ^-+ ]]; then
+                echo "$PROGNAME: option requires an argument -- $1" 1>&2
+                exit 1
+            fi
+            PARAM="$2"
+            shift 2
             ;;
         -- | -)
             shift 1
