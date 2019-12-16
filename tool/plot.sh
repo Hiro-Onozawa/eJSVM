@@ -60,12 +60,37 @@ do
   done
 done
 
+case $PARAM in
+  1)
+    YLABEL="total CPU time [msec]"
+    ;;
+  2)
+    YLABEL="total GC time [msec]"
+    ;;
+  3)
+    YLABEL="non GC time [msec]"
+    ;;
+  4)
+    YLABEL="max GC time [msec]"
+    ;;
+  5)
+    YLABEL="avr GC time [msec]"
+    ;;
+  6)
+    YLABEL="GC count"
+    ;;
+  *)
+    echo "Error : Unknown param value \"${PARAM}\""
+    exit 1
+    ;;
+esac
+
 label_max=${SIZES[0]}
 label_min=${SIZES[$((${#SIZES[@]}-1))]}
 for THREASHOLD in ${THREASHOLDS[@]}
 do
   for TEST in ${TESTS[@]}
   do
-    gnuplot -e "indir='${DIR_INFILE}'; outdir='${DIR_GRAPH}'; benchname='${TEST}'; threashold='t${THREASHOLD}'; basebit='${BASEBIT}'; label_max='${label_max}'; label_min='${label_min}'" ./scripts/plot.gp
+    gnuplot -e "indir='${DIR_INFILE}'; outdir='${DIR_GRAPH}'; benchname='${TEST}'; threashold='t${THREASHOLD}'; basebit='${BASEBIT}'; ylabel_title='${YLABEL}'; label_max='${label_max}'; label_min='${label_min}'" ./scripts/plot.gp
   done
 done

@@ -3,6 +3,7 @@
 # benchname : ベンチマーク名
 # threashold : スレッショルド
 # basebit : 実行環境のビット幅
+# ylabel_title : y軸の表記
 # label_max : x軸のメモリの表記の最大値
 # label_min : x軸のメモリの表記の最小値
 
@@ -13,7 +14,7 @@ file4=indir."/copy_".threashold."_".benchname.".txt"
 fileout=outdir."/".threashold."_".benchname.".eps"
 
 set xlabel "heap size [byte]"
-set ylabel "GC time [msec]"
+set ylabel ylabel_title
 set title "[".basebit."bit] benchmark : ".benchname.", threashold : ".threashold
 if (label_max==10485760 && label_min==1310720){
     set xtics ("10485760" 1, "7864320" 2, "5242880" 3, "3932160" 4, "2621440" 5, "1966080" 6, "1310720" 7) rotate by -25
