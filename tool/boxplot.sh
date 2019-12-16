@@ -66,6 +66,6 @@ for THREASHOLD in ${THREASHOLDS[@]}
 do
   for TEST in ${TESTS[@]}
   do
-    gnuplot -e "indir='${DIR_INFILE}'; outdir='${DIR_GRAPH}'; benchname='${TEST}'; threashold='t${THREASHOLD}'; label_max='${label_max}'; label_min='${label_min}'" ./scripts/boxplot.gp
+    gnuplot -e "indir='${DIR_INFILE}'; outdir='${DIR_GRAPH}'; benchname='${TEST}'; threashold='t${THREASHOLD}'; basebit='${BASEBIT}'; label_max='${label_max}'; label_min='${label_min}'" ./scripts/boxplot.gp
   done
 done
