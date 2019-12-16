@@ -18,11 +18,14 @@ set ylabel ylabel_title
 set title "[".basebit."bit] benchmark : ".benchname.", threashold : ".threashold
 if (label_max==10485760 && label_min==1310720){
     set xtics ("10485760" 1, "7864320" 2, "5242880" 3, "3932160" 4, "2621440" 5, "1966080" 6, "1310720" 7) rotate by -25
+    xmax=7
 } else {
     if (label_max==3932160 && label_min==491520){
         set xtics ("3932160" 1, "2621440" 2, "1966080" 3, "1310720" 4, "983040" 5, "655360" 6, "491520" 7) rotate by -25
+        xmax=7
     } else {
         set xtics ("10485760" 1, "7864320" 2, "5242880" 3, "3932160" 4, "2621440" 5, "1966080" 6, "1310720" 7, "983040" 8, "655360" 9, "491520" 10) rotate by -25
+        xmax=10
     }
 }
 
@@ -31,8 +34,6 @@ set terminal eps
 set output fileout
 
 # plot
-set autoscale xfix
-
 set style fill solid 0.25 border -1
 set style boxplot nooutliers pointtype 7
 # set style data boxplot
@@ -55,18 +56,39 @@ set style boxplot fraction 1
 
 print "plot to ".threashold."_".benchname
 
+ymax=0;
+ythreashold=10000
+
 STATS_blocks=0
 stats file1 nooutput; if (STATS_blocks > 0) { array A[STATS_blocks] } else { array A[1] }
-do for [i=0:STATS_blocks-2]{ stats file1 using 2 index i nooutput; A[i+1]=STATS_median };
+do for [i=0:STATS_blocks-2]{
+    stats file1 using 2 index i nooutput; A[i+1]=STATS_median;
+    if (A[i+1] > ymax && A[i+1] < ythreashold) { ymax = A[i+1] }
+}
 STATS_blocks=0
 stats file2 nooutput; if (STATS_blocks > 0) { array B[STATS_blocks] } else { array B[1] }
-do for [i=0:STATS_blocks-2]{ stats file2 using 2 index i nooutput; B[i+1]=STATS_median };
+do for [i=0:STATS_blocks-2]{
+    stats file2 using 2 index i nooutput; B[i+1]=STATS_median;
+    if (B[i+1] > ymax && B[i+1] < ythreashold) { ymax = B[i+1] }
+}
 STATS_blocks=0
 stats file3 nooutput; if (STATS_blocks > 0) { array C[STATS_blocks] } else { array C[1] }
-do for [i=0:STATS_blocks-2]{ stats file3 using 2 index i nooutput; C[i+1]=STATS_median };
+do for [i=0:STATS_blocks-2]{
+    stats file3 using 2 index i nooutput; C[i+1]=STATS_median;
+    if (C[i+1] > ymax && C[i+1] < ythreashold) { ymax = C[i+1] }
+}
 STATS_blocks=0
 stats file4 nooutput; if (STATS_blocks > 0) { array D[STATS_blocks] } else { array D[1] }
-do for [i=0:STATS_blocks-2]{ stats file4 using 2 index i nooutput; D[i+1]=STATS_median };
+do for [i=0:STATS_blocks-2]{
+    stats file4 using 2 index i nooutput; D[i+1]=STATS_median;
+    if (D[i+1] > ymax && D[i+1] < ythreashold) { ymax = D[i+1] }
+}
+
+set autoscale xfix
+set clip one
+set clip two
+set yrange [*:ymax*1.25]
+set xrange [1-0.15/2-0.25:xmax+0.15/2+0.25]
 
 # using (x座標):データの列:(箱の幅(0のときデフォルト値)):データ区分の列
 plot file1 using (1-0.15/2-0.15):2:(0.1):1 with boxplot title 'mark sweep',\
