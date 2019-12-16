@@ -1,40 +1,71 @@
 #!/bin/bash
 
-test_dir=../regression-test/bc/testcases
-results_dir=./dats/results
-dat_dir=./dats/dat_in
-graph_dir=./dats/dat_out
-algorithms=( "mark_sweep" "mark_compact" "threaded_compact" "copy" )
-tests=( "3d-cube" "3d-morph" "base64" "binaryTree" "cordic" "fasta" "spectralnorm" "string-intensive" )
-threasholds=( 1 2 3 )
-sizes=( 10485760 7864320 5242880 3932160 2621440 1966080 1310720 )
+# PARAM :
+# 1 : total_CPU_time
+# 2 : total_GC_time
+# 3 : non_CPU_time
+# 4 : max_GC_time
+# 5 : avr_GC_time
+# 6 : GC_count
 
-mkdir -p ${dat_dir}
-mkdir -p ${graph_dir}
+. ./params/arg_parser.sh $@ || exit 1
 
-for algorithm in ${algorithms[@]}
+if [[ $PROFILE = "TRUE" ]]; then
+  echo "cannot use option \"PROFILE\""
+  exit 1
+fi
+if [[ $PARAM -lt "1" ]] || [[ $PARAM -gt "6" ]]; then
+echo "Usage: $(basename $0) [OPTIONS]  <--param Params>"
+echo ""
+echo "Params :"
+echo "    1 : total_CPU_time"
+echo "    2 : total_GC_time"
+echo "    3 : non_CPU_time"
+echo "    4 : max_GC_time"
+echo "    5 : avr_GC_time"
+echo "    6 : GC_count"
+exit 1
+fi
+
+DIR_INFILE=${DIR_DATS}/tmp
+DIR_GRAPH=${DIR_DATS}/graph/plot
+
+mkdir -p ${DIR_INFILE}
+mkdir -p ${DIR_GRAPH}
+
+for ALGORITHM in ${ALGORITHMS[@]}
 do
-  for threashold in ${threasholds[@]}
+  for THREASHOLD in ${THREASHOLDS[@]}
   do
-    for test in ${tests[@]}
+    for TEST in ${TESTS[@]}
     do
-      out=${dat_dir}/${algorithm}_t${threashold}_${test}.txt
-      echo "# アルゴリズム : ${algorithm}" > ${out}
-      echo "# スレッショルド : ${threashold}" >> ${out}
-      echo "# ベンチマーク : ${test}" >> ${out}
-      for size in ${sizes[@]}
+      out=${DIR_INFILE}/${ALGORITHM}_t${THREASHOLD}_${TEST}.txt
+      echo "# アルゴリズム : ${ALGORITHM}" > ${out}
+      echo "# スレッショルド : ${THREASHOLD}" >> ${out}
+      echo "# ベンチマーク : ${TEST}" >> ${out}
+      for SIZE in ${SIZES[@]}
       do
-        in=${results_dir}/${algorithm}_${size}_t${threashold}_${test}.csv
-        grep "GC time    \[" ${in} | awk -v s=${size} -e '{ print s" "$6 }' >> ${out}
+        in=${DIR_RESULT}/${ALGORITHM}_${SIZE}_t${THREASHOLD}_${TEST}.csv
+        echo "# ソースファイル : ${in}" >> ${out}
+        if [ -e ${in} ]; then
+          tail +6 ${in} | cut -d "," -f ${PARAM} | awk -v s=${SIZE} '{ print s" "$1 }' >> ${out}
+          echo "" >> ${out}
+          echo "" >> ${out}
+        else
+          echo "# ファイルが存在しません" >> ${out}
+          echo "" >> ${out}
+        fi
       done
     done
   done
 done
 
-for threashold in ${threasholds[@]}
+label_max=${SIZES[0]}
+label_min=${SIZES[$((${#SIZES[@]}-1))]}
+for THREASHOLD in ${THREASHOLDS[@]}
 do
-  for test in ${tests[@]}
+  for TEST in ${TESTS[@]}
   do
-    gnuplot -e "indir='${dat_dir}'; outdir='${graph_dir}'; benchname='${test}'; threashold='t${threashold}'" scripts/plot.gp
+    gnuplot -e "indir='${DIR_INFILE}'; outdir='${DIR_GRAPH}'; benchname='${TEST}'; threashold='t${THREASHOLD}'; label_max='${label_max}'; label_min='${label_min}'" ./scripts/plot.gp
   done
 done
