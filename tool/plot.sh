@@ -3,7 +3,7 @@
 # PARAM :
 # 1 : total_CPU_time
 # 2 : total_GC_time
-# 3 : non_CPU_time
+# 3 : non_GC_time
 # 4 : max_GC_time
 # 5 : avr_GC_time
 # 6 : GC_count
@@ -20,7 +20,7 @@ echo ""
 echo "Params :"
 echo "    1 : total_CPU_time"
 echo "    2 : total_GC_time"
-echo "    3 : non_CPU_time"
+echo "    3 : non_GC_time"
 echo "    4 : max_GC_time"
 echo "    5 : avr_GC_time"
 echo "    6 : GC_count"

@@ -9,7 +9,7 @@ fi
 
 DIR_OUT=${DIR_DATS}/table
 
-# total_CPU_time, total_GC_time, non_CPU_time, max_GC_time, avr_GC_time, GC_count
+# total_CPU_time, total_GC_time, non_GC_time, max_GC_time, avr_GC_time, GC_count
 columns=( 3 2 4 5 6 )
 
 STR_SEGMENTATION_FAULT="x"
