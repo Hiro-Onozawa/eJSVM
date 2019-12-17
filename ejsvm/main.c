@@ -246,13 +246,13 @@ void print_spec() {
   printf("\"GC_COPY\" defined\n");
 #endif
 #ifdef GC_PROFILE
-  printf("\"GC_COPY\" defined\n");
+  printf("\"GC_PROFILE\" defined\n");
 #endif
 #ifdef GC_TIMEOUT_SEC
   printf("\"GC_TIMEOUT_SEC\" : %d\n", GC_TIMEOUT_SEC);
 #endif
 #ifdef GC_TIMEOUT_USEC
-  printf("\"GC_TIMEOUT_SEC\" : %d\n", GC_TIMEOUT_USEC);
+  printf("\"GC_TIMEOUT_USEC\" : %d\n", GC_TIMEOUT_USEC);
 #endif
 }
 
