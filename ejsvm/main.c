@@ -230,6 +230,9 @@ void print_spec() {
 #ifdef JS_SPACE_GC_THREASHOLD
   printf("\"JS_SPACE_GC_THREASHOLD\" : %d\n", JS_SPACE_GC_THREASHOLD);
 #endif
+#ifdef GC_NULL
+  printf("\"GC_NULL\" defined\n");
+#endif
 #ifdef GC_MARK_SWEEP
   printf("\"GC_MARK_SWEEP\" defined\n");
 #endif

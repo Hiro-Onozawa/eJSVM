@@ -14,22 +14,39 @@ typedef uint32_t cell_type_t;
 extern void init_memory(void);
 extern void *gc_malloc(Context *, uintptr_t, uint32_t);
 extern JSValue *gc_jsalloc(Context *, uintptr_t, uint32_t);
+#ifdef GC_NULL
+#define gc_push_tmp_root(loc)                 do { } while (0)
+#define gc_push_tmp_root2(loc1, loc2)         do { } while (0)
+#define gc_push_tmp_root3(loc1, loc2, loc3)   do { } while (0)
+#define gc_pop_tmp_root(n)                    do { } while (0)
+#else
 extern void gc_push_tmp_root(JSValue *loc);
 extern void gc_push_tmp_root2(JSValue *loc1, JSValue *loc2);
 extern void gc_push_tmp_root3(JSValue *loc1, JSValue *loc2, JSValue *loc3);
 extern void gc_pop_tmp_root(int n);
+#endif
 
+#ifdef GC_NULL
+#define enable_gc(ctx)   do { } while (0)
+#define disable_gc()     do { } while (0)
+#define try_gc(ctx)      do { } while (0)
+#else
 extern void enable_gc(Context *ctx);
 extern void disable_gc(void);
 extern void try_gc(Context *ctx);
+#endif
 
 extern cell_type_t gc_obj_header_type(void *p);
 
 /* #define GC_ROOT(_type, _var) _type _var = ((_type) 0) */
 #define GC_ROOT(_type, _var) _type _var
 
+#ifdef GC_NULL
+#define GC_PUSH(a)                do { } while (0)
+#else
 extern void gc_push_checked(void *addr);
 #define GC_PUSH(a)                gc_push_checked(&a)
+#endif
 #define GC_PUSH2(a,b)             do {GC_PUSH(a); GC_PUSH(b);} while(0)
 #define GC_PUSH3(a,b,c)           do {GC_PUSH(a); GC_PUSH2(b,c);} while(0)
 #define GC_PUSH4(a,b,c,d)         do {GC_PUSH(a); GC_PUSH3(b,c,d);} while(0)
@@ -41,8 +58,12 @@ extern void gc_push_checked(void *addr);
 #define GC_PUSH8(a,b,c,d,e,f,g,h)                       \
   do {GC_PUSH(a); GC_PUSH7(b,c,d,e,f,g,h);} while(0)
 
+#ifdef GC_NULL
+#define GC_POP(a)                do { } while (0)
+#else
 extern void gc_pop_checked(void* addr);
 #define GC_POP(a)                gc_pop_checked(&a)
+#endif
 #define GC_POP2(a,b)             do {GC_POP(a); GC_POP(b);} while(0)
 #define GC_POP3(a,b,c)           do {GC_POP(a); GC_POP2(b,c);} while(0)
 #define GC_POP4(a,b,c,d)         do {GC_POP(a); GC_POP3(b,c,d);} while(0)

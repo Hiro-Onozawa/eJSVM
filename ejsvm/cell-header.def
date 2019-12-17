@@ -20,6 +20,11 @@ if (basebit == "64") then
   bits_in_byte  = 8
   header_magic  = 0x18
   case gc_algorithm
+  when "null" then
+    header_def.push([
+      [ 0,  7, "TYPE",   :param, "type of memory chunk"],
+      [32, 63, "SIZE",   :param, "number of words of this chunk including header"]
+    ]);
   when "mark_sweep" then
     header_def.push([
       [ 0,  7, "TYPE",   :param, "type of memory chunk"],
@@ -67,6 +72,11 @@ elsif (basebit == "32") then
   bits_in_byte  = 8
   header_magic  = 0x18
   case gc_algorithm
+  when "null" then
+    header_def.push([
+      [0,  7, "TYPE",  :param, "type of memory chunk"],
+      [8, 31, "SIZE",  :param, "number of words of this chunk including header"]
+    ]);
   when "mark_sweep" then
     header_def.push([
       [0,  4, "TYPE",  :param, "type of memory chunk"],
@@ -106,7 +116,9 @@ else
   raise "Invalid basebit value : " + basebit
 end
 
-if (gc_algorithm == "mark_sweep") then
+if (gc_algorithm == "null") then
+  # Nothing to do
+elsif (gc_algorithm == "mark_sweep") then
   # Nothing to do
 elsif (gc_algorithm == "mark_compact") then
   header_def.push(

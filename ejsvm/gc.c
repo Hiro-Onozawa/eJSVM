@@ -19,6 +19,7 @@
  * 
  * GC_DEBUG : enable debug code
  * 
+ * GC_NULL             : null gc
  * GC_MARK_SWEEP       : mark & sweep gc
  * GC_MARK_COMPACT     : mark & compaction gc
  * GC_THREADED_COMPACT : mark & threaded compaction gc

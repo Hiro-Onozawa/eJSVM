@@ -37,7 +37,7 @@ ifeq ($(OPT_GC),)
     OPT_GC=native
 endif
 ifeq ($(OPT_GC_ALGORITHM),)
-# GC_ALGORITHM=mark_sweep|mark_compact|threaded_compact|copy
+# GC_ALGORITHM=null|mark_sweep|mark_compact|threaded_compact|copy
     OPT_GC_ALGORITHM=mark_sweep
 endif
 #ifeq ($(SUPERINSNSPEC),)
@@ -258,6 +258,9 @@ ifeq ($(OPT_GC),boehmgc)
     CFLAGS+=-DUSE_BOEHMGC=1
     LIBS+=-lgc
 endif
+ifeq ($(OPT_GC_ALGORITHM),null)
+    CFLAGS+=-DGC_NULL
+endif
 ifeq ($(OPT_GC_ALGORITHM),mark_sweep)
     CFLAGS+=-DGC_MARK_SWEEP
 endif
@@ -416,6 +419,10 @@ codeloader.o: specfile-fingerprint.h
 
 vmloop.o: vmloop.c vmloop-cases.inc $(INSN_FILES) $(HFILES)
 	$(CC) $(CCOPT) -c $(CFLAGS) -o $@ $<
+ifeq ($(OPT_GC_ALGORITHM),null)
+gc.o: gc_null.c $(HFILES)
+	$(CC) $(CCOPT) -c $(CFLAGS) -o $@ $<
+endif
 ifeq ($(OPT_GC_ALGORITHM),mark_sweep)
 gc.o: gc.c gc_marksweep.c gc_mark_common.c $(HFILES)
 	$(CC) $(CCOPT) -c $(CFLAGS) -o $@ $<
