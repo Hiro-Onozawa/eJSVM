@@ -102,7 +102,7 @@ STATIC void* space_alloc(struct space *space,
   space->free_bytes -= alloc_jsvalues << LOG_BYTES_IN_JSVALUE;
 
   HEADER_COMPOSE(hdrp, alloc_jsvalues, type);
-  HEADER_COMPOSE(newfree, space->free_bytes, HTAG_FREE);
+  HEADER_COMPOSE(newfree, space->free_bytes >> LOG_BYTES_IN_JSVALUE, HTAG_FREE);
 #ifdef GC_DEBUG
   HEADER_SET_MAGIC(hdrp, HEADER_MAGIC);
   HEADER_SET_GEN_MASK(hdrp, generation);
