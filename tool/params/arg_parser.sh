@@ -12,6 +12,7 @@ usage() {
     echo "      --version"
     echo "  -b, --basebit { 32 | 64 }"
     echo "  -s, --size { big | small | all }"
+    echo "      --algorithm \"{ mark_sweep | mark_compact | threaded_compact | copy }\""
     echo "      --benchmark \"{ 3d-cube | 3d-morph | base64 | binaryTree | cordic | fasta | spectralnorm | string-intensive }\""
     echo "      --threashold \"{ 1 | 2 | 3 }\""
 #    echo "  -a, --long-a [ARG]"
@@ -54,6 +55,21 @@ do
                 exit 1
             fi
             SIZE_TYPE=$2
+            shift 2
+            ;;
+             --algorithm)
+            if [[ -z "$2" ]] || [[ "$2" =~ ^-+ ]]; then
+                echo "$PROGNAME: option requires an argument -- $1" 1>&2
+                exit 1
+            fi
+            ALGORITHMS=(${2// / })
+            for ALGORITHM in ${ALGORITHMS[@]}
+            do
+                if [[ "$ALGORITHM" != "mark_sweep" ]] && [[ "$ALGORITHM" != "mark_compact" ]] && [[ "$ALGORITHM" != "threaded_compact" ]] && [[ "$ALGORITHM" != "copy" ]]; then
+                    echo "$PROGNAME: option requires an argument { mark_sweep | mark_compact | threaded_compact | copy } -- $1" 1>&2
+                    exit 1
+                fi
+            done
             shift 2
             ;;
              --benchmark)
@@ -138,7 +154,9 @@ DIR_RESULT_RAW_64=$DIR_DATS_64/results/raw
 DIR_PROFILE_64=$DIR_DATS_64/profiles
 DIR_PROFILE_RAW_64=$DIR_DATS_64/profiles/raw
 
-ALGORITHMS=( "mark_sweep" "mark_compact" "threaded_compact" "copy" )
+if [[ $ALGORITHMS = "" ]]; then
+    ALGORITHMS=( "mark_sweep" "mark_compact" "threaded_compact" "copy" )
+fi
 if [[ $TESTS = "" ]]; then
     TESTS=( "3d-cube" "3d-morph" "base64" "binaryTree" "cordic" "fasta" "spectralnorm" "string-intensive" )
 fi
