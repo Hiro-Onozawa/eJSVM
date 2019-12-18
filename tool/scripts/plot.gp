@@ -40,28 +40,68 @@ ymax=0;
 ythreashold=10000
 
 STATS_blocks=0
-stats file1 nooutput; if (STATS_blocks > 0) { array A[STATS_blocks] } else { array A[1] }
-do for [i=0:STATS_blocks-2]{
-    stats file1 using 2 index i nooutput; A[i+1]=STATS_median;
-    if (A[i+1] > ymax && A[i+1] < ythreashold) { ymax = A[i+1] }
+stats file1 nooutput
+if (STATS_blocks > 0) {
+    len = STATS_blocks-1
+    array A[len]
+    do for [i=1:len]{
+        STATS_median=-1
+        stats file1 using 2 index i-1 nooutput
+        if (STATS_median >= 0) {
+            A[i]=STATS_median
+            if (A[i] > ymax && A[i] < ythreashold) { ymax = A[i] }
+        }
+    }
+} else {
+    array A[1]
 }
 STATS_blocks=0
-stats file2 nooutput; if (STATS_blocks > 0) { array B[STATS_blocks] } else { array B[1] }
-do for [i=0:STATS_blocks-2]{
-    stats file2 using 2 index i nooutput; B[i+1]=STATS_median;
-    if (B[i+1] > ymax && B[i+1] < ythreashold) { ymax = B[i+1] }
+stats file2 nooutput
+if (STATS_blocks > 0) {
+    len = STATS_blocks-1
+    array B[len]
+    do for [i=1:len]{
+        STATS_median=-1
+        stats file2 using 2 index i-1 nooutput
+        if (STATS_median >= 0) {
+            B[i]=STATS_median
+            if (B[i] > ymax && B[i] < ythreashold) { ymax = B[i] }
+        }
+    }
+} else {
+    array B[1]
 }
 STATS_blocks=0
-stats file3 nooutput; if (STATS_blocks > 0) { array C[STATS_blocks] } else { array C[1] }
-do for [i=0:STATS_blocks-2]{
-    stats file3 using 2 index i nooutput; C[i+1]=STATS_median;
-    if (C[i+1] > ymax && C[i+1] < ythreashold) { ymax = C[i+1] }
+stats file3 nooutput
+if (STATS_blocks > 0) {
+    len = STATS_blocks-1
+    array C[len]
+    do for [i=1:len]{
+        STATS_median=-1
+        stats file3 using 2 index i-1 nooutput
+        if (STATS_median >= 0) {
+            C[i]=STATS_median
+            if (C[i] > ymax && C[i] < ythreashold) { ymax = C[i] }
+        }
+    }
+} else {
+    array C[1]
 }
 STATS_blocks=0
-stats file4 nooutput; if (STATS_blocks > 0) { array D[STATS_blocks] } else { array D[1] }
-do for [i=0:STATS_blocks-2]{
-    stats file4 using 2 index i nooutput; D[i+1]=STATS_median;
-    if (D[i+1] > ymax && D[i+1] < ythreashold) { ymax = D[i+1] }
+stats file4 nooutput
+if (STATS_blocks > 0) {
+    len = STATS_blocks-1
+    array D[len]
+    do for [i=1:len]{
+        STATS_median=-1
+        stats file4 using 2 index i-1 nooutput
+        if (STATS_median >= 0) {
+            D[i]=STATS_median
+            if (D[i] > ymax && D[i] < ythreashold) { ymax = D[i] }
+        }
+    }
+} else {
+    array D[1]
 }
 
 set autoscale xfix
