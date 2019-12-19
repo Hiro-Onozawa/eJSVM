@@ -85,12 +85,15 @@ case $PARAM in
     ;;
 esac
 
+rm -f ./error.log
+
 label_max=${SIZES[0]}
 label_min=${SIZES[$((${#SIZES[@]}-1))]}
 for THREASHOLD in ${THREASHOLDS[@]}
 do
   for TEST in ${TESTS[@]}
   do
-    gnuplot -e "indir='${DIR_INFILE}'; outdir='${DIR_GRAPH}'; benchname='${TEST}'; threashold='t${THREASHOLD}'; basebit='${BASEBIT}'; ylabel_title='${YLABEL}'; label_max='${label_max}'; label_min='${label_min}'" ./scripts/boxplot.gp
+    echo "plot to t${THREASHOLD}_${TEST}"
+    gnuplot -e "indir='${DIR_INFILE}'; outdir='${DIR_GRAPH}'; benchname='${TEST}'; threashold='t${THREASHOLD}'; basebit='${BASEBIT}'; ylabel_title='${YLABEL}'; label_max='${label_max}'; label_min='${label_min}'" ./scripts/boxplot.gp 2>> ./error.log
   done
 done
