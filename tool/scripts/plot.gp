@@ -7,10 +7,12 @@
 # label_max : x軸のメモリの表記の最大値
 # label_min : x軸のメモリの表記の最小値
 
-file1=indir."/mark_sweep_".threashold."_".benchname.".txt"
-file2=indir."/mark_compact_".threashold."_".benchname.".txt"
-file3=indir."/threaded_compact_".threashold."_".benchname.".txt"
-file4=indir."/copy_".threashold."_".benchname.".txt"
+array files[4] = [\
+    indir."/mark_sweep_".threashold."_".benchname.".txt",\
+    indir."/mark_compact_".threashold."_".benchname.".txt",\
+    indir."/threaded_compact_".threashold."_".benchname.".txt",\
+    indir."/copy_".threashold."_".benchname.".txt"\
+]
 fileout=outdir."/".threashold."_".benchname.".eps"
 tableout=outdir."/".threashold."_".benchname."_values.txt"
 
@@ -43,55 +45,18 @@ print "plot to ".threashold."_".benchname
 ymax=0;
 ythreashold=10000
 
-STATS_blocks=0
-array A[xmax]
-stats file1 nooutput
-if (STATS_blocks > 0) {
-    do for [i=1:xmax]{
-        STATS_median=-1
-        stats file1 using 2 index i-1 nooutput
-        if (STATS_median >= 0) {
-            A[i]=STATS_median
-            if (A[i] > ymax && A[i] < ythreashold) { ymax = A[i] }
-        }
-    }
-}
-STATS_blocks=0
-array B[xmax]
-stats file2 nooutput
-if (STATS_blocks > 0) {
-    do for [i=1:xmax]{
-        STATS_median=-1
-        stats file2 using 2 index i-1 nooutput
-        if (STATS_median >= 0) {
-            B[i]=STATS_median
-            if (B[i] > ymax && B[i] < ythreashold) { ymax = B[i] }
-        }
-    }
-}
-STATS_blocks=0
-array C[xmax]
-stats file3 nooutput
-if (STATS_blocks > 0) {
-    do for [i=1:xmax]{
-        STATS_median=-1
-        stats file3 using 2 index i-1 nooutput
-        if (STATS_median >= 0) {
-            C[i]=STATS_median
-            if (C[i] > ymax && C[i] < ythreashold) { ymax = C[i] }
-        }
-    }
-}
-STATS_blocks=0
-array D[xmax]
-stats file4 nooutput
-if (STATS_blocks > 0) {
-    do for [i=1:xmax]{
-        STATS_median=-1
-        stats file4 using 2 index i-1 nooutput
-        if (STATS_median >= 0) {
-            D[i]=STATS_median
-            if (D[i] > ymax && D[i] < ythreashold) { ymax = D[i] }
+array Plots[xmax*4]
+do for [j=1:4] {
+    STATS_blocks=0
+    stats files[j] nooutput
+    if (STATS_blocks > 0) {
+        do for [i=1:xmax]{
+            STATS_median=-1
+            stats files[j] using 2 index i-1 nooutput
+            if (STATS_median >= 0) {
+                Plots[(j-1)*xmax+i]=STATS_median
+                if (STATS_median > ymax && STATS_median < ythreashold) { ymax = STATS_median }
+            }
         }
     }
 }
@@ -103,17 +68,17 @@ set yrange [*:ymax*1.25]
 set xrange [1:xmax]
 
 # using (x座標):データの列:(箱の幅(0のときデフォルト値)):データ区分の列
-plot A using 1:2 with linespoints pt 1 ps 0.75 title "mark sweep",\
-     B using 1:2 with linespoints pt 2 ps 0.75 title "mark compact",\
-     C using 1:2 with linespoints pt 3 ps 0.75 title "threaded compact",\
-     D using 1:2 with linespoints pt 4 ps 0.75 title "copy"
+plot Plots every ::0+xmax*0::xmax*1 using ($1-xmax*0):2 with linespoints pt 1 ps 0.75 title "mark sweep",\
+     Plots every ::0+xmax*1::xmax*2 using ($1-xmax*1):2 with linespoints pt 2 ps 0.75 title "mark compact",\
+     Plots every ::0+xmax*2::xmax*3 using ($1-xmax*2):2 with linespoints pt 3 ps 0.75 title "threaded compact",\
+     Plots every ::0+xmax*3::xmax*4 using ($1-xmax*3):2 with linespoints pt 4 ps 0.75 title "copy"
 
 
 # write table to txt
 set print tableout
 print "Heap Size \\[KiB\\] & mark sweep & mark compact & threaded compact & copy \\\\ \\hline \\\\ \\hline"
 do for [i=1:xmax]{
-    print sizes[i], " & ", A[i], " & ", B[i], " & ", C[i], " & ", D[i], " \\\\"
+    print sizes[i], " & ", Plots[i+xmax*0], " & ", Plots[i+xmax*1], " & ", Plots[i+xmax*2], " & ", Plots[i+xmax*3], " \\\\"
 }
 print "\\hline"
 set print "-"
