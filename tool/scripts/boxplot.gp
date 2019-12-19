@@ -13,18 +13,18 @@ file3=indir."/threaded_compact_".threashold."_".benchname.".txt"
 file4=indir."/copy_".threashold."_".benchname.".txt"
 fileout=outdir."/".threashold."_".benchname.".eps"
 
-set xlabel "heap size [byte]"
+set xlabel "heap size [KiB]"
 set ylabel ylabel_title
 set title "[".basebit."bit] benchmark : ".benchname.", threashold : ".threashold
 if (label_max==10485760 && label_min==1310720){
-    set xtics ("10485760" 1, "7864320" 2, "5242880" 3, "3932160" 4, "2621440" 5, "1966080" 6, "1310720" 7) rotate by -25
+    set xtics ("10240" 1, "7680" 2, "5120" 3, "3840" 4, "2560" 5, "1920" 6, "1280" 7)
     xmax=7
 } else {
     if (label_max==3932160 && label_min==491520){
-        set xtics ("3932160" 1, "2621440" 2, "1966080" 3, "1310720" 4, "983040" 5, "655360" 6, "491520" 7) rotate by -25
+        set xtics ("3840" 1, "2560" 2, "1920" 3, "1280" 4, "960" 5, "640" 6, "480" 7)
         xmax=7
     } else {
-        set xtics ("10485760" 1, "7864320" 2, "5242880" 3, "3932160" 4, "2621440" 5, "1966080" 6, "1310720" 7, "983040" 8, "655360" 9, "491520" 10) rotate by -25
+        set xtics ("10240" 1, "7680" 2, "5120" 3, "3840" 4, "2560" 5, "1920" 6, "1280" 7, "960" 8, "640" 9, "480" 10)
         xmax=10
     }
 }
