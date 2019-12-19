@@ -12,20 +12,24 @@ file2=indir."/mark_compact_".threashold."_".benchname.".txt"
 file3=indir."/threaded_compact_".threashold."_".benchname.".txt"
 file4=indir."/copy_".threashold."_".benchname.".txt"
 fileout=outdir."/".threashold."_".benchname.".eps"
+tableout=outdir."/".threashold."_".benchname."_values.txt"
 
 set xlabel "heap size [KiB]"
 set ylabel ylabel_title
 set title "[".basebit."bit] benchmark : ".benchname.", threashold : ".threashold
 if (label_max==10485760 && label_min==1310720){
-    set xtics ("10240" 1, "7680" 2, "5120" 3, "3840" 4, "2560" 5, "1920" 6, "1280" 7)
     xmax=7
+    set xtics ("10240" 1, "7680" 2, "5120" 3, "3840" 4, "2560" 5, "1920" 6, "1280" 7)
+    array sizes[xmax] = ["10240", "7680", "5120", "3840", "2560", "1920", "1280"]
 } else {
     if (label_max==3932160 && label_min==491520){
-        set xtics ("3840" 1, "2560" 2, "1920" 3, "1280" 4, "960" 5, "640" 6, "480" 7)
         xmax=7
+        set xtics ("3840" 1, "2560" 2, "1920" 3, "1280" 4, "960" 5, "640" 6, "480" 7)
+        array sizes[xmax] = ["3840", "2560", "1920", "1280", "960", "640", "480"]
     } else {
-        set xtics ("10240" 1, "7680" 2, "5120" 3, "3840" 4, "2560" 5, "1920" 6, "1280" 7, "960" 8, "640" 9, "480" 10)
         xmax=10
+        set xtics ("10240" 1, "7680" 2, "5120" 3, "3840" 4, "2560" 5, "1920" 6, "1280" 7, "960" 8, "640" 9, "480" 10)
+        array sizes[xmax] = ["10240", "7680", "5120", "3840", "2560", "1920", "1280", "960", "640", "480"]
     }
 }
 
@@ -40,11 +44,10 @@ ymax=0;
 ythreashold=10000
 
 STATS_blocks=0
+array A[xmax]
 stats file1 nooutput
 if (STATS_blocks > 0) {
-    len = STATS_blocks-1
-    array A[len]
-    do for [i=1:len]{
+    do for [i=1:xmax]{
         STATS_median=-1
         stats file1 using 2 index i-1 nooutput
         if (STATS_median >= 0) {
@@ -52,15 +55,12 @@ if (STATS_blocks > 0) {
             if (A[i] > ymax && A[i] < ythreashold) { ymax = A[i] }
         }
     }
-} else {
-    array A[1]
 }
 STATS_blocks=0
+array B[xmax]
 stats file2 nooutput
 if (STATS_blocks > 0) {
-    len = STATS_blocks-1
-    array B[len]
-    do for [i=1:len]{
+    do for [i=1:xmax]{
         STATS_median=-1
         stats file2 using 2 index i-1 nooutput
         if (STATS_median >= 0) {
@@ -68,15 +68,12 @@ if (STATS_blocks > 0) {
             if (B[i] > ymax && B[i] < ythreashold) { ymax = B[i] }
         }
     }
-} else {
-    array B[1]
 }
 STATS_blocks=0
+array C[xmax]
 stats file3 nooutput
 if (STATS_blocks > 0) {
-    len = STATS_blocks-1
-    array C[len]
-    do for [i=1:len]{
+    do for [i=1:xmax]{
         STATS_median=-1
         stats file3 using 2 index i-1 nooutput
         if (STATS_median >= 0) {
@@ -84,15 +81,12 @@ if (STATS_blocks > 0) {
             if (C[i] > ymax && C[i] < ythreashold) { ymax = C[i] }
         }
     }
-} else {
-    array C[1]
 }
 STATS_blocks=0
+array D[xmax]
 stats file4 nooutput
 if (STATS_blocks > 0) {
-    len = STATS_blocks-1
-    array D[len]
-    do for [i=1:len]{
+    do for [i=1:xmax]{
         STATS_median=-1
         stats file4 using 2 index i-1 nooutput
         if (STATS_median >= 0) {
@@ -100,8 +94,6 @@ if (STATS_blocks > 0) {
             if (D[i] > ymax && D[i] < ythreashold) { ymax = D[i] }
         }
     }
-} else {
-    array D[1]
 }
 
 set autoscale xfix
@@ -115,3 +107,13 @@ plot A using 1:2 with linespoints pt 1 ps 0.75 title "mark sweep",\
      B using 1:2 with linespoints pt 2 ps 0.75 title "mark compact",\
      C using 1:2 with linespoints pt 3 ps 0.75 title "threaded compact",\
      D using 1:2 with linespoints pt 4 ps 0.75 title "copy"
+
+
+# write table to txt
+set print tableout
+print "Heap Size \\[KiB\\] & mark sweep & mark compact & threaded compact & copy \\\\ \\hline \\\\ \\hline"
+do for [i=1:xmax]{
+    print sizes[i], " & ", A[i], " & ", B[i], " & ", C[i], " & ", D[i], " \\\\"
+}
+print "\\hline"
+set print "-"

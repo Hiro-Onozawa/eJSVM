@@ -92,5 +92,6 @@ do
   for TEST in ${TESTS[@]}
   do
     gnuplot -e "indir='${DIR_INFILE}'; outdir='${DIR_GRAPH}'; benchname='${TEST}'; threashold='t${THREASHOLD}'; basebit='${BASEBIT}'; ylabel_title='${YLABEL}'; label_max='${label_max}'; label_min='${label_min}'" ./scripts/plot.gp
+    sed -i -e 's/<undefined>/x/g' "${DIR_GRAPH}/t${THREASHOLD}_${TEST}_values.txt"
   done
 done
