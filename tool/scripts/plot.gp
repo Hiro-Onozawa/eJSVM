@@ -6,6 +6,7 @@
 # ylabel_title : y軸の表記
 # label_max : x軸のメモリの表記の最大値
 # label_min : x軸のメモリの表記の最小値
+# lang : jp / en <=> 日本語 / 英語
 
 array files[4] = [\
     indir."/mark_sweep_".threashold."_".benchname.".txt",\
@@ -16,9 +17,15 @@ array files[4] = [\
 fileout=outdir."/".threashold."_".benchname.".eps"
 tableout=outdir."/".threashold."_".benchname."_values.txt"
 
-set xlabel "heap size [KiB]"
-set ylabel ylabel_title
-set title "[".basebit."bit] benchmark : ".benchname.", threashold : ".threashold
+if (lang eq "en") {
+    set xlabel "heap size [KiB]"
+    set ylabel ylabel_title
+    set title "[".basebit."bit] benchmark : ".benchname.", threashold : ".threashold
+} else {
+    set xlabel "ヒープサイズ [KiB]"
+    set ylabel ylabel_title
+    set title "[".basebit."ビット] ベンチマーク : ".benchname.", スレッショルド : ".threashold
+}
 if (label_max==10485760 && label_min==1310720){
     xmax=7
     set xtics ("10240" 1, "7680" 2, "5120" 3, "3840" 4, "2560" 5, "1920" 6, "1280" 7)
@@ -76,7 +83,11 @@ plot Plots every ::0+xmax*0::xmax*1 using ($1-xmax*0):2 with linespoints pt 1 ps
 
 # write table to txt
 set print tableout
-print "Heap Size \\[KiB\\] & mark sweep & mark compact & threaded compact & copy \\\\ \\hline \\\\ \\hline"
+if (lang eq "en") {
+    print "Heap Size \\[KiB\\] & mark sweep & mark compact & threaded compact & copy \\\\ \\hline \\\\ \\hline"
+} else {
+    print "ヒープサイズ \\[KiB\\] & mark sweep & mark compact & threaded compact & copy \\\\ \\hline \\\\ \\hline"
+}
 do for [i=1:xmax]{
     print sizes[i], " & ", Plots[i+xmax*0], " & ", Plots[i+xmax*1], " & ", Plots[i+xmax*2], " & ", Plots[i+xmax*3], " \\\\"
 }

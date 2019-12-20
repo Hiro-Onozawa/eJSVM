@@ -18,6 +18,7 @@ usage() {
 #    echo "  -a, --long-a [ARG]"
     echo "  -p, --profile"
     echo "      --param <param>"
+    echo "  -l, --lang { jp | en }"
     echo
     exit 1
 }
@@ -121,6 +122,18 @@ do
             PARAM="$2"
             shift 2
             ;;
+        -l | --lang)
+            if [[ -z "$2" ]] || [[ "$2" =~ ^-+ ]]; then
+                echo "$PROGNAME: option requires an argument -- $1" 1>&2
+                exit 1
+            fi
+            if [[ "$2" != "jp" ]] && [[ "$2" != "en" ]]; then
+                echo "$PROGNAME: option requires an argument { jp | en } -- $1" 1>&2
+                exit 1
+            fi
+            USER_LANG=$2
+            shift 2
+            ;;
         -- | -)
             shift 1
             param+=( "$@" )
@@ -201,3 +214,6 @@ if [[ $SIZE_TYPE = "all" ]]; then
     SIZES=(${SIZES_ALL[@]})
 fi
 
+if [[ $USER_LANG = "" ]]; then
+    USER_LANG="jp"
+fi

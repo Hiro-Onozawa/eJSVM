@@ -6,6 +6,7 @@
 # ylabel_title : y軸の表記
 # label_max : x軸のメモリの表記の最大値
 # label_min : x軸のメモリの表記の最小値
+# lang : jp / en <=> 日本語 / 英語
 
 file1=indir."/mark_sweep_".threashold."_".benchname.".txt"
 file2=indir."/mark_compact_".threashold."_".benchname.".txt"
@@ -13,9 +14,15 @@ file3=indir."/threaded_compact_".threashold."_".benchname.".txt"
 file4=indir."/copy_".threashold."_".benchname.".txt"
 fileout=outdir."/".threashold."_".benchname.".eps"
 
-set xlabel "heap size [KiB]"
-set ylabel ylabel_title
-set title "[".basebit."bit] benchmark : ".benchname.", threashold : ".threashold
+if (lang eq "en") {
+    set xlabel "heap size [KiB]"
+    set ylabel ylabel_title
+    set title "[".basebit."bit] benchmark : ".benchname.", threashold : ".threashold
+} else {
+    set xlabel "ヒープサイズ [KiB]"
+    set ylabel ylabel_title
+    set title "[".basebit."ビット] ベンチマーク : ".benchname.", スレッショルド : ".threashold
+}
 if (label_max==10485760 && label_min==1310720){
     set xtics ("10240" 1, "7680" 2, "5120" 3, "3840" 4, "2560" 5, "1920" 6, "1280" 7)
     xmax=7

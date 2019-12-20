@@ -60,30 +60,57 @@ do
   done
 done
 
-case $PARAM in
-  1)
-    YLABEL="total CPU time [msec]"
-    ;;
-  2)
-    YLABEL="total GC time [msec]"
-    ;;
-  3)
-    YLABEL="non GC time [msec]"
-    ;;
-  4)
-    YLABEL="max GC time [msec]"
-    ;;
-  5)
-    YLABEL="avr GC time [msec]"
-    ;;
-  6)
-    YLABEL="GC count"
-    ;;
-  *)
-    echo "Error : Unknown param value \"${PARAM}\""
-    exit 1
-    ;;
-esac
+if [[ $USER_LANG = "en" ]]; then
+  case $PARAM in
+    1)
+      YLABEL="total CPU time [msec]"
+      ;;
+    2)
+      YLABEL="total GC time [msec]"
+      ;;
+    3)
+      YLABEL="non GC time [msec]"
+      ;;
+    4)
+      YLABEL="max GC time [msec]"
+      ;;
+    5)
+      YLABEL="avr GC time [msec]"
+      ;;
+    6)
+      YLABEL="GC count"
+      ;;
+    *)
+      echo "Error : Unknown param value \"${PARAM}\""
+      exit 1
+      ;;
+  esac
+else
+  case $PARAM in
+    1)
+      YLABEL="総 CPU 時間 [msec]"
+      ;;
+    2)
+      YLABEL="総 GC 時間 [msec]"
+      ;;
+    3)
+      YLABEL="非 GC 時間 [msec]"
+      ;;
+    4)
+      YLABEL="最大 GC 時間 [msec]"
+      ;;
+    5)
+      YLABEL="平均 GC 時間 [msec]"
+      ;;
+    6)
+      YLABEL="GC 回数"
+      ;;
+    *)
+      echo "Error : Unknown param value \"${PARAM}\""
+      exit 1
+      ;;
+  esac
+fi
 
 rm -f ./error.log
 
@@ -94,7 +121,7 @@ do
   for TEST in ${TESTS[@]}
   do
     echo "plot to t${THREASHOLD}_${TEST}"
-    gnuplot -e "indir='${DIR_INFILE}'; outdir='${DIR_GRAPH}'; benchname='${TEST}'; threashold='t${THREASHOLD}'; basebit='${BASEBIT}'; ylabel_title='${YLABEL}'; label_max='${label_max}'; label_min='${label_min}'" ./scripts/plot.gp 2>> ./error.log
+    gnuplot -e "indir='${DIR_INFILE}'; outdir='${DIR_GRAPH}'; benchname='${TEST}'; threashold='t${THREASHOLD}'; basebit='${BASEBIT}'; ylabel_title='${YLABEL}'; label_max='${label_max}'; label_min='${label_min}'; lang='${USER_LANG}'" ./scripts/plot.gp 2>> ./error.log
     sed -i -e 's/<undefined>/x/g' "${DIR_GRAPH}/t${THREASHOLD}_${TEST}_values.txt"
   done
 done
