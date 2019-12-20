@@ -1,6 +1,6 @@
 #!/bin/bash
 
-. ./params/arg_parser.sh $@ || exit 1
+. ./params/arg_parser.sh "$@" || exit 1
 
 echo "DIR_VMS : ${DIR_VMS}"
 echo "PROFILE : ${PROFILE}"

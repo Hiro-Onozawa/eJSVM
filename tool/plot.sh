@@ -8,7 +8,7 @@
 # 5 : avr_GC_time
 # 6 : GC_count
 
-. ./params/arg_parser.sh $@ || exit 1
+. ./params/arg_parser.sh "$@" || exit 1
 
 if [[ $PROFILE = "TRUE" ]]; then
   echo "cannot use option \"PROFILE\""

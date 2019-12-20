@@ -1,6 +1,6 @@
 #!/bin/bash
 
-. ./params/arg_parser.sh || exit 1
+. ./params/arg_parser.sh "$@" || exit 1
 
 if [[ $PROFILE != "TRUE" ]]; then
   echo "cannot use option \"PROFILE\""
