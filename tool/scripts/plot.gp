@@ -3,7 +3,7 @@
 # benchname : ベンチマーク名
 # threashold : スレッショルド
 # basebit : 実行環境のビット幅
-# ylabel_title : y軸の表記
+# param : 利用するカラムのインデックス (1 総CPU時間, 2 総GC時間, 3 非GC時間, 4 最大GC時間, 5 平均GC時間, 6 GC回数)
 # label_max : x軸のメモリの表記の最大値
 # label_min : x軸のメモリの表記の最小値
 # lang : jp / en <=> 日本語 / 英語
@@ -18,12 +18,24 @@ fileout=outdir."/".threashold."_".benchname.".eps"
 tableout=outdir."/".threashold."_".benchname."_values.txt"
 
 if (lang eq "en") {
+    array ylabels[6] = [\
+        "total CPU time [msec]", "total GC time [msec]", "non GC time [msec]",\
+        "max GC time [msec]", "avr GC time [msec]", "GC count"\
+    ]
+} else {
+    array ylabels[6] = [\
+        "総 CPU 時間 [msec]", "総 GC 時間 [msec]", "非 GC 時間 [msec]",\
+        "最大 GC 時間 [msec]", "平均 GC 時間 [msec]", "GC 回数"\
+    ]
+}
+
+if (lang eq "en") {
     set xlabel "heap size [KiB]"
-    set ylabel ylabel_title
+    set ylabel ylabels[param]
     set title "[".basebit."bit] benchmark : ".benchname.", threashold : ".threashold
 } else {
     set xlabel "ヒープサイズ [KiB]"
-    set ylabel ylabel_title
+    set ylabel ylabels[param]
     set title "[".basebit."ビット] ベンチマーク : ".benchname.", スレッショルド : ".threashold
 }
 if (label_max==10485760 && label_min==1310720){
