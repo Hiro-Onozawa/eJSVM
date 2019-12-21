@@ -12,7 +12,7 @@ usage() {
     echo "      --version"
     echo "  -b, --basebit { 32 | 64 }"
     echo "  -s, --size { big | small | all }"
-    echo "      --algorithm \"{ mark_sweep | mark_compact | threaded_compact | copy }\""
+    echo "      --algorithm \"{ null | mark_sweep | mark_compact | threaded_compact | copy }\""
     echo "      --benchmark \"{ 3d-cube | 3d-morph | base64 | binaryTree | cordic | fasta | spectralnorm | string-intensive }\""
     echo "      --threashold \"{ 1 | 2 | 3 }\""
 #    echo "  -a, --long-a [ARG]"
@@ -66,8 +66,8 @@ do
             ALGORITHMS=(${2// / })
             for ALGORITHM in ${ALGORITHMS[@]}
             do
-                if [[ "$ALGORITHM" != "mark_sweep" ]] && [[ "$ALGORITHM" != "mark_compact" ]] && [[ "$ALGORITHM" != "threaded_compact" ]] && [[ "$ALGORITHM" != "copy" ]]; then
-                    echo "$PROGNAME: option requires an argument { mark_sweep | mark_compact | threaded_compact | copy } -- $1" 1>&2
+                if [[ "$ALGORITHM" != "null" ]] && [[ "$ALGORITHM" != "mark_sweep" ]] && [[ "$ALGORITHM" != "mark_compact" ]] && [[ "$ALGORITHM" != "threaded_compact" ]] && [[ "$ALGORITHM" != "copy" ]]; then
+                    echo "$PROGNAME: option requires an argument { null | mark_sweep | mark_compact | threaded_compact | copy } -- $1" 1>&2
                     exit 1
                 fi
             done
