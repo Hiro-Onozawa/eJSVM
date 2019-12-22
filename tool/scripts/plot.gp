@@ -64,13 +64,23 @@ print "plot to ".threashold."_".benchname
 ymax=0;
 if (param == 1) {
     ythreashold=100000
+    set key left top width 3
+} else { if (param == 2) {
+    ythreashold=10000
+    set key left top width 3
+} else { if (param == 3) {
+    set key top
+    ythreashold=10000
+} else { if (param == 4) {
+    set key right top
+    ythreashold=10000
+} else { if (param == 5) {
+    set key right top
+    ythreashold=10000
 } else {
-    if (param == 6) {
-        ythreashold=6000
-    } else {
-        ythreashold=10000
-    }
-}
+    set key left top width 3
+    ythreashold=6000
+} } } } }
 
 array Plots[xmax*4]
 do for [j=1:4] {
