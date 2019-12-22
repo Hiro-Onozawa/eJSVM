@@ -8,6 +8,8 @@
 # label_min : x軸のメモリの表記の最小値
 # lang : jp / en <=> 日本語 / 英語
 
+font_style="Arial,18"
+
 array files[4] = [\
     indir."/mark_sweep_".threashold."_".benchname.".txt",\
     indir."/mark_compact_".threashold."_".benchname.".txt",\
@@ -30,29 +32,30 @@ if (lang eq "en") {
 }
 
 if (lang eq "en") {
-    set xlabel "heap size [KiB]"
-    set ylabel ylabels[param]
-    set title "[".basebit."bit] benchmark : ".benchname.", threashold : ".threashold
+    set xlabel "heap size [KiB]" font font_style
+    set ylabel ylabels[param] font font_style
+    set title "[".basebit."bit] benchmark : ".benchname.", threashold : ".threashold font font_style
 } else {
-    set xlabel "ヒープサイズ [KiB]"
-    set ylabel ylabels[param]
-    set title "[".basebit."ビット] ベンチマーク : ".benchname.", スレッショルド : ".threashold
+    set xlabel "ヒープサイズ [KiB]" font font_style
+    set ylabel ylabels[param] font font_style
+    set title "[".basebit."ビット] ベンチマーク : ".benchname.", スレッショルド : ".threashold font font_style
 }
 if (label_max==10485760 && label_min==1310720){
     xmax=7
-    set xtics ("10240" 1, "7680" 2, "5120" 3, "3840" 4, "2560" 5, "1920" 6, "1280" 7)
+    set xtics ("10240" 1, "7680" 2, "5120" 3, "3840" 4, "2560" 5, "1920" 6, "1280" 7) font font_style
     array sizes[xmax] = ["10240", "7680", "5120", "3840", "2560", "1920", "1280"]
 } else {
     if (label_max==3932160 && label_min==491520){
         xmax=7
-        set xtics ("3840" 1, "2560" 2, "1920" 3, "1280" 4, "960" 5, "640" 6, "480" 7)
+        set xtics ("3840" 1, "2560" 2, "1920" 3, "1280" 4, "960" 5, "640" 6, "480" 7) font font_style
         array sizes[xmax] = ["3840", "2560", "1920", "1280", "960", "640", "480"]
     } else {
         xmax=10
-        set xtics ("10240" 1, "7680" 2, "5120" 3, "3840" 4, "2560" 5, "1920" 6, "1280" 7, "960" 8, "640" 9, "480" 10)
+        set xtics ("10240" 1, "7680" 2, "5120" 3, "3840" 4, "2560" 5, "1920" 6, "1280" 7, "960" 8, "640" 9, "480" 10) font font_style
         array sizes[xmax] = ["10240", "7680", "5120", "3840", "2560", "1920", "1280", "960", "640", "480"]
     }
 }
+set ytics font font_style
 
 # write to eps
 set terminal eps
@@ -64,21 +67,21 @@ print "plot to ".threashold."_".benchname
 ymax=0;
 if (param == 1) {
     ythreashold=100000
-    set key left top width 3
+    set key left top width 3 font font_style
 } else { if (param == 2) {
     ythreashold=10000
-    set key left top width 3
+    set key left top width 3 font font_style
 } else { if (param == 3) {
-    set key top
+    set key top font font_style
     ythreashold=10000
 } else { if (param == 4) {
-    set key right top
+    set key right top font font_style
     ythreashold=10000
 } else { if (param == 5) {
-    set key right top
+    set key right top font font_style
     ythreashold=10000
 } else {
-    set key left top width 3
+    set key left top width 3 font font_style
     ythreashold=6000
 } } } } }
 
