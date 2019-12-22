@@ -6,11 +6,21 @@ if [[ $PROFILE = "TRUE" ]]; then
   echo "cannot use option \"PROFILE\""
   exit 1
 fi
+COLUMNS=(${PARAM// / })
+if [[ ${#COLUMNS[@]} -lt 1 ]]; then
+echo "Usage: $(basename $0) [OPTIONS]  <--param Params>"
+echo ""
+echo "Params :"
+echo "    1 : total_CPU_time"
+echo "    2 : total_GC_time"
+echo "    3 : non_GC_time"
+echo "    4 : max_GC_time"
+echo "    5 : avr_GC_time"
+echo "    6 : GC_count"
+exit 1
+fi
 
 DIR_OUT=${DIR_DATS}/table
-
-# total_CPU_time, total_GC_time, non_GC_time, max_GC_time, avr_GC_time, GC_count
-columns=( 3 2 4 5 6 )
 
 STR_SEGMENTATION_FAULT="x"
 STR_TIMEOUT="timeout"
@@ -29,7 +39,7 @@ do
     line="${line} ${ALGORITHM} ^"
 
     i=0
-    for column in ${columns[@]}
+    for COLUMN in ${COLUMNS[@]}
     do
       if [ ${i} -eq 0 ]; then
         line="${line}"
@@ -58,10 +68,10 @@ do
         csv=${DIR_RESULT}/${ALGORITHM}_${SIZE}_t${THREASHOLD}_${TEST}.csv
 
         j=0
-        for column in ${columns[@]}
+        for COLUMN in ${COLUMNS[@]}
         do
           if [ -e ${csv} ]; then
-            tmp=`tail -n +6 ${csv} | awk -F, '{ if ($1 == "nan") { timeout = 1 } if ($'${column}' != "nan") { sum += $'${column}' } } END{ if (timeout == 1) { print "'${STR_TIMEOUT}'" " (" sum/NR ")" } else { print sum/NR } }'`
+            tmp=`tail -n +6 ${csv} | awk -F, '{ if ($1 == "nan") { timeout = 1 } if ($'${COLUMN}' != "nan") { sum += $'${COLUMN}' } } END{ if (timeout == 1) { print "'${STR_TIMEOUT}'" " (" sum/NR ")" } else { print sum/NR } }'`
           else
             tmp="${STR_SEGMENTATION_FAULT}"
           fi
