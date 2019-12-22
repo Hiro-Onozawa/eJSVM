@@ -62,7 +62,15 @@ set output fileout
 print "plot to ".threashold."_".benchname
 
 ymax=0;
-ythreashold=10000
+if (param == 1) {
+    ythreashold=100000
+} else {
+    if (param == 6) {
+        ythreashold=6000
+    } else {
+        ythreashold=10000
+    }
+}
 
 array Plots[xmax*4]
 do for [j=1:4] {
