@@ -94,7 +94,7 @@ do for [j=1:4] {
             STATS_median=-1
             stats files[j] using 2 index i-1 nooutput
             if (STATS_median >= 0) {
-                Plots[(j-1)*xmax+i]=STATS_median
+                if (!(param == 2 || param == 4 || param == 5) || STATS_median > 0) { Plots[(j-1)*xmax+i]=STATS_median }
                 if (STATS_median > ymax && STATS_median < ythreashold) { ymax = STATS_median }
             }
         }
