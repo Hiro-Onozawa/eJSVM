@@ -34,11 +34,11 @@ if (lang eq "en") {
 if (lang eq "en") {
     set xlabel "heap size [KiB]" font font_style
     set ylabel ylabels[param] font font_style
-    set title "[".basebit."bit] benchmark : ".benchname.", threashold : ".threashold font font_style
+#    set title "[".basebit."bit] benchmark : ".benchname.", threashold : ".threashold font font_style
 } else {
     set xlabel "ヒープサイズ [KiB]" font font_style
     set ylabel ylabels[param] font font_style
-    set title "[".basebit."ビット] ベンチマーク : ".benchname.", スレッショルド : ".threashold font font_style
+#    set title "[".basebit."ビット] ベンチマーク : ".benchname.", スレッショルド : ".threashold font font_style
 }
 if (label_max==10485760 && label_min==1310720){
     xmax=7
@@ -67,10 +67,10 @@ print "plot to ".threashold."_".benchname
 ymax=0;
 if (param == 1) {
     ythreashold=100000
-    set key left top width 3 font font_style
+    set key left top font font_style
 } else { if (param == 2) {
     ythreashold=10000
-    set key left top width 3 font font_style
+    set key left top font font_style
 } else { if (param == 3) {
     set key top font font_style
     ythreashold=10000
@@ -81,7 +81,7 @@ if (param == 1) {
     set key right top font font_style
     ythreashold=10000
 } else {
-    set key left top width 3 font font_style
+    set key left top font font_style
     ythreashold=6000
 } } } } }
 
@@ -104,7 +104,7 @@ do for [j=1:4] {
 set autoscale xfix
 set clip one
 set clip two
-set yrange [*:ymax*1.25]
+set yrange [*:ymax*1.15]
 set xrange [1:xmax]
 
 # using (x座標):データの列:(箱の幅(0のときデフォルト値)):データ区分の列
