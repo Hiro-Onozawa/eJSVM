@@ -116,10 +116,11 @@ plot Plots every ::0+xmax*0::xmax*1 using ($1-xmax*0):2 with linespoints pt 1 ps
 
 # write table to txt
 set print tableout
+print "\\hline"
 if (lang eq "en") {
-    print "Heap Size \\[KiB\\] & mark sweep & mark compact & threaded compact & copy \\\\ \\hline \\\\ \\hline"
+    print "Heap Size [KiB] & mark sweep [ms] & mark compact [ms] & threaded compact [ms] & copy [ms] \\\\ \\hline \\hline"
 } else {
-    print "ヒープサイズ \\[KiB\\] & mark sweep & mark compact & threaded compact & copy \\\\ \\hline \\\\ \\hline"
+    print "ヒープサイズ [KiB] & mark sweep [ms] & mark compact [ms] & threaded compact [ms] & copy [ms] \\\\ \\hline \\hline"
 }
 do for [i=1:xmax]{
     print sizes[i], " & ", Plots[i+xmax*0], " & ", Plots[i+xmax*1], " & ", Plots[i+xmax*2], " & ", Plots[i+xmax*3], " \\\\"
