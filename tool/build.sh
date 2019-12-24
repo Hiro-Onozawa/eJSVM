@@ -32,6 +32,7 @@ do
       rm -f *.o cell-header.h
       
       echo "OPT_BASEBIT = ${BASEBIT}" > OPTIONS.txt
+      echo "OPT_TARGET = ${TARGET}" >> OPTIONS.txt
       echo "OPT_GC_ALGORITHM = ${ALGORITHM}" >> OPTIONS.txt
       if [[ ${ALGORITHM} = "copy" ]]; then
         echo "CFLAGS += -DJS_SPACE_GC_THREASHOLD='(${SIZE}>>(${THREASHOLD}+1))'" >> OPTIONS.txt

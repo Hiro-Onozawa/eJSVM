@@ -11,6 +11,7 @@ usage() {
     echo "  -h, --help"
     echo "      --version"
     echo "  -b, --basebit { 32 | 64 }"
+    echo "      --target { 32 | 64 }"
     echo "  -s, --size { big | small | all }"
     echo "      --algorithm \"{ null | mark_sweep | mark_compact | threaded_compact | copy }\""
     echo "      --benchmark \"{ 3d-cube | 3d-morph | base64 | binaryTree | cordic | fasta | spectralnorm | string-intensive }\""
@@ -44,6 +45,18 @@ do
                 exit 1
             fi
             BASEBIT=$2
+            shift 2
+            ;;
+             --target)
+            if [[ -z "$2" ]] || [[ "$2" =~ ^-+ ]]; then
+                echo "$PROGNAME: option requires an argument -- $1" 1>&2
+                exit 1
+            fi
+            if [[ $2 -ne 32 ]] && [[ $2 -ne 64 ]]; then
+                echo "$PROGNAME: option requires an argument { 32 | 64 } -- $1" 1>&2
+                exit 1
+            fi
+            TARGET=$2
             shift 2
             ;;
         -s | --size)
@@ -185,6 +198,9 @@ DIR_BIN=./bin
 
 if [[ $BASEBIT -eq 32 ]]; then
     ARCHITECTURE="x86"
+    if [[ $TARGET = "" ]]; then
+        TARGET=32
+    fi
     SIZES=(${SIZES_SMALL[@]})
     DIR_DATS=$DIR_DATS_32
     DIR_VMS=$DIR_VMS_32
@@ -195,6 +211,9 @@ if [[ $BASEBIT -eq 32 ]]; then
 else
     BASEBIT=64
     ARCHITECTURE="x64"
+    if [[ $TARGET = "" ]]; then
+        TARGET=64
+    fi
     SIZES=(${SIZES_BIG[@]})
     DIR_DATS=$DIR_DATS_64
     DIR_VMS=$DIR_VMS_64
