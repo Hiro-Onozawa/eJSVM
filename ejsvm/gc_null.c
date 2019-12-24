@@ -90,12 +90,7 @@
 
 #define HTAG_FREE ((1 << HEADER_TYPE_BITS) - 1)
 
-struct space {
-  uintptr_t addr;
-  uintptr_t top;
-  size_t free_bytes;
-  char *name;
-};
+struct space { };
 
 /*
  * variables
@@ -149,20 +144,7 @@ STATIC size_t gc_get_allocated_bytes();
  * GC
  */
 
-void init_memory()
-{
-  void *p;
-
-  p = malloc(JS_SPACE_BYTES);
-  assert(p != NULL);
-
-  HEADER_COMPOSE(p, JS_SPACE_BYTES >> LOG_BYTES_IN_JSVALUE, HTAG_FREE);
-
-  js_space.addr       = (uintptr_t) p;
-  js_space.top        = (uintptr_t) p;
-  js_space.free_bytes = JS_SPACE_BYTES;
-  js_space.name       = "js_space";
-}
+void init_memory() { }
 
 cell_type_t gc_obj_header_type(void *p)
 {
@@ -170,55 +152,12 @@ cell_type_t gc_obj_header_type(void *p)
   return HEADER_GET_TYPE(hdrp);
 }
 
-void* gc_malloc(Context *ctx, uintptr_t request_bytes, uint32_t type)
-{
-  return gc_jsalloc(ctx, request_bytes, type);
-}
+void* gc_malloc(Context *ctx, uintptr_t request_bytes, uint32_t type) { return NULL; }
 
-JSValue* gc_jsalloc(Context *ctx, uintptr_t request_bytes, uint32_t type)
-{
-  JSValue *addr;
-
-  addr = space_alloc(&js_space, request_bytes, type);
-  GCLOG_ALLOC("gc_jsalloc: req %x bytes type %d => %p\n",
-              request_bytes, type, addr);
-#ifdef GC_PROFILE
-  {
-    size_t allocate = HEADER_GET_SIZE(VALPTR_TO_HEADERPTR(addr)) << LOG_BYTES_IN_JSVALUE;
-    size_t header = HEADER_BYTES;
-    size_t waste = allocate - header - request_bytes;
-    regist_alloc_profile(type, request_bytes, allocate, header, waste);
-  }
-#endif /* GC_PROFILE */
-  return addr;
-}
+JSValue* gc_jsalloc(Context *ctx, uintptr_t request_bytes, uint32_t type) { return NULL; }
 
 STATIC void* space_alloc(struct space *space,
-                         size_t request_bytes, cell_type_t type)
-{
-  size_t alloc_jsvalues;
-  HeaderCell *hdrp;
-  uintptr_t newfree;
-  
-  alloc_jsvalues =
-    (request_bytes + BYTES_IN_JSVALUE - 1) >> LOG_BYTES_IN_JSVALUE;
-  alloc_jsvalues += HEADER_JSVALUES;
-  
-  hdrp = (HeaderCell *) space->top;
-  newfree = space->top + (alloc_jsvalues << LOG_BYTES_IN_JSVALUE);
-
-  if (newfree >= space->addr + space->free_bytes) {
-    printf("memory exhausted\n"); fflush(stdout);
-    return NULL;
-  }
-  space->top = newfree;
-  space->free_bytes -= alloc_jsvalues << LOG_BYTES_IN_JSVALUE;
-
-  HEADER_COMPOSE(hdrp, alloc_jsvalues, type);
-  HEADER_COMPOSE(newfree, space->free_bytes >> LOG_BYTES_IN_JSVALUE, HTAG_FREE);
-
-  return (void *) HEADERPTR_TO_VALPTR(hdrp);
-}
+                         size_t request_bytes, cell_type_t type) { return NULL; }
 
 #if (defined GC_DEBUG) || (defined GC_PROFILE)
 STATIC const char *get_name_HTAG(cell_type_t htag)
@@ -258,7 +197,7 @@ STATIC const char *get_name_HTAG(cell_type_t htag)
 #ifdef GC_PROFILE
 STATIC size_t gc_get_allocated_bytes()
 {
-  return (size_t) (js_space.top - js_space.addr);
+  return (size_t) 0;
 }
 
 #define GC_PROFILE_SIZE_BORDER 1000000000
