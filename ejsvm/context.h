@@ -31,7 +31,10 @@ typedef struct function_table {
  * function frame
  */
 typedef struct function_frame {
-  struct function_frame *prev_frame;
+  union {
+    struct function_frame *prev_frame;
+    JSValue dummy_for_align; /* This member is important to keep size of FunctionFrame */
+  };
   JSValue arguments;
   JSValue locals[];
 } FunctionFrame;

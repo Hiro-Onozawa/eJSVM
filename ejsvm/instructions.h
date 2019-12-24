@@ -182,7 +182,10 @@ typedef void *InsnLabel;
  * instruction
  */
 typedef struct instruction {
-  InsnLabel ilabel;  /* It is important that ilabel is the first member */
+  union {
+    InsnLabel ilabel;  /* It is important that ilabel is the first member */
+    JSValue dummy_for_align; /* This member is important to keep size of Instrucion */
+  };
   Bytecode code;
 #ifdef PROFILE
   Counter count;  /* counter */

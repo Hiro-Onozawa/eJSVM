@@ -32,6 +32,14 @@ ifeq ($(OPT_BASEBIT),)
 # BASEBIT=32|64
     OPT_BASEBIT=64
 endif
+ifeq ($(OPT_TARGET),)
+# TARGET=32|64
+    ifeq ($(OPT_BASEBIT),64)
+        OPT_TARGET=64
+    else ifeq ($(OPT_BASEBIT),32)
+        OPT_TARGET=32
+    endif
+endif
 ifeq ($(OPT_GC),)
 # GC=native|boehmgc|none
     OPT_GC=native
@@ -244,11 +252,19 @@ ifeq ($(OPT_DEBUG),false)
 endif
 
 ifeq ($(OPT_BASEBIT),32)
-    CCOPT=-m32
     CFLAGS+=-DBIT_32=1
 endif
 ifeq ($(OPT_BASEBIT),64)
     CFLAGS+=-DBIT_64=1
+endif
+
+ifeq ($(OPT_TARGET),64)
+    # Generate 64bit x86-64 code.
+    CCOPT=-m64
+endif
+ifeq ($(OPT_TARGET),32)
+    # Generate 32bit i386 code.
+    CCOPT=-m32
 endif
 
 ifeq ($(OPT_GC),native)
