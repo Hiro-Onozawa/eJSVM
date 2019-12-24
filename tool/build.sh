@@ -23,27 +23,26 @@ cd ${DIR_BUILD}
 
 make clean
 
-echo "OPT_BASEBIT = ${BASEBIT}" > BASEBIT.txt
-
 for ALGORITHM in ${ALGORITHMS[@]}
 do
   for THREASHOLD in ${THREASHOLDS[@]}
   do
-    echo "OPT_GC_ALGORITHM = ${ALGORITHM}" > ALGORITHM.txt
     for SIZE in ${SIZES[@]}
     do
       rm -f *.o cell-header.h
+      
+      echo "OPT_BASEBIT = ${BASEBIT}" > OPTIONS.txt
+      echo "OPT_GC_ALGORITHM = ${ALGORITHM}" >> OPTIONS.txt
       if [[ ${ALGORITHM} = "copy" ]]; then
-        echo "CFLAGS += -DJS_SPACE_GC_THREASHOLD='(${SIZE}>>(${THREASHOLD}+1))'" > CFLAGS.txt
+        echo "CFLAGS += -DJS_SPACE_GC_THREASHOLD='(${SIZE}>>(${THREASHOLD}+1))'" >> OPTIONS.txt
       else
-        echo "CFLAGS += -DJS_SPACE_GC_THREASHOLD='(${SIZE}>>${THREASHOLD})'" > CFLAGS.txt
+        echo "CFLAGS += -DJS_SPACE_GC_THREASHOLD='(${SIZE}>>${THREASHOLD})'" >> OPTIONS.txt
       fi
       if [[ $PROFILE = "TRUE" ]]; then
-        echo "CFLAGS += -DGC_PROFILE" >> CFLAGS.txt
+        echo "CFLAGS += -DGC_PROFILE" >> OPTIONS.txt
       fi
-      echo "HEAPSIZE = -DJS_SPACE_BYTES=${SIZE}" > HEAPSIZE.txt
+      echo "HEAPSIZE = -DJS_SPACE_BYTES=${SIZE}" >> OPTIONS.txt
       echo "(${ALGORITHM}, ${SIZE}, ${THREASHOLD})"
-#      cat ALGORITHM.txt HEAPSIZE.txt
       make -j &> /dev/null
       cp ejsvm ${DIR_CURRENT}/${DIR_VMS}/ejsvm_${BASEBIT}_${ALGORITHM}_${SIZE}_t${THREASHOLD}${SUFFIX}
     done
