@@ -91,11 +91,11 @@ do for [j=1:4] {
     stats files[j] nooutput
     if (STATS_blocks > 0) {
         do for [i=1:xmax]{
-            STATS_median=-1
+            STATS_mean=-1
             stats files[j] using 2 index i-1 nooutput
-            if (STATS_median >= 0) {
-                if (!(param == 2 || param == 4 || param == 5) || STATS_median > 0) { Plots[(j-1)*xmax+i]=STATS_median }
-                if (STATS_median > ymax && STATS_median < ythreashold) { ymax = STATS_median }
+            if (STATS_mean >= 0) {
+                if (!(param == 2 || param == 4 || param == 5) || STATS_mean > 0) { Plots[(j-1)*xmax+i]=STATS_mean }
+                if (STATS_mean > ymax && STATS_mean < ythreashold) { ymax = STATS_mean }
             }
         }
     }
