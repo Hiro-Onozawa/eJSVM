@@ -24,11 +24,19 @@ if (lang eq "en") {
         "total CPU time [msec]", "total GC time [msec]", "non GC time [msec]",\
         "max GC time [msec]", "avr GC time [msec]", "GC count"\
     ]
+    array linelabels[4] = [\
+        "mark sweep", "mark compact", "threaded compact", "copy"\
+    ]
+    linewidth=0
 } else {
     array ylabels[6] = [\
         "総 CPU 時間 [msec]", "総 GC 時間 [msec]", "非 GC 時間 [msec]",\
         "最大 GC 時間 [msec]", "平均 GC 時間 [msec]", "GC 回数"\
     ]
+    array linelabels[4] = [\
+        "マークスイープ", "マークコンパクト", "スレッデッドコンパクト", "コピー"\
+    ]
+    linewidth=-13
 }
 
 if (lang eq "en") {
@@ -67,12 +75,12 @@ print "plot to ".threashold."_".benchname
 ymax=0;
 if (param == 1) {
     ythreashold=100000
-    set key left top font font_style
+    set key left top font font_style width linewidth
 } else { if (param == 2) {
     ythreashold=10000
-    set key left top font font_style
+    set key left top font font_style width linewidth
 } else { if (param == 3) {
-    set key top font font_style
+    set key left top font font_style width linewidth
     ythreashold=10000
 } else { if (param == 4) {
     set key right top font font_style
@@ -81,7 +89,7 @@ if (param == 1) {
     set key right top font font_style
     ythreashold=10000
 } else {
-    set key left top font font_style
+    set key left top font font_style width linewidth
     ythreashold=6000
 } } } } }
 
@@ -108,10 +116,10 @@ set yrange [*:ymax*1.15]
 set xrange [1:xmax]
 
 # using (x座標):データの列:(箱の幅(0のときデフォルト値)):データ区分の列
-plot Plots every ::0+xmax*0::xmax*1 using ($1-xmax*0):2 with linespoints pt 1 ps 0.75 title "mark sweep",\
-     Plots every ::0+xmax*1::xmax*2 using ($1-xmax*1):2 with linespoints pt 2 ps 0.75 title "mark compact",\
-     Plots every ::0+xmax*2::xmax*3 using ($1-xmax*2):2 with linespoints pt 3 ps 0.75 title "threaded compact",\
-     Plots every ::0+xmax*3::xmax*4 using ($1-xmax*3):2 with linespoints pt 4 ps 0.75 title "copy"
+plot Plots every ::0+xmax*0::xmax*1 using ($1-xmax*0):2 with linespoints pt 1 ps 0.75 title linelabels[1],\
+     Plots every ::0+xmax*1::xmax*2 using ($1-xmax*1):2 with linespoints pt 2 ps 0.75 title linelabels[2],\
+     Plots every ::0+xmax*2::xmax*3 using ($1-xmax*2):2 with linespoints pt 3 ps 0.75 title linelabels[3],\
+     Plots every ::0+xmax*3::xmax*4 using ($1-xmax*3):2 with linespoints pt 4 ps 0.75 title linelabels[4]
 
 
 # write table to txt
