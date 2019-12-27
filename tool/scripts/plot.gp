@@ -41,11 +41,11 @@ if (lang eq "en") {
 
 if (lang eq "en") {
     set xlabel "heap size [KiB]" font font_style
-    set ylabel ylabels[param] font font_style
+    set ylabel ylabels[param] font font_style offset -2.5,0
 #    set title "[".basebit."bit] benchmark : ".benchname.", threashold : ".threashold font font_style
 } else {
     set xlabel "ヒープサイズ [KiB]" font font_style
-    set ylabel ylabels[param] font font_style
+    set ylabel ylabels[param] font font_style offset -2.5,0
 #    set title "[".basebit."ビット] ベンチマーク : ".benchname.", スレッショルド : ".threashold font font_style
 }
 if (label_max==10485760 && label_min==1310720){
@@ -68,6 +68,7 @@ set ytics font font_style
 # write to eps
 set terminal eps
 set output fileout
+set lmargin 13
 
 # plot
 print "plot to ".threashold."_".benchname
