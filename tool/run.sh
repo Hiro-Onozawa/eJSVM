@@ -4,7 +4,6 @@
 
 echo "DIR_VMS : ${DIR_VMS}"
 echo "PROFILE : ${PROFILE}"
-echo "BASEBIT : ${BASEBIT}"
 
 if [[ $PROFILE = "TRUE" ]]; then
 N=1
@@ -27,7 +26,7 @@ do
   do
     for SIZE in ${SIZES[@]}
     do
-      vm=${DIR_VMS}/ejsvm_${BASEBIT}_${ALGORITHM}_${SIZE}_t${THREASHOLD}${SUFFIX}
+      vm=${DIR_VMS}/${ALGORITHM}_${SIZE}_t${THREASHOLD}${SUFFIX}
       echo ${vm}
       for i in `seq 1 ${N}`
       do

@@ -4,7 +4,6 @@
 
 echo "DIR_VMS : ${DIR_VMS}"
 echo "PROFILE : ${PROFILE}"
-echo "BASEBIT : ${BASEBIT}"
 
 DIR_BUILD=../build
 
@@ -21,7 +20,7 @@ DIR_CURRENT=`pwd`
 echo ${DIR_CURRENT}
 cd ${DIR_BUILD}
 
-make clean
+make clean &> /dev/null
 
 for ALGORITHM in ${ALGORITHMS[@]}
 do
@@ -45,7 +44,7 @@ do
       echo "HEAPSIZE = -DJS_SPACE_BYTES=${SIZE}" >> OPTIONS.txt
       echo "(${ALGORITHM}, ${SIZE}, ${THREASHOLD})"
       make -j &> /dev/null
-      cp ejsvm ${DIR_CURRENT}/${DIR_VMS}/ejsvm_${BASEBIT}_${ALGORITHM}_${SIZE}_t${THREASHOLD}${SUFFIX}
+      cp ejsvm ${DIR_CURRENT}/${DIR_VMS}/${ALGORITHM}_${SIZE}_t${THREASHOLD}${SUFFIX}
     done
   done
 done
