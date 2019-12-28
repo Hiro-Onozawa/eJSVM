@@ -12,10 +12,11 @@ usage() {
     echo "      --version"
     echo "  -b, --basebit { 32 | 64 }"
     echo "      --target { 32 | 64 }"
-    echo "  -s, --size { big | small | all }"
+#    echo "  -s, --size { big | small | all }"
     echo "      --algorithm \"{ null | mark_sweep | mark_compact | threaded_compact | copy }\""
     echo "      --benchmark \"{ 3d-cube | 3d-morph | base64 | binaryTree | cordic | fasta | spectralnorm | string-intensive }\""
     echo "      --threashold \"{ 1 | 2 | 3 }\""
+    echo "      --size-set \"<size> ...\""
 #    echo "  -a, --long-a [ARG]"
     echo "  -p, --profile"
     echo "      --param <param>"
@@ -59,18 +60,18 @@ do
             TARGET=$2
             shift 2
             ;;
-        -s | --size)
-            if [[ -z "$2" ]] || [[ "$2" =~ ^-+ ]]; then
-                echo "$PROGNAME: option requires an argument -- $1" 1>&2
-                exit 1
-            fi
-            if [[ "$2" != "big" ]] && [[ "$2" != "small" ]] && [[ "$2" != "all" ]]; then
-                echo "$PROGNAME: option requires an argument { big | small | all } -- $1" 1>&2
-                exit 1
-            fi
-            SIZE_TYPE=$2
-            shift 2
-            ;;
+#        -s | --size)
+#            if [[ -z "$2" ]] || [[ "$2" =~ ^-+ ]]; then
+#                echo "$PROGNAME: option requires an argument -- $1" 1>&2
+#                exit 1
+#            fi
+#            if [[ "$2" != "big" ]] && [[ "$2" != "small" ]] && [[ "$2" != "all" ]]; then
+#                echo "$PROGNAME: option requires an argument { big | small | all } -- $1" 1>&2
+#                exit 1
+#            fi
+#            SIZE_TYPE=$2
+#            shift 2
+#            ;;
              --algorithm)
             if [[ -z "$2" ]] || [[ "$2" =~ ^-+ ]]; then
                 echo "$PROGNAME: option requires an argument -- $1" 1>&2
@@ -114,6 +115,14 @@ do
                     exit 1
                 fi
             done
+            shift 2
+            ;;
+             --size-set)
+            if [[ -z "$2" ]] || [[ "$2" =~ ^-+ ]]; then
+                echo "$PROGNAME: option requires an argument -- $1" 1>&2
+                exit 1
+            fi
+            SIZES=(${2// / })
             shift 2
             ;;
 #        -a | --long-a)
@@ -201,7 +210,9 @@ if [[ $BASEBIT -eq 32 ]]; then
     if [[ $TARGET = "" ]]; then
         TARGET=32
     fi
-    SIZES=(${SIZES_SMALL[@]})
+    if [[ $SIZES = "" ]]; then
+        SIZES=(${SIZES_ALL[@]})
+    fi
     DIR_DATS=$DIR_DATS_32
     DIR_VMS=$DIR_VMS_32
     DIR_RESULT=$DIR_RESULT_32
@@ -214,23 +225,15 @@ else
     if [[ $TARGET = "" ]]; then
         TARGET=64
     fi
-    SIZES=(${SIZES_BIG[@]})
+    if [[ $SIZES = "" ]]; then
+        SIZES=(${SIZES_ALL[@]})
+    fi
     DIR_DATS=$DIR_DATS_64
     DIR_VMS=$DIR_VMS_64
     DIR_RESULT=$DIR_RESULT_64
     DIR_RESULT_RAW=$DIR_RESULT_RAW_64
     DIR_PROFILE=$DIR_PROFILE_64
     DIR_PROFILE_RAW=$DIR_PROFILE_RAW_64
-fi
-
-if [[ $SIZE_TYPE = "big" ]]; then
-    SIZES=(${SIZES_BIG[@]})
-fi
-if [[ $SIZE_TYPE = "small" ]]; then
-    SIZES=(${SIZES_SMALL[@]})
-fi
-if [[ $SIZE_TYPE = "all" ]]; then
-    SIZES=(${SIZES_ALL[@]})
 fi
 
 if [[ $USER_LANG = "" ]]; then
