@@ -3,9 +3,7 @@
 # benchname : ベンチマーク名
 # threashold : スレッショルド
 # basebit : 実行環境のビット幅
-# param : 利用するカラムのインデックス (1 総CPU時間, 2 総GC時間, 3 非GC時間, 4 最大GC時間, 5 平均GC時間, 6 GC回数)
-# label_max : x軸のメモリの表記の最大値
-# label_min : x軸のメモリの表記の最小値
+# param : 利用するカラムのインデックス (1 実行時間, 2 総GC時間, 3 非GC時間, 4 最大GC時間, 5 平均GC時間, 6 GC回数)
 # lang : jp / en <=> 日本語 / 英語
 
 font_style="Arial,18"
@@ -30,7 +28,7 @@ if (lang eq "en") {
     linewidth=0
 } else {
     array ylabels[6] = [\
-        "総 CPU 時間 [msec]", "総 GC 時間 [msec]", "非 GC 時間 [msec]",\
+        "実行時間 [msec]", "総 GC 時間 [msec]", "非 GC 時間 [msec]",\
         "最大 GC 時間 [msec]", "平均 GC 時間 [msec]", "GC 回数"\
     ]
     array linelabels[4] = [\
@@ -48,27 +46,16 @@ if (lang eq "en") {
     set ylabel ylabels[param] font font_style offset -2.5,0
 #    set title "[".basebit."ビット] ベンチマーク : ".benchname.", スレッショルド : ".threashold font font_style
 }
-if (label_max==10485760 && label_min==1310720){
-    xmax=7
-    set xtics ("10240" 1, "7680" 2, "5120" 3, "3840" 4, "2560" 5, "1920" 6, "1280" 7) font font_style
-    array sizes[xmax] = ["10240", "7680", "5120", "3840", "2560", "1920", "1280"]
-} else {
-    if (label_max==3932160 && label_min==491520){
-        xmax=7
-        set xtics ("3840" 1, "2560" 2, "1920" 3, "1280" 4, "960" 5, "640" 6, "480" 7) font font_style
-        array sizes[xmax] = ["3840", "2560", "1920", "1280", "960", "640", "480"]
-    } else {
-        xmax=10
-        set xtics ("10240" 1, "7680" 2, "5120" 3, "3840" 4, "2560" 5, "1920" 6, "1280" 7, "960" 8, "640" 9, "480" 10) font font_style
-        array sizes[xmax] = ["10240", "7680", "5120", "3840", "2560", "1920", "1280", "960", "640", "480"]
-    }
-}
+xmax=10
+set xtics ("480" 1, "640" 2, "960" 3, "1280" 4, "1920" 5, "2560" 6, "3840" 7, "5120" 8, "7680" 9, "10240" 10) font font_style
+array sizes[xmax] = ["480", "640", "960", "1280", "1920", "2560", "3840", "5120", "7680", "10240"]
 set ytics font font_style
 
 # write to eps
 set terminal eps
 set output fileout
 set lmargin 13
+set rmargin 6
 
 # plot
 print "plot to ".threashold."_".benchname
@@ -76,21 +63,21 @@ print "plot to ".threashold."_".benchname
 ymax=0;
 if (param == 1) {
     ythreashold=100000
-    set key left top font font_style width linewidth
+    set key right top font font_style
 } else { if (param == 2) {
     ythreashold=10000
-    set key left top font font_style width linewidth
+    set key right top font font_style
 } else { if (param == 3) {
-    set key left top font font_style width linewidth
+    set key right top font font_style
     ythreashold=10000
 } else { if (param == 4) {
-    set key right top font font_style
+    set key left top font font_style width linewidth
     ythreashold=10000
 } else { if (param == 5) {
-    set key right top font font_style
+    set key left top font font_style width linewidth
     ythreashold=10000
 } else {
-    set key left top font font_style width linewidth
+    set key right top font font_style
     ythreashold=6000
 } } } } }
 

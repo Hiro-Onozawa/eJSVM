@@ -1,13 +1,5 @@
 #!/bin/bash
 
-# PARAM :
-# 1 : total_CPU_time
-# 2 : total_GC_time
-# 3 : non_GC_time
-# 4 : max_GC_time
-# 5 : avr_GC_time
-# 6 : GC_count
-
 . ./params/arg_parser.sh "$@" || exit 1
 
 if [[ $PROFILE = "TRUE" ]]; then
@@ -18,12 +10,12 @@ if [[ $PARAM -lt "1" ]] || [[ $PARAM -gt "6" ]]; then
 echo "Usage: $(basename $0) [OPTIONS]  <--param Params>"
 echo ""
 echo "Params :"
-echo "    1 : total_CPU_time"
-echo "    2 : total_GC_time"
-echo "    3 : non_GC_time"
-echo "    4 : max_GC_time"
-echo "    5 : avr_GC_time"
-echo "    6 : GC_count"
+echo "    1 : total_CPU_time (実行時間)"
+echo "    2 : total_GC_time (総GC時間)"
+echo "    3 : non_GC_time (非GC時間)"
+echo "    4 : max_GC_time (最大GC時間)"
+echo "    5 : avr_GC_time (平均GC時間)"
+echo "    6 : GC_count (GC回数)"
 exit 1
 fi
 
@@ -62,14 +54,12 @@ done
 
 rm -f ./error.log
 
-label_max=${SIZES[0]}
-label_min=${SIZES[$((${#SIZES[@]}-1))]}
 for THREASHOLD in ${THREASHOLDS[@]}
 do
   for TEST in ${TESTS[@]}
   do
     echo "plot to t${THREASHOLD}_${TEST}"
-    gnuplot -e "indir='${DIR_INFILE}'; outdir='${DIR_GRAPH}'; benchname='${TEST}'; threashold='t${THREASHOLD}'; basebit='${BASEBIT}'; param=${PARAM}; label_max='${label_max}'; label_min='${label_min}'; lang='${USER_LANG}'" ./scripts/plot.gp 2>> ./error.log
+    gnuplot -e "indir='${DIR_INFILE}'; outdir='${DIR_GRAPH}'; benchname='${TEST}'; threashold='t${THREASHOLD}'; basebit='${BASEBIT}'; param=${PARAM}; lang='${USER_LANG}'" ./scripts/plot.gp 2>> ./error.log
     sed -i -e 's/<undefined>/x/g' "${DIR_GRAPH}/t${THREASHOLD}_${TEST}_values.txt"
   done
 done
