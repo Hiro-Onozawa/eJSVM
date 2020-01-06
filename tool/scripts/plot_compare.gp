@@ -103,8 +103,8 @@ set yrange [*:ymax*1.15]
 set xrange [1:xmax]
 
 # using (x座標):データの列:(箱の幅(0のときデフォルト値)):データ区分の列
-plot Plots every ::0+xmax*0::xmax*1 using ($1-xmax*0):2 with linespoints pt 1 ps 0.75 title linelabels[1],\
-     Plots every ::0+xmax*1::xmax*2 using ($1-xmax*1):2 with linespoints pt 2 ps 0.75 title linelabels[2]
+plot Plots every ::0+xmax*0::xmax*1-1 using ($1-xmax*0):2 with linespoints pt 1 ps 0.75 title linelabels[1],\
+     Plots every ::0+xmax*1::xmax*2-1 using ($1-xmax*1):2 with linespoints pt 2 ps 0.75 title linelabels[2]
 
 
 # write table to txt

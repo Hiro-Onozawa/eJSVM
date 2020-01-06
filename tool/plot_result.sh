@@ -45,6 +45,8 @@ do
           echo "" >> ${out}
         else
           echo "# ファイルが存在しません" >> ${out}
+          echo "${SIZE} -" >> ${out}
+          echo "" >> ${out}
           echo "" >> ${out}
         fi
       done
