@@ -19,8 +19,8 @@ tableout=outdir."/".threashold."_".benchname."_values.txt"
 
 if (lang eq "en") {
     array ylabels[6] = [\
-        "total CPU time [msec]", "total GC time [msec]", "non GC time [msec]",\
-        "max GC time [msec]", "avr GC time [msec]", "GC count"\
+        "total CPU time [ms]", "total GC time [ms]", "non GC time [ms]",\
+        "max GC time [ms]", "avr GC time [ms]", "GC count"\
     ]
     array linelabels[4] = [\
         "mark sweep", "mark compact", "threaded compact", "copy"\
@@ -28,8 +28,8 @@ if (lang eq "en") {
     linewidth=0
 } else {
     array ylabels[6] = [\
-        "実行時間 [msec]", "総 GC 時間 [msec]", "非 GC 時間 [msec]",\
-        "最大 GC 時間 [msec]", "平均 GC 時間 [msec]", "GC 回数"\
+        "実行時間 [ms]", "総 GC 時間 [ms]", "非 GC 時間 [ms]",\
+        "最大 GC 時間 [ms]", "平均 GC 時間 [ms]", "GC 回数"\
     ]
     array linelabels[4] = [\
         "マークスイープ", "マークコンパクト", "スレッデッドコンパクト", "コピー"\
