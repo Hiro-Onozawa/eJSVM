@@ -272,7 +272,9 @@ BUILTIN_FUNCTION(builtin_read_gpio) {
     if (g_dummy_sensor_signal_cnt == 16) {
       g_dummy_sensor_signal_cnt = 0;
       g_dummy_sensor_state = 2;
-      g_dummy_sensor_current_sample = rand() % 8;
+      if (++g_dummy_sensor_current_sample == 8) {
+        g_dummy_sensor_current_sample = 0;
+      }
     }
   }
   else if (g_dummy_sensor_state == 2) {
