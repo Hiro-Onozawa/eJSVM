@@ -226,6 +226,120 @@ BUILTIN_FUNCTION(builtin_papi_get_real)
 }
 #endif /* USE_PAPI */
 
+#ifdef USE_DUMMY_GPIO
+#ifdef USE_DUMMY_SENSOR
+/*
+ * dummy sensor state
+ */
+int g_dummy_sensor_state = 0; // 0:sleep, 1:sending response, 2:sending data, 3:finalize
+int g_dummy_sensor_signal_cnt = 0;
+int g_dummy_sensor_signal[][13] = {
+  { 0, 0, 0, 0, 0, 1, 1, 2, 0, 0, 0, 0, 0 },
+  { 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 2 }
+};
+int g_dummy_sensor_current_sample = 0;
+unsigned char g_dummy_sensor_sample[][5] = {
+  { 50, 0, 24, 0,  74 },
+  { 35, 0, 20, 0,  55 },
+  { 55, 0, 18, 0,  73 },
+  { 45, 0, 10, 0,  55 },
+  { 20, 0, 13, 0,  33 },
+  { 65, 0, 17, 0,  82 },
+  { 80, 0, 21, 0, 101 },
+  { 40, 0, 28, 0,  68 }
+};
+int g_dummy_sensor_current_bits = 0;
+#endif
+
+/*
+ * dummy gpio functions
+ */
+BUILTIN_FUNCTION(builtin_read_gpio) {
+  builtin_prologue();
+  GC_PUSH_REGBASE(args);
+  JSValue pin = args[1];
+  JSValue ret = JS_UNDEFINED;
+
+#ifdef USE_DUMMY_SENSOR
+  int pin_state = 1;
+  if (g_dummy_sensor_state == 0) {
+    // something wrong
+  }
+  else if (g_dummy_sensor_state == 1) {
+    g_dummy_sensor_signal_cnt++;
+    pin_state = (g_dummy_sensor_signal_cnt > 8)? 1 : 0;
+
+    if (g_dummy_sensor_signal_cnt == 16) {
+      g_dummy_sensor_signal_cnt = 0;
+      g_dummy_sensor_state = 2;
+      g_dummy_sensor_current_sample = rand() % 8;
+    }
+  }
+  else if (g_dummy_sensor_state == 2) {
+    unsigned char value = g_dummy_sensor_sample[g_dummy_sensor_current_sample][g_dummy_sensor_current_bits / 8];
+    int bit = (value & (0x80 >> (g_dummy_sensor_current_bits % 8)))?1:0;
+    pin_state = g_dummy_sensor_signal[bit][g_dummy_sensor_signal_cnt];
+    g_dummy_sensor_signal_cnt++;
+    if (g_dummy_sensor_signal[bit][g_dummy_sensor_signal_cnt] == 2) {
+      g_dummy_sensor_signal_cnt = 0;
+      if (++g_dummy_sensor_current_bits == 40) {
+        g_dummy_sensor_current_bits = 0;
+        g_dummy_sensor_state = 3;
+      }
+    }
+  }
+  else if (g_dummy_sensor_state == 3) {
+    if (++g_dummy_sensor_signal_cnt < 4) {
+      pin_state = 0;
+    }
+    else {
+      g_dummy_sensor_signal_cnt = 0;
+      g_dummy_sensor_state = 0;
+    }
+  }
+  else {
+    // something wrong
+  }
+
+  ret = cint_to_fixnum(pin_state);
+  #endif
+
+  set_a(context, ret);
+  GC_POP_REGBASE(args);
+}
+
+BUILTIN_FUNCTION(builtin_write_gpio) {
+  builtin_prologue();
+  GC_PUSH_REGBASE(args);
+  JSValue pin = args[1];
+  JSValue state = args[2];
+  JSValue ret = JS_UNDEFINED;
+
+#ifdef USE_DUMMY_SENSOR
+  if (g_dummy_sensor_state == 0) {
+    if (fixnum_to_cint(state) == 1) {
+      g_dummy_sensor_state = 1;
+    }
+  }
+  else if (g_dummy_sensor_state == 1) {
+    // something wrong
+  }
+  else if (g_dummy_sensor_state == 2) {
+    // something wrong
+  }
+  else if (g_dummy_sensor_state == 3) {
+    // something wrong
+  }
+  else {
+    // something wrong
+  }
+#endif
+
+  set_a(context, ret);
+  GC_POP_REGBASE(args);
+}
+#endif /* USE_DUMMY_GPIO */
+
 ObjBuiltinProp global_funcs[] = {
   { "isNaN",          builtin_isNaN,              1, ATTR_DDDE },
   { "isFinite",       builtin_isFinite,           1, ATTR_DE   },
@@ -243,6 +357,10 @@ ObjBuiltinProp global_funcs[] = {
 #ifdef USE_PAPI
   { "papi_get_real",  builtin_papi_get_real,      0, ATTR_ALL  },
 #endif
+#ifdef USE_DUMMY_GPIO
+  { "read_gpio",      builtin_read_gpio,          1, ATTR_ALL  },
+  { "write_gpio",     builtin_write_gpio,         2, ATTR_ALL  },
+#endif /* USE_DUMMY_GPIO */
   { NULL,             NULL,                       0, ATTR_DE   }
 };
 
