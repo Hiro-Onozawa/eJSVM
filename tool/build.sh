@@ -38,6 +38,7 @@ do
       else
         echo "CFLAGS += -DJS_SPACE_GC_THREASHOLD='(${SIZE}>>${THREASHOLD})'" >> OPTIONS.txt
       fi
+      echo "CFLAGS += -DUSE_DUMMY_GPIO -DUSE_DUMMY_SENSOR" >> OPTIONS.txt
       if [[ $PROFILE = "TRUE" ]]; then
         echo "CFLAGS += -DGC_PROFILE" >> OPTIONS.txt
       fi

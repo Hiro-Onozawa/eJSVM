@@ -1,7 +1,7 @@
 #!/bin/bash
 
 PROGNAME=$(basename $0)
-VERSION="1.0?"
+VERSION="1.1"
 
 usage() {
     echo "Usage: $PROGNAME [OPTIONS] FILE"
@@ -95,8 +95,8 @@ do
             TESTS=(${2// / })
             for TEST in ${TESTS[@]}
             do
-                if [[ "$TEST" != "3d-cube" ]] && [[ "$TEST" != "3d-morph" ]] && [[ "$TEST" != "base64" ]] && [[ "$TEST" != "binaryTree" ]] && [[ "$TEST" != "cordic" ]] && [[ "$TEST" != "fasta" ]] && [[ "$TEST" != "spectralnorm" ]] && [[ "$TEST" != "string-intensive" ]]; then
-                    echo "$PROGNAME: option requires an argument { 3d-cube | 3d-morph | base64 | binaryTree | cordic | fasta | spectralnorm | string-intensive } -- $1" 1>&2
+                if [[ "$TEST" != "3d-cube" ]] && [[ "$TEST" != "3d-morph" ]] && [[ "$TEST" != "base64" ]] && [[ "$TEST" != "binaryTree" ]] && [[ "$TEST" != "cordic" ]] && [[ "$TEST" != "dht11" ]] && [[ "$TEST" != "fasta" ]] && [[ "$TEST" != "spectralnorm" ]] && [[ "$TEST" != "string-intensive" ]]; then
+                    echo "$PROGNAME: option requires an argument { 3d-cube | 3d-morph | base64 | binaryTree | cordic | dht11 | fasta | spectralnorm | string-intensive } -- $1" 1>&2
                     exit 1
                 fi
             done
@@ -193,7 +193,7 @@ if [[ $ALGORITHMS = "" ]]; then
     ALGORITHMS=( "mark_sweep" "mark_compact" "threaded_compact" "copy" )
 fi
 if [[ $TESTS = "" ]]; then
-    TESTS=( "3d-cube" "3d-morph" "base64" "binaryTree" "cordic" "fasta" "spectralnorm" "string-intensive" )
+    TESTS=( "3d-cube" "3d-morph" "base64" "binaryTree" "cordic" "dht11" "fasta" "spectralnorm" "string-intensive" )
 fi
 if [[ $THREASHOLDS = "" ]]; then
     THREASHOLDS=( 1 2 3 )
