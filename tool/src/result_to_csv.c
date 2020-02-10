@@ -19,7 +19,7 @@ int main(int argc, char **argv) {
   FILE *fp;
 
   if (argc < 2) {
-    printf("usage : %s <max item count> <file path>\n", argv[0]);
+    printf("usage : %s <max item count> [file path]\n", argv[0]);
     return 0;
   }
 
@@ -29,7 +29,12 @@ int main(int argc, char **argv) {
     return 1;
   }
 
-  fp = fopen(argv[2], "r");
+  if (argc == 1) {
+    fp = stdin;
+  }
+  else {
+    fp = fopen(argv[2], "r");
+  }
   if (fp == NULL) {
     printf("Error : file \"%s\" can not open.\n", argv[2]);
     return 2;

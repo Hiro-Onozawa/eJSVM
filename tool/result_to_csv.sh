@@ -24,7 +24,7 @@ do
           echo "# ベンチマーク : ${TEST}" >> ${out}
           echo "# スレッショルド : ${THREASHOLD}" >> ${out}
           echo "# 生データ : ${in}" >> ${out}
-          ${DIR_BIN}/result_to_csv 1 ${in} >> ${out}
+          ${DIR_BIN}/result_to_csv 1 <(grep -E "GC|n_hc" ${in}) >> ${out}
         fi
       done
     done
