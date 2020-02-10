@@ -18,8 +18,8 @@ tableout=outdir."/".threashold."_".benchname."_values.txt"
 
 if (lang eq "en") {
     array ylabels[6] = [\
-        "total CPU time [msec]", "total GC time [msec]", "non GC time [msec]",\
-        "max GC time [msec]", "avr GC time [msec]", "GC count"\
+        "total CPU time [ms]", "total GC time [ms]", "non GC time [ms]",\
+        "max GC time [ms]", "avr GC time [ms]", "GC count"\
     ]
     array linelabels[4] = [\
         "for 32bit implement", "for 64bit implement"\
@@ -27,8 +27,8 @@ if (lang eq "en") {
     linewidth=0
 } else {
     array ylabels[6] = [\
-        "実行時間 [msec]", "総 GC 時間 [msec]", "非 GC 時間 [msec]",\
-        "最大 GC 時間 [msec]", "平均 GC 時間 [msec]", "GC 回数"\
+        "実行時間 [ms]", "総 GC 時間 [ms]", "非 GC 時間 [ms]",\
+        "最大 GC 時間 [ms]", "平均 GC 時間 [ms]", "GC 回数"\
     ]
     array linelabels[2] = [\
         "32ビット向け実装", "64ビット向け実装"\
@@ -38,11 +38,9 @@ if (lang eq "en") {
 
 if (lang eq "en") {
     set xlabel "heap size [KiB]" font font_style
-    set ylabel ylabels[param] font font_style offset -2.5,0
 #    set title "[".basebit."bit] benchmark : ".benchname.", threashold : ".threashold font font_style
 } else {
     set xlabel "ヒープサイズ [KiB]" font font_style
-    set ylabel ylabels[param] font font_style offset -2.5,0
 #    set title "[".basebit."ビット] ベンチマーク : ".benchname.", スレッショルド : ".threashold font font_style
 }
 xmax=10
@@ -60,6 +58,7 @@ set rmargin 6
 print "plot to ".threashold."_".benchname
 
 ymax=0;
+ymin=99999999;
 if (param == 1) {
     ythreashold=100000
     set key right top font font_style
@@ -91,6 +90,7 @@ do for [j=1:2] {
             if (STATS_mean >= 0) {
                 if (!(param == 2 || param == 4 || param == 5) || STATS_mean > 0) { Plots[(j-1)*xmax+i]=STATS_mean }
                 if (STATS_mean > ymax && STATS_mean < ythreashold) { ymax = STATS_mean }
+                if (STATS_mean < ymin) { ymin = STATS_mean }
             }
         }
     }
@@ -99,8 +99,82 @@ do for [j=1:2] {
 set autoscale xfix
 set clip one
 set clip two
-set yrange [*:ymax*1.15]
+set yrange [0:ymax*1.15]
 set xrange [1:xmax]
+
+show margin
+print "ymax : ", ymax, ", ymin : ", ymin, ", diff : ", (ymax- ymin)
+
+if (ymin > 10) {
+    lbase=0.1375
+    rbase=0.9260
+    width=0.015
+    ybase=0.20
+    height=0.02
+    padding=0.04
+    set yrange [0:10]
+    array Dummy[1] = [ ]
+
+    set multiplot
+    set tmargin at screen ybase+0.5*height
+    set bmargin at screen 0.16
+    set border 1+2+8
+    set ytics (0)
+    set xtics nomirror
+    plot Dummy notitle
+
+    set tmargin at screen 0.95
+    set bmargin at screen ybase+1.5*height+padding
+
+    set arrow from screen lbase,ybase+0*height to screen lbase+width, ybase+1*height nohead
+    set arrow from screen lbase,ybase+1*height to screen lbase+width, ybase+2*height nohead
+    set arrow from screen rbase,ybase+0*height to screen rbase+width, ybase+1*height nohead
+    set arrow from screen rbase,ybase+1*height to screen rbase+width, ybase+2*height nohead
+    set arrow from screen lbase+width/2,ybase+1.5*height to screen lbase+width/2, ybase+1.5*height+padding nohead
+    set arrow from screen rbase+width/2,ybase+1.5*height to screen rbase+width/2, ybase+1.5*height+padding nohead
+
+    base = 1;
+    diff = ymax - ymin;
+    if (diff < 10) {
+        base = 5
+    } else {
+        if (diff < 100) {
+            base = 10;
+        } else {
+            if (diff < 500) {
+                base = 50;
+            } else {
+                if (diff < 1000) {
+                    base = 100;
+                } else {
+                    if (diff < 5000) {
+                        base = 500;
+                    } else {
+                        if (diff < 10000) {
+                            base = 1000;
+                        } else {
+                            if (diff < 50000) {
+                                base = 5000;
+                            } else {
+                                base = 10000;
+                            }
+                            base = 10000;
+                        }
+                    }
+                }
+            }
+        }
+    }
+    ymin=int(ymin) - (int(ymin) % base);
+    ymax=int(ymax) - (int(ymax) % base) + 2 * base;
+    set yrange [ymin:ymax]
+    unset xtics
+    unset xlabel
+    set border 2+4+8
+    set ytics auto
+}
+
+set ylabel ylabels[param] font font_style offset -2.5,0
 
 # using (x座標):データの列:(箱の幅(0のときデフォルト値)):データ区分の列
 plot Plots every ::0+xmax*0::xmax*1-1 using ($1-xmax*0):2 with linespoints pt 2 ps 1.0 dt 1 lw 3 lc "black" title linelabels[1],\
