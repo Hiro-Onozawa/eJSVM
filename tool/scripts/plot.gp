@@ -100,13 +100,46 @@ do for [j=1:4] {
 set autoscale xfix
 set clip one
 set clip two
-set yrange [0:ymax*1.15]
 set xrange [1:xmax]
 
 show margin
 print "ymax : ", ymax, ", ymin : ", ymin, ", diff : ", (ymax- ymin)
 
-if (ymin > 10) {
+base = 1;
+diff = ymax - ymin;
+if (diff < 10) {
+    base = 5
+} else {
+    if (diff < 100) {
+        base = 10;
+    } else {
+        if (diff < 500) {
+            base = 50;
+        } else {
+            if (diff < 1000) {
+                base = 100;
+            } else {
+                if (diff < 5000) {
+                    base = 250;
+                } else {
+                    if (diff < 10000) {
+                        base = 1000;
+                    } else {
+                        if (diff < 50000) {
+                            base = 5000;
+                        } else {
+                            base = 10000;
+                        }
+                        base = 10000;
+                    }
+                }
+            }
+        }
+    }
+}
+ymin=int(ymin) - (int(ymin) % base);
+
+if (ymin > 0) {
     lbase=0.1375
     rbase=0.9260
     width=0.015
@@ -134,45 +167,34 @@ if (ymin > 10) {
     set arrow from screen lbase+width/2,ybase+1.5*height to screen lbase+width/2, ybase+1.5*height+padding nohead
     set arrow from screen rbase+width/2,ybase+1.5*height to screen rbase+width/2, ybase+1.5*height+padding nohead
 
-    base = 1;
-    diff = ymax - ymin;
-    if (diff < 10) {
-        base = 5
-    } else {
-        if (diff < 100) {
-            base = 10;
-        } else {
-            if (diff < 500) {
-                base = 50;
-            } else {
-                if (diff < 1000) {
-                    base = 100;
-                } else {
-                    if (diff < 5000) {
-                        base = 500;
-                    } else {
-                        if (diff < 10000) {
-                            base = 1000;
-                        } else {
-                            if (diff < 50000) {
-                                base = 5000;
-                            } else {
-                                base = 10000;
-                            }
-                            base = 10000;
-                        }
-                    }
-                }
-            }
-        }
+    ymax=int(ymax) - (int(ymax) % base) + base;
+    if (benchname eq "spectralnorm" && param == 1 && basebit == 64) {
+        ymax = ymax + base * 3
     }
-    ymin=int(ymin) - (int(ymin) % base);
-    ymax=int(ymax) - (int(ymax) % base) + 2 * base;
+    if (param == 1 && basebit == 32) {
+        ymax = ymax + base * 1
+    }
+    if ((benchname eq "binaryTree" || benchname eq "spectralnorm") && param == 1 && basebit == 32) {
+        ymax = ymax + base * 2
+    }
+    if (benchname eq "spectralnorm" && param == 1 && basebit == 32) {
+        ymax = ymax + base * 2
+    }
     set yrange [ymin:ymax]
     unset xtics
     unset xlabel
     set border 2+4+8
     set ytics auto
+}
+else {
+    ymax = ymax * 1.15
+    if (benchname eq "dht11" && param == 5 && basebit == 64) {
+        ymax = ymax * 1.1
+    }
+    if ((benchname eq "3d-cube" || benchname eq "binaryTree" || benchname eq "spectralnorm") && param == 2 && basebit == 32) {
+        ymax = ymax * 1.3
+    }
+    set yrange [0:ymax]
 }
 
 set ylabel ylabels[param] font font_style offset -2.5,0
