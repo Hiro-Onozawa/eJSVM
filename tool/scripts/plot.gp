@@ -89,7 +89,7 @@ do for [j=1:4] {
             STATS_mean=-1
             stats files[j] using 2 index i-1 nooutput
             if (STATS_mean >= 0) {
-                if (!(param == 2 || param == 4 || param == 5) || STATS_mean > 0) { Plots[(j-1)*xmax+i]=STATS_mean }
+                if (!(param == 2 || param == 4 || param == 5) || (STATS_mean > 0 && STATS_mean < ythreashold)) { Plots[(j-1)*xmax+i]=STATS_mean }
                 if (STATS_mean > ymax && STATS_mean < ythreashold) { ymax = STATS_mean }
                 if (STATS_mean < ymin) { ymin = STATS_mean }
             }
