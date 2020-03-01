@@ -85,6 +85,7 @@ public class SBCFileComposer extends OutputFileComposer {
             if (src instanceof RegisterOperand) {
                 Register r = ((RegisterOperand) src).get();
                 int n = r.getRegisterNumber();
+                System.err.println(Integer.toString(n));
                 return Integer.toString(n);
             } else if (src instanceof FixnumOperand) {
                 int n = ((FixnumOperand) src).get();
@@ -120,6 +121,7 @@ public class SBCFileComposer extends OutputFileComposer {
             String b = Integer.toString(n);
             SBCInstruction insn = new SBCInstruction(insnName, a, b);
             instructions.add(insn);
+            System.err.println(a);
         }
         @Override
         public void addNumberBigPrimitive(String insnName, boolean log, Register dst, double n) {
@@ -128,6 +130,7 @@ public class SBCFileComposer extends OutputFileComposer {
             String b = flonumConst(n);
             SBCInstruction insn = new SBCInstruction(insnName, a, b);
             instructions.add(insn);
+            System.err.println(a);
 
         }
         @Override
@@ -137,6 +140,7 @@ public class SBCFileComposer extends OutputFileComposer {
             String b = stringConst(s);
             SBCInstruction insn = new SBCInstruction(insnName, a, b);
             instructions.add(insn);
+            System.err.println(a);
         }
         @Override
         public void addSpecialSmallPrimitive(String insnName, boolean log, Register dst, SpecialValue v) {
@@ -157,6 +161,7 @@ public class SBCFileComposer extends OutputFileComposer {
             }
             SBCInstruction insn = new SBCInstruction(insnName, a, b);
             instructions.add(insn);
+            System.err.println(a);
         }
         @Override
         public void addRegexp(String insnName, boolean log, Register dst, int flag, String ptn) {
@@ -166,6 +171,7 @@ public class SBCFileComposer extends OutputFileComposer {
             String c = stringConst(ptn);
             SBCInstruction insn = new SBCInstruction(insnName, a, b, c);
             instructions.add(insn);
+            System.err.println(a);
         }
         @Override
         public void addRXXThreeOp(String insnName, boolean log, Register dst, SrcOperand src1, SrcOperand src2) {
@@ -175,6 +181,7 @@ public class SBCFileComposer extends OutputFileComposer {
             String c = srcOperandField(src2);
             SBCInstruction insn = new SBCInstruction(insnName, a, b, c);
             instructions.add(insn);
+            System.err.println(a);
         }
         @Override
         public void addXXXThreeOp(String insnName, boolean log, SrcOperand src1, SrcOperand src2, SrcOperand src3) {
@@ -201,6 +208,7 @@ public class SBCFileComposer extends OutputFileComposer {
             String b = srcOperandField(src);
             SBCInstruction insn = new SBCInstruction(insnName, a, b);
             instructions.add(insn);
+            System.err.println(a);
         }
         @Override
         public void addXXTwoOp(String insnName, boolean log, SrcOperand src1, SrcOperand src2) {
@@ -216,6 +224,7 @@ public class SBCFileComposer extends OutputFileComposer {
             String a = Integer.toString(dst.getRegisterNumber());
             SBCInstruction insn = new SBCInstruction(insnName, a);
             instructions.add(insn);
+            System.err.println(a);
         }
         @Override
         public void addXOneOp(String insnName, boolean log, SrcOperand src) {
@@ -253,6 +262,7 @@ public class SBCFileComposer extends OutputFileComposer {
             String c = Integer.toString(index);
             SBCInstruction insn = new SBCInstruction(insnName, a, b, c);
             instructions.add(insn);
+            System.err.println(a);
         }
         @Override
         public void addSetVar(String insnName, boolean log, int link, int index, SrcOperand src) {
@@ -271,6 +281,7 @@ public class SBCFileComposer extends OutputFileComposer {
             String b = Integer.toString(index);
             SBCInstruction insn = new SBCInstruction(insnName, a, b);
             instructions.add(insn);
+            System.err.println(a);
         }
         @Override
         public void addXICall(String insnName, boolean log, SrcOperand fun, int nargs) {
@@ -287,6 +298,7 @@ public class SBCFileComposer extends OutputFileComposer {
             String b = srcOperandField(fun);
             SBCInstruction insn = new SBCInstruction(insnName, a, b);
             instructions.add(insn);
+            System.err.println(a);
         }
         @Override
         public void addUncondJump(String insnName, boolean log, int disp) {
