@@ -203,12 +203,16 @@ define("HEADERPTR_TO_VALPTR(headerptr)", "((void *)((uintptr_t)(headerptr) + HEA
 section_start("internal macros")
 define("__MKMSK(l, o, b)\\\n",
        "((((header_word_t) -1) << ((l) - (b))) >> ((l) - (o) - (b)))")
-define("__HEADER_SET(hdr, val, off, msk)",
-       "(hdr) = ((((header_word_t) (val)) << (off)) | ((hdr) & ~(msk)))");
-define("__HEADER_SET_MASK(hdr, val, off, msk)",
-       "(hdr) = (((((header_word_t) (val)) << (off)) & (msk)) | ((hdr) & ~(msk)))");
-define("__HEADER_GET(hdr, off, msk)",
+#define("__HEADER_SET(hdr, val, off, msk)",
+#       "(hdr) = ((((header_word_t) (val)) << (off)) | ((hdr) & ~(msk)))");
+define("__HEADER_SET(hdrp, idx, val, off, msk)",
+       "(hdrp)->header ## idx = ((((header_word_t) (val)) << (off)) | (((hdrp)->header ## idx) & ~(msk)))");
+define("__HEADER_SET_MASK(hdrp, val, off, msk)",
+       "(hdrp)->header ## idx = (((((header_word_t) (val)) << (off)) & (msk)) | (((hdrp)->header ## idx) & ~(msk)))");
+define("__HEADER_GET_WORD(hdr, off, msk)",
        "(((header_word_t) ((hdr) & (msk))) >> (off))");
+define("__HEADER_GET(hdrp, idx, off, msk)",
+       "(__HEADER_GET_WORD((hdrp)->header ## idx, off, msk))");
 
 
 section_start("field definition");
@@ -232,10 +236,10 @@ header_def.each_with_index do |fields, index|
     # mask
     define(mask, "__MKMSK(HEADER_WORD_BITS, #{offset}, #{bits})")
     # accessor
-    define(setter, "__HEADER_SET((hdrp)->header#{index}, (val), #{offset}, #{mask})")
-    define(setterm, "__HEADER_SET_MASK((hdrp)->header#{index}, (val), #{offset}, #{mask})")
-    define(getter, "__HEADER_GET((hdrp)->header#{index}, #{offset}, #{mask})")
-    define(wgetter, "__HEADER_GET(hdrw, #{offset}, #{mask})")
+    define(setter, "__HEADER_SET((hdrp), #{index}, (val), #{offset}, #{mask})")
+    define(setterm, "__HEADER_SET_MASK((hdrp), #{index}, (val), #{offset}, #{mask})")
+    define(getter, "__HEADER_GET((hdrp), #{index}, #{offset}, #{mask})")
+    define(wgetter, "__HEADER_GET_WORD((hdrw), #{offset}, #{mask})")
 
     if c then
       if c == :param then
