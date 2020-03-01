@@ -211,6 +211,10 @@ void print_cputime(time_t sec, suseconds_t usec) {
          sec * 1000 + usec / 1000, (int)(usec % 1000),
          gc_sec * 1000 + gc_usec / 1000, (int)(gc_usec % 1000),
          gc_sec_max * 1000 + gc_usec_max / 1000, (int)(gc_usec_max % 1000), generation - 1);
+#ifdef GC_PROFILE
+  printf("total Alloc time = %ld.%03d msec\n",
+         gc_alloc_sec * 1000 + gc_alloc_usec / 1000, (int)(gc_alloc_usec % 1000));
+#endif /* GC_PROFILE */
 #ifdef HIDDEN_CLASS
   printf("n_hc = %d, n_enter_hc = %d, n_exit_hc = %d\n",
          n_hc, n_enter_hc, n_exit_hc);

@@ -39,13 +39,15 @@ extern suseconds_t gc_usec_max;
 
 extern FILE *log_stream;
 
-#ifdef PROFILE
+#ifdef GC_PROFILE
 extern int profile_flag;
 extern int coverage_flag;
 extern int icount_flag;
 extern int forcelog_flag;
 extern FILE *prof_stream;
-#endif
+extern time_t gc_alloc_sec;
+extern suseconds_t gc_alloc_usec;
+#endif /* GC_PROFILE */
 
 extern InsnInfo insn_info_table[];
 extern int numinsts;

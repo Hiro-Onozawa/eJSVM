@@ -156,6 +156,8 @@ STATIC AllocProfile gc_alloc_profiles[(1 << HEADER_TYPE_BITS)];
 STATIC size_t moved_object_bytes;
 STATIC size_t moved_object_count;
 STATIC size_t scaned_object_count;
+time_t gc_alloc_sec;
+suseconds_t gc_alloc_usec; 
 #endif /* GC_PROFILE */
 
 /*
@@ -233,6 +235,10 @@ void init_memory()
   gc_usec = 0;
   gc_sec_max = 0;
   gc_usec_max = 0;
+#ifdef GC_PROFILE
+  gc_alloc_sec = 0;
+  gc_alloc_usec = 0;
+#endif
 }
 
 void gc_push_tmp_root(JSValue *loc)
@@ -327,6 +333,13 @@ JSValue* gc_jsalloc(Context *ctx, uintptr_t request_bytes, uint32_t type)
 #ifdef GC_DEBUG
   top = (void**) &ctx;
 #endif /* GC_DEBUG */
+#ifdef GC_PROFILE
+  struct rusage ru0, ru1;
+  time_t sec;
+  suseconds_t usec;
+
+  getrusage(RUSAGE_SELF, &ru0);
+#endif /* GC_PROFILE */
 
   if (check_gc_request(ctx))
     garbage_collect(ctx);
@@ -341,6 +354,24 @@ JSValue* gc_jsalloc(Context *ctx, uintptr_t request_bytes, uint32_t type)
   }
 #endif /* GC_DEBUG */
 #ifdef GC_PROFILE
+  {
+    time_t sec;
+    suseconds_t usec;
+
+    getrusage(RUSAGE_SELF, &ru1);
+    sec = ru1.ru_utime.tv_sec - ru0.ru_utime.tv_sec;
+    usec = ru1.ru_utime.tv_usec - ru0.ru_utime.tv_usec;
+    if (usec < 0) {
+      sec--;
+      usec += 1000000;
+    }
+    gc_alloc_sec += sec;
+    gc_alloc_usec += usec;
+    if (gc_alloc_usec >= 1000000) {
+      gc_alloc_usec -= 1000000;
+      ++gc_alloc_sec;
+    }
+  }
   {
     size_t allocate = HEADER_GET_SIZE(VALPTR_TO_HEADERPTR(addr)) << LOG_BYTES_IN_JSVALUE;
     size_t header = HEADER_BYTES;
