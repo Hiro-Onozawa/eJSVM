@@ -59,7 +59,9 @@ FILE *prof_stream;
 /*
  * parameter
  */
-int regstack_limit = STACK_LIMIT; /* size of register stack (not used yet) */
+int regstack_limit = STACK_LIMIT; /* size of register stack */
+int heap_limit = JS_SPACE_BYTES;      /* size of gc heap */
+int gc_threashold = (JS_SPACE_BYTES >> 2); /* threashold to begin gc */
 
 #ifdef CALC_CALL
 static uint64_t callcount = 0;
@@ -169,7 +171,9 @@ struct commandline_option  options_table[] = {
   { "--moving-info",  0, &movinginfo_flag,  NULL    },
   { "--collect-time", 0, &collecttime_flag, NULL    },
 #endif
-  { "-s",         1, &regstack_limit, NULL          },  /* not used yet */
+  { "-s",         1, &regstack_limit, NULL          },
+  { "-c",         1, &heap_limit,     NULL          },
+  { "-b",         1, &gc_threashold,  NULL          },
   { (char *)NULL, 0, NULL,            NULL          }
 };
 
@@ -227,12 +231,6 @@ void print_spec() {
 #endif
 #ifdef BIT_32
   printf("\"BIT_32\" defined\n");
-#endif
-#ifdef JS_SPACE_BYTES
-  printf("\"JS_SPACE_BYTES\" : %d\n", JS_SPACE_BYTES);
-#endif
-#ifdef JS_SPACE_GC_THREASHOLD
-  printf("\"JS_SPACE_GC_THREASHOLD\" : %d\n", JS_SPACE_GC_THREASHOLD);
 #endif
 #ifdef GC_NULL
   printf("\"GC_NULL\" defined\n");
@@ -405,7 +403,7 @@ int main(int argc, char *argv[]) {
 #ifdef USE_BOEHMGC
   GC_INIT();
 #endif
-  init_memory();
+  init_memory((size_t) heap_limit);
 
   disable_gc();
   init_string_table(STRING_TABLE_SIZE);

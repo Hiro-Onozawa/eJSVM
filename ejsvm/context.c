@@ -11,6 +11,8 @@
 #define EXTERN
 #include "header.h"
 
+extern int regstack_limit;
+
 static Context *allocate_context(size_t);
 
 /*
@@ -70,7 +72,7 @@ void reset_context(Context *ctx, FunctionTable *ftab) {
 void init_context(FunctionTable *ftab, JSValue glob, Context **context) {
   Context *c;
 
-  c = allocate_context(STACK_LIMIT);
+  c = allocate_context((size_t) regstack_limit);
   *context = c;
   c->global = glob;
   reset_context(c, ftab);

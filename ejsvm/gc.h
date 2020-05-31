@@ -11,7 +11,11 @@ typedef uint32_t cell_type_t;
 
 #ifdef USE_NATIVEGC
 
-extern void init_memory(void);
+#ifndef JS_SPACE_BYTES
+#define JS_SPACE_BYTES     (10 * 1024 * 1024)
+#endif /* JS_SPACE_BYTES */
+
+extern void init_memory(size_t);
 extern void *gc_malloc(Context *, uintptr_t, uint32_t);
 extern JSValue *gc_jsalloc(Context *, uintptr_t, uint32_t);
 #ifdef GC_NULL
