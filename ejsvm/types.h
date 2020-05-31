@@ -650,7 +650,7 @@ typedef uint64_t cuint;
    & ((cint)1 << (BITS_IN_JSVALUE - TAGOFFSET)))
 
 #define half_fixnum_range(ival)                                         \
-  (((MIN_FIXNUM_CINT / 2) <= (ival)) && ((ival) <= (MAX_FIXNUM_CINT / 2)))
+  (((MIN_FIXNUM_CINT << ((BITS_IN_JSVALUE - TAGOFFSET - 1) / 2)) <= (ival)) && ((ival) <= (MAX_FIXNUM_CINT << ((BITS_IN_JSVALUE - TAGOFFSET - 1) / 2))))
 
 #define FIXNUM_ZERO (cint_to_fixnum((cint)0))
 #define FIXNUM_ONE  (cint_to_fixnum((cint)1))
