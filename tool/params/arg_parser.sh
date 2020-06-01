@@ -214,3 +214,15 @@ DIR_RESULT=${DIR_DATS}/$DIR_RESULT_NAME
 DIR_RESULT_RAW=${DIR_RESULT}/$DIR_RESULT_RAW_NAME
 DIR_PROFILE=${DIR_DATS}/$DIR_PROFILE_NAME
 DIR_PROFILE_RAW=${DIR_PROFILE}/$DIR_PROFILE_RAW_NAME
+
+
+# $1 : GC algorithm
+# $2 : Heap size
+# $3 : Threashold type
+function GEN_THREASHOLD_BYTE () {
+  if [[ $1 = "copy" ]]; then
+    echo $(($2>>$(($3+1))))
+  else
+    echo $(($2>>$3))
+  fi
+}
