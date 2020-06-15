@@ -26,17 +26,19 @@ do
   echo ${vm}
   for THREASHOLD in ${THREASHOLDS[@]}
   do
-    for SIZE in ${SIZES[@]}
+    for TEST in ${TESTS[@]}
     do
-      PARAM=`GEN_THREASHOLD_BYTE ${ALGORITHM} ${SIZE} ${THREASHOLD}`
-      PARAM="-s 5000 -c ${SIZE} -b ${PARAM}"
-      echo ${PARAM}
-      for i in `seq 1 ${N}`
+      SBC="${DIR_TESTS}/${TEST}.sbc"
+      for SIZE in ${SIZES[@]}
       do
-        for TEST in ${TESTS[@]}
+        PARAM=`GEN_THREASHOLD_BYTE ${ALGORITHM} ${SIZE} ${THREASHOLD}`
+        PARAM="${OPTION} -s 5000 -c ${SIZE} -b ${PARAM}"
+        echo "${TEST}; ${PARAM}"
+        ${vm} ${PARAM} ${SBC} &>> /dev/null
+        for i in `seq 1 ${N}`
         do
           out=${DIR_OUT}/${ALGORITHM}_${SIZE}_t${THREASHOLD}_${TEST}${SUFFIX}.txt
-          ${vm} ${OPTION} ${PARAM} ${DIR_TESTS}/${TEST}.sbc &>> ${out}
+          ${vm} ${PARAM} ${SBC} &>> ${out}
           if [ $? -eq 139 ]; then
             echo "Segmentation fault" >> ${out}
           fi
