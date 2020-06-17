@@ -68,7 +68,7 @@ if (param == 1) {
     set key right top font font_style
 } else { if (param == 3) {
     set key right top font font_style
-    ythreashold=10000
+    ythreashold=100000
 } else { if (param == 4) {
     set key left top font font_style width linewidth
     ythreashold=10000
@@ -172,13 +172,27 @@ if (ymin > 0) {
         ymax = ymax + base * 3
     }
     if (param == 1 && basebit == 32) {
-        ymax = ymax + base * 1
+        if (benchname eq "3d-cube") {
+            ymax = ymax + base * 2
+        } else {
+            ymax = ymax + base * 1
+        }
     }
     if ((benchname eq "binaryTree" || benchname eq "spectralnorm") && param == 1 && basebit == 32) {
         ymax = ymax + base * 2
     }
     if (benchname eq "spectralnorm" && param == 1 && basebit == 32) {
         ymax = ymax + base * 2
+    }
+    if (param == 3 && basebit == 64) {
+        ymax = ymax + base * 2
+    }
+    if (param == 3 && basebit == 32) {
+        if (benchname eq "spectralnorm") {
+            ymax = ymax + base * 4
+        } else {
+            ymax = ymax + base * 1
+        }
     }
     set yrange [ymin:ymax]
     unset xtics

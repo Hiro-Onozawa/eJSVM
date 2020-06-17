@@ -67,7 +67,7 @@ if (param == 1) {
     set key right top font font_style
 } else { if (param == 3) {
     set key right top font font_style
-    ythreashold=10000
+    ythreashold=100000
 } else { if (param == 4) {
     set key left top font font_style width linewidth
     ythreashold=10000
@@ -99,7 +99,7 @@ do for [j=1:2] {
 set autoscale xfix
 set clip one
 set clip two
-set yrange [0:ymax*1.15]
+set yrange [0:ymax*1.2]
 set xrange [1:xmax]
 
 show margin
@@ -135,38 +135,42 @@ if (ymin > 10) {
 
     base = 1;
     diff = ymax - ymin;
-    if (diff < 10) {
-        base = 5
+    if (diff < 5) {
+          base = 1
     } else {
-        if (diff < 100) {
-            base = 10;
-        } else {
-            if (diff < 500) {
-                base = 50;
-            } else {
-                if (diff < 1000) {
-                    base = 100;
-                } else {
-                    if (diff < 5000) {
-                        base = 500;
-                    } else {
-                        if (diff < 10000) {
-                            base = 1000;
-                        } else {
-                            if (diff < 50000) {
-                                base = 5000;
-                            } else {
-                                base = 10000;
-                            }
-                            base = 10000;
-                        }
-                    }
-                }
+      if (diff < 10) {
+          base = 5
+      } else {
+          if (diff < 100) {
+              base = 10;
+          } else {
+              if (diff < 500) {
+                  base = 50;
+              } else {
+                  if (diff < 1000) {
+                      base = 100;
+                  } else {
+                      if (diff < 5000) {
+                          base = 500;
+                      } else {
+                          if (diff < 10000) {
+                              base = 1000;
+                          } else {
+                              if (diff < 50000) {
+                                  base = 5000;
+                              } else {
+                                  base = 10000;
+                              }
+                              base = 10000;
+                          }
+                      }
+                  }
+              }
             }
         }
     }
     ymin=int(ymin) - (int(ymin) % base);
-    ymax=int(ymax) - (int(ymax) % base) + 2 * base;
+    ymax=int(ymax) - (int(ymax) % base) + 3 * base;
     set yrange [ymin:ymax]
     unset xtics
     unset xlabel
