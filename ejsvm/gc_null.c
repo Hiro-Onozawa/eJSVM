@@ -140,7 +140,7 @@ STATIC size_t gc_get_allocated_bytes();
  * GC
  */
 
-void init_memory() { }
+void init_memory(size_t size) { }
 
 cell_type_t gc_obj_header_type(void *p)
 {
