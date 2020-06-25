@@ -31,7 +31,7 @@ if (lang eq "en") {
         "最大 GC 時間 [ms]", "平均 GC 時間 [ms]", "GC 回数"\
     ]
     array linelabels[2] = [\
-        "32ビット向け実装", "64ビット向け実装"\
+        "32/32VM", "64/32VM"\
     ]
     linewidth=-8
 }
