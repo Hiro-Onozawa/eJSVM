@@ -207,7 +207,7 @@ define("__MKMSK(l, o, b)\\\n",
 #       "(hdr) = ((((header_word_t) (val)) << (off)) | ((hdr) & ~(msk)))");
 define("__HEADER_SET(hdrp, idx, val, off, msk)",
        "(hdrp)->header ## idx = ((((header_word_t) (val)) << (off)) | (((hdrp)->header ## idx) & ~(msk)))");
-define("__HEADER_SET_MASK(hdrp, val, off, msk)",
+define("__HEADER_SET_MASK(hdrp, idx, val, off, msk)",
        "(hdrp)->header ## idx = (((((header_word_t) (val)) << (off)) & (msk)) | (((hdrp)->header ## idx) & ~(msk)))");
 define("__HEADER_GET_WORD(hdr, off, msk)",
        "(((header_word_t) ((hdr) & (msk))) >> (off))");
