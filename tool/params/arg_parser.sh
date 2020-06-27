@@ -20,6 +20,7 @@ usage() {
 #    echo "  -a, --long-a [ARG]"
     echo "  -p, --profile"
     echo "      --param <param>"
+    echo "      --loop-count <number>"
     echo "  -l, --lang { jp | en }"
     echo
     exit 1
@@ -142,6 +143,14 @@ do
                 exit 1
             fi
             PARAM="$2"
+            shift 2
+            ;;
+             --loop-count)
+            if [[ -z "$2" ]] || [[ "$2" =~ ^-+ ]]; then
+                echo "$PROGNAME: option requires an argument -- $1" 1>&2
+                exit 1
+            fi
+            LOOPCNT="$2"
             shift 2
             ;;
         -l | --lang)

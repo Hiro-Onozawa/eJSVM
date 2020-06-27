@@ -6,12 +6,16 @@ echo "DIR_VMS : ${DIR_VMS}"
 echo "PROFILE : ${PROFILE}"
 
 if [[ $PROFILE = "TRUE" ]]; then
-N=1
+if [[ LOOPCNT = "" ]]; then
+  LOOPCNT=1
+fi
 SUFFIX="_profile"
 OPTION="-u --alloc-info --collect-info --moving-info --collect-time"
 DIR_OUT=$DIR_PROFILE_RAW
 else
-N=50
+if [[ LOOPCNT = "" ]]; then
+  LOOPCNT=50
+fi
 SUFFIX=""
 OPTION="-u"
 DIR_OUT=$DIR_RESULT_RAW
@@ -35,7 +39,7 @@ do
         PARAM="${OPTION} -s 5000 -c ${SIZE} -b ${PARAM}"
         echo "${TEST}; ${PARAM}"
         ${vm} ${PARAM} ${SBC} &>> /dev/null
-        for i in `seq 1 ${N}`
+        for i in `seq 1 ${LOOPCNT}`
         do
           out=${DIR_OUT}/${ALGORITHM}_${SIZE}_t${THREASHOLD}_${TEST}${SUFFIX}.txt
           ${vm} ${PARAM} ${SBC} &>> ${out}
