@@ -1,0 +1,29 @@
+vms:
+  - name: mark_sweep
+    basebit: 32
+    target: 32
+  - name: mark_sweep
+    basebit: 64
+    target: 32
+
+heapsize:
+  - size: 491520
+    name: 480
+  - size: 655360
+    name: 640
+  - size: 983040
+    name: 960
+  - size: 1310720
+    name: 1,280
+  - size: 1966080
+    name: 1,920
+  - size: 2621440
+    name: 2,560
+  - size: 3932160
+    name: 3,840
+  - size: 5242880
+    name: 5,120
+  - size: 7864320
+    name: 7,680
+  - size: 10485760
+    name: 10,240

@@ -1,0 +1,8 @@
+- name: testcases
+  dir: results
+  programs:
+    - 3d-cube:
+    - binaryTree:
+    - spectralnorm:
+    - string-intensive:
+    - dht11:
