@@ -21,6 +21,7 @@ usage() {
     echo "  -p, --profile"
     echo "      --param <param>"
     echo "      --loop-count <number>"
+    echo "      --out-dir <dir name>"
     echo "  -l, --lang { jp | en }"
     echo
     exit 1
@@ -153,6 +154,14 @@ do
             LOOPCNT="$2"
             shift 2
             ;;
+             --out-dir)
+            if [[ -z "$2" ]] || [[ "$2" =~ ^-+ ]]; then
+                echo "$PROGNAME: option requires an argument -- $1" 1>&2
+                exit 1
+            fi
+            OUTDIR="$2"
+            shift 2
+            ;;
         -l | --lang)
             if [[ -z "$2" ]] || [[ "$2" =~ ^-+ ]]; then
                 echo "$PROGNAME: option requires an argument -- $1" 1>&2
@@ -186,9 +195,14 @@ done
 
 DIR_DATS_NAME=dats
 DIR_VMS_NAME=vms
-DIR_RESULT_NAME=results
+if [[ OUTDIR = "" ]]; then
+  DIR_RESULT_NAME=results
+  DIR_PROFILE_NAME=profiles
+else
+  DIR_RESULT_NAME=${OUTDIR}
+  DIR_PROFILE_NAME=${OUTDIR}
+fi
 DIR_RESULT_RAW_NAME=raw
-DIR_PROFILE_NAME=profiles
 DIR_PROFILE_RAW_NAME=raw
 
 if [[ $BASEBIT = "" ]]; then
