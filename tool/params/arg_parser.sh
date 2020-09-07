@@ -21,6 +21,7 @@ usage() {
     echo "  -p, --profile"
     echo "      --param <param>"
     echo "      --loop-count <number>"
+    echo "      --dats-name <name>"
     echo "      --out-dir <dir name>"
     echo "  -l, --lang { jp | en }"
     echo
@@ -154,6 +155,14 @@ do
             LOOPCNT="$2"
             shift 2
             ;;
+             --dats-name)
+            if [[ -z "$2" ]] || [[ "$2" =~ ^-+ ]]; then
+                echo "$PROGNAME: option requires an argument -- $1" 1>&2
+                exit 1
+            fi
+            DATSNAME="$2"
+            shift 2
+            ;;
              --out-dir)
             if [[ -z "$2" ]] || [[ "$2" =~ ^-+ ]]; then
                 echo "$PROGNAME: option requires an argument -- $1" 1>&2
@@ -193,7 +202,11 @@ do
     esac
 done
 
-DIR_DATS_NAME=dats
+if [[ $DATSNAME = "" ]]; then
+  DIR_DATS_NAME=dats
+else
+  DIR_DATS_NAME=$DATSNAME
+fi
 DIR_VMS_NAME=vms
 if [[ OUTDIR = "" ]]; then
   DIR_RESULT_NAME=results
