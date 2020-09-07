@@ -390,7 +390,9 @@ STATIC void thread_root_ptr(void **ptrp)
     return;
   }
 
-  switch (obj_header_tag(ptr)) {
+  HeaderCell *hdrp = VALPTR_TO_HEADERPTR(ptr);
+  header_word_t header0 = get_threaded_header(hdrp);
+  switch (HEADERW_GET_TYPE(header0)) {
   case HTAG_PROP:
     printf("HTAG_PROP in thread_root_ptr\n");
     break;
