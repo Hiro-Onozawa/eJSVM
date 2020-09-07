@@ -1,12 +1,19 @@
+fname: comp32impl
+
 vms:
-  - name: mark_sweep
-    label: mark sweep
-  - name: mark_compact
-    label: mark compact
-  - name: threaded_compact
-    label: threaded compact
-  - name: copy
-    label: copy
+  - name: 32/32VM
+    dats: dats
+    algorithm: mark_sweep
+    basebit: 32
+    target: 32
+    color: '#d7301f'
+
+  - name: 64/32VM
+    dats: dats
+    algorithm: mark_sweep
+    basebit: 64
+    target: 32
+    color: '#FF9860'
 
 heapsize:
   - size: 491520

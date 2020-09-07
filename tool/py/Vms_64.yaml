@@ -1,32 +1,32 @@
-fname: comp_32
+fname: comp_64
 
 vms:
   - name: mark sweep
     dats: dats
     algorithm: mark_sweep
-    basebit: 32
-    target: 32
+    basebit: 64
+    target: 64
     color: '#d7301f'
 
   - name: mark compact
     dats: dats
     algorithm: mark_compact
-    basebit: 32
-    target: 32
+    basebit: 64
+    target: 64
     color: '#FF9860'
 
   - name: threaded compact
     dats: dats
     algorithm: threaded_compact
-    basebit: 32
-    target: 32
+    basebit: 64
+    target: 64
     color: '#FFCD9B'
 
   - name: copy
     dats: dats
     algorithm: copy
-    basebit: 32
-    target: 32
+    basebit: 64
+    target: 64
     color: '#ffffff'
 
 heapsize:
