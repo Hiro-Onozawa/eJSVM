@@ -41,16 +41,21 @@ do
       do
         PARAM=`GEN_THREASHOLD_BYTE ${ALGORITHM} ${SIZE} ${THREASHOLD}`
         PARAM="${OPTION} -s 5000 -c ${SIZE} -b ${PARAM}"
+        out=${DIR_OUT}/${ALGORITHM}_${SIZE}_t${THREASHOLD}_${TEST}${SUFFIX}.txt
         echo "${TEST}; ${PARAM}"
         ${vm} ${PARAM} ${SBC} &>> /dev/null
-        for i in `seq 1 ${LOOPCNT}`
-        do
-          out=${DIR_OUT}/${ALGORITHM}_${SIZE}_t${THREASHOLD}_${TEST}${SUFFIX}.txt
-          ${vm} ${PARAM} ${SBC} &>> ${out}
-          if [ $? -eq 139 ]; then
-            echo "Segmentation fault" >> ${out}
-          fi
-        done
+        if [[ $? -eq 139 ]]; then
+          echo "Segmentation fault"
+          echo "Segmentation fault" >> ${out}
+        else
+          for i in `seq 1 ${LOOPCNT}`
+          do
+            ${vm} ${PARAM} ${SBC} &>> ${out}
+            if [ $? -eq 139 ]; then
+              echo "Segmentation fault" >> ${out}
+            fi
+          done
+        fi
       done
     done
   done
