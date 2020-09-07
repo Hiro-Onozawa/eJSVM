@@ -10,7 +10,11 @@ if [[ LOOPCNT = "" ]]; then
   LOOPCNT=1
 fi
 SUFFIX="_profile"
-OPTION="-u --alloc-info --collect-info --moving-info --collect-time"
+if [[ ${PARAM} = "" ]]; then
+  OPTION="-u --alloc-info --collect-info --moving-info --collect-time"
+else
+  OPTION="${PARAM}"
+fi
 DIR_OUT=$DIR_PROFILE_RAW
 else
 if [[ LOOPCNT = "" ]]; then
