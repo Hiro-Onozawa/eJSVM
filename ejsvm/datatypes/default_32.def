@@ -30,4 +30,4 @@ normal_boolean_object:T_GENERIC(10)/HTAG_BOXED_BOOLEAN(14)  BoxedCell
 /* for GC */
 #define is_pointer(p)     (((p) & 2) == 2)
 #define is_leaf_object(p) ((((p) & 3) == 3) || (((p) & 2) == 2 && obj_header_tag((p)) == HTAG_FLONUM))
-
+#define T_FLONUM T_GENERIC

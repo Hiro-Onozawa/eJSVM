@@ -297,7 +297,7 @@ STATIC void scan_StrCons(StrCons **pstrcons)
   void *toRef = forwardingAddress(cell);
 
   if (toRef != NULL) {
-    (*pstrcons)->str = put_tag(toRef, T_STRING);
+    (*pstrcons)->str = put_normal_string_tag(toRef);
     process((void **) pstrcons);
     pstrcons = &((*pstrcons)->next);
   }

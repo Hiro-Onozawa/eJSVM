@@ -626,11 +626,7 @@ STATIC void update_reference(void *ref, void *addr)
       tag = T_STRING;
       break;
     case HTAG_FLONUM:
-#ifdef BIT_32
-      tag = T_GENERIC;
-#else
       tag = T_FLONUM;
-#endif
       break;
     case HTAG_SIMPLE_OBJECT:
       tag = T_GENERIC;
