@@ -6,7 +6,7 @@ echo "DIR_VMS : ${DIR_VMS}"
 echo "PROFILE : ${PROFILE}"
 
 if [[ $PROFILE = "TRUE" ]]; then
-if [[ LOOPCNT = "" ]]; then
+if [[ $LOOPCNT = "" ]]; then
   LOOPCNT=1
 fi
 SUFFIX="_profile"
@@ -17,7 +17,7 @@ else
 fi
 DIR_OUT=$DIR_PROFILE_RAW
 else
-if [[ LOOPCNT = "" ]]; then
+if [[ $LOOPCNT = "" ]]; then
   LOOPCNT=50
 fi
 SUFFIX=""

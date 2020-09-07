@@ -208,7 +208,7 @@ else
   DIR_DATS_NAME=$DATSNAME
 fi
 DIR_VMS_NAME=vms
-if [[ OUTDIR = "" ]]; then
+if [[ $OUTDIR = "" ]]; then
   DIR_RESULT_NAME=results
   DIR_PROFILE_NAME=profiles
 else
