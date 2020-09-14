@@ -155,19 +155,31 @@ def plot_figures(data, config):
     for d,benchname in data:
         plot_figure_bench(d, benchname, config)
 
-def print_time(data, vmlist, blist):
-    for prog_i, prog in enumerate(blist):
-        dir, bname, _ = blist[prog_i]
-        sys.stdout.write('%s' % bname)
-        for vm_i, vmname in enumerate(vmlist):
-            sys.stdout.write('\t%f' % data[vm_i][prog_i][0][0])
-        sys.stdout.write('\n')
-    for prog_i, prog in enumerate(blist):
-        dir, bname, _ = blist[prog_i]
-        sys.stdout.write('%s' % bname)
-        for vm_i, vmname in enumerate(vmlist):
-            sys.stdout.write('\t%f' % data[vm_i][prog_i][1][0])
-        sys.stdout.write('\n')
+def print_time_bench(data, benchname, config):
+    ret = [];
+    for vm_i,(result,_,vm) in enumerate(data):
+        for prog_i,(prog,_,_,heap) in enumerate(result):
+            if vm_i == 0:
+                ret.append('%s' % heap['name'])
+            ret[prog_i] = ('%s\t%f' % (ret[prog_i], prog[0][0]))
+            if vm_i != 0:
+                ms = data[0][0][prog_i][0][0][0]
+                if ms == 0:
+                    ret[prog_i] = ('%s\tinf' % (ret[prog_i]))
+                else:
+                    ret[prog_i] = ('%s\t%f' % (ret[prog_i], prog[0][0]/ms))
+
+    sys.stdout.write('%s\n' % benchname)
+    sys.stdout.write('heapsize')
+    for (_,_,vm) in data:
+        sys.stdout.write('\t%s' % vm['name'])
+    sys.stdout.write('\n')
+    for line in ret:
+        sys.stdout.write('%s\n' % line)
+
+def print_time(data, config):
+    for d,benchname in data:
+        print_time_bench(d, benchname, config)
 
 def main():
     config = load_vms()
@@ -176,7 +188,7 @@ def main():
     data = extract_result(config, blst)
 #    data = normalise(result)
     plot_figures(data, config)
-#    print_time(data, vmlist, blst)
+    print_time(data, config)
 
 
 main()
