@@ -13,6 +13,7 @@ parser = argparse.ArgumentParser(description='generate exec time comparison grap
 parser.add_argument('--format', action="store", dest="format", default="eps");
 parser.add_argument('--vms', action="store", dest="vms", default="py/Vms_64.yaml");
 parser.add_argument('--benches', action="store", dest="benchmarks", default="py/Benchmarks.yaml");
+parser.add_argument('--comp', action="store", dest="compidx", default=-1, type=int);
 
 ARGS = parser.parse_args()
 
@@ -162,8 +163,8 @@ def print_time_bench(data, benchname, config):
             if vm_i == 0:
                 ret.append('%s' % heap['name'])
             ret[prog_i] = ('%s\t%f' % (ret[prog_i], prog[0][0]))
-            if vm_i != 0:
-                ms = data[0][0][prog_i][0][0][0]
+            if vm_i != ARGS.compidx:
+                ms = data[ARGS.compidx][0][prog_i][0][0][0]
                 if ms == 0:
                     ret[prog_i] = ('%s\tinf' % (ret[prog_i]))
                 else:
@@ -188,7 +189,8 @@ def main():
     data = extract_result(config, blst)
 #    data = normalise(result)
     plot_figures(data, config)
-    print_time(data, config)
+    if ARGS.compidx >= 0:
+        print_time(data, config)
 
 
 main()
