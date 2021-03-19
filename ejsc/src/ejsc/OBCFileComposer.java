@@ -503,11 +503,16 @@ public class OBCFileComposer extends OutputFileComposer {
 
         @Override
         public void addFixnumSmallPrimitive(String insnName, boolean log, Register dst, int n) {
-            int opcode = getOpcode(insnName);
-            int a = dst.getRegisterNumber();
-            int b = n;
-            OBCInstruction insn = OBCInstruction.createSmallPrimitive(insnName, opcode, a, b);
-            instructions.add(insn);
+            if (isFixnumRange(n)) {
+                int opcode = getOpcode(insnName);
+                int a = dst.getRegisterNumber();
+                int b = n;
+                OBCInstruction insn = OBCInstruction.createSmallPrimitive(insnName, opcode, a, b);
+                instructions.add(insn);
+            }
+            else {
+                throw new Error("Fixnum; Out of range");
+            }
         }
         @Override
         public void addNumberBigPrimitive(String insnName, boolean log, Register dst, double n) {
@@ -718,6 +723,17 @@ public class OBCFileComposer extends OutputFileComposer {
             v = Long.reverseBytes(v);
         for (int i = 0; i < 8; i++)
             out.write((byte) ((v >> (8 * i)) & 0xff));
+    }
+
+    boolean isFixnumRange(int n) {
+        switch(this.basebit) {
+        case BIT_32:
+            return -0x80000000 <= n && n < 0x7FFFFFFF;
+        case BIT_64:
+            return true;
+        default:
+            return false;
+        }
     }
 
     /**

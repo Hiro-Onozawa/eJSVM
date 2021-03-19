@@ -281,7 +281,7 @@ public class Main {
             OBCFileComposer obc = new OBCFileComposer(bcBuilder, info.baseFunctionNumber, info.spec, info.basebit);
             obc.output(info.outputFileName);
         } else {
-            SBCFileComposer sbc = new SBCFileComposer(bcBuilder, info.baseFunctionNumber, info.spec);
+            SBCFileComposer sbc = new SBCFileComposer(bcBuilder, info.baseFunctionNumber, info.spec, info.basebit);
             sbc.output(info.outputFileName);
         }
     }

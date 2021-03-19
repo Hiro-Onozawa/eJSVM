@@ -14,6 +14,8 @@ import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.List;
 import specfile.SpecFile;
+import ejsc.Main.Info;
+import ejsc.Main.Info.BaseBit;
 
 
 public class SBCFileComposer extends OutputFileComposer {
@@ -118,12 +120,18 @@ public class SBCFileComposer extends OutputFileComposer {
 
         @Override
         public void addFixnumSmallPrimitive(String insnName, boolean log, Register dst, int n) {
-            insnName = decorateInsnName(insnName, log);
-            String a = Integer.toString(dst.getRegisterNumber());
-            String b = Integer.toString(n);
-            SBCInstruction insn = new SBCInstruction(insnName, a, b);
-            instructions.add(insn);
-            System.err.println(a);
+            if (isFixnumRange(n)) {
+                insnName = decorateInsnName(insnName, log);
+                String a = Integer.toString(dst.getRegisterNumber());
+                String b = Integer.toString(n);
+                SBCInstruction insn = new SBCInstruction(insnName, a, b);
+                instructions.add(insn);
+                if (DEBUG_REGNUM) System.err.println(a);
+            }
+            else {
+                insnName = decorateInsnName("Number", log);
+                addNumberBigPrimitive(insnName, log, dst, (double) n);
+            }
         }
         @Override
         public void addNumberBigPrimitive(String insnName, boolean log, Register dst, double n) {
@@ -320,14 +328,27 @@ public class SBCFileComposer extends OutputFileComposer {
     }
 
     List<SBCFunction> obcFunctions;
+    BaseBit basebit;
 
-    SBCFileComposer(BCBuilder compiledFunctions, int functionNumberOffset, SpecFile spec) {
+    SBCFileComposer(BCBuilder compiledFunctions, int functionNumberOffset, SpecFile spec, BaseBit basebit) {
         super(spec);
+        this.basebit = basebit;
         List<BCBuilder.FunctionBCBuilder> fbs = compiledFunctions.getFunctionBCBuilders();
         obcFunctions = new ArrayList<SBCFunction>(fbs.size());
         for (BCBuilder.FunctionBCBuilder fb: fbs) {
             SBCFunction out = new SBCFunction(fb, functionNumberOffset);
             obcFunctions.add(out);
+        }
+    }
+
+    boolean isFixnumRange(int n) {
+        switch(this.basebit) {
+        case BIT_32:
+            return -0x8000 <= n && n <= 0x7FFF;
+        case BIT_64:
+            return -0x80000000 <= n && n <= 0x7FFFFFFF;
+        default:
+            return false;
         }
     }
 
