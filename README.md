@@ -6,8 +6,7 @@ for applications.
 ## Contents
 
 * `ejsvm` -- eJSVM, JavaScript virtual machine (core)
-* `vmdl` -- VMDL compiler to generate specialised type-based dispatcher used in eJSVM
-* `vmgen` -- VMgen is the previous version of VM generator. VMDL compiler is the current mainstream.
+* `vmgen` -- VMgen is the VM generator.
 * `ejsc` -- eJS compiler to compile JavaScript programs into bytecode files executed by eJSVM.
 * `ejsi` -- eJS interpreter interface.
 
@@ -95,9 +94,7 @@ $ ./ejsvm a.sbc
   * `USE_SBC=true/false`: Enable SBC support. (OBC is always supported)
 
 * Word size options
-  * `CFLAGS+=-DBIT_INSN32`: Use 32 bit layout of internal and OBC instructions.
-  * `CFLAGS+=-DBIT_JSVALUE32`: Use 32 bit layout of JSValue.  Pointer size should also be 32bit (`-m32` compiler and linker options are required).
-  * `CFLAGS+=-DBIT_ALIGN32`: Alignment heap objects in 32 bit boundary rather than 64 bit. Handcrafted code does not support this option.
+  * `OPT_BASEBIT=64/32`: Use 64 bit/ 32 bit layout of all data structrues.
 
 ### Usage
 
@@ -114,13 +111,12 @@ executed as OBC files.
 
 * General options
   * `-s size`: stack size in words. (default: 50K)
-  * `-m size`: heap size in bytes. (default: 1M)
 
 * Profiling options for eJS users (available when built with `PROFILE` flag)
-  * `-profile`: Print profiling information.
+  * `--profile`: Print profiling information.
   * `--poutput filename`: Change output file of `-profile` to `filename`. (default: standard output)
   * `--coverage`: Print coverage inforamtion of instructions with log flags.
-  * `---icount`: Print execution count of each instruction (count only instructions with log flags).
+  * `--icount`: Print execution count of each instruction (count only instructions with log flags).
   * `--forcelog`: Do profiling as if all instructions have log flags.
 
 * Debug options (available when built with `DEBUG` flag)
@@ -131,8 +127,7 @@ executed as OBC files.
 
 * Profiling options for VM developers
   * `-u`: Print execution times and summary of GC information.
-  * `--hc-prof`: Print hidden class graph information. (available when built with `HC_PROF` flag)
-  * `--gc-prof`: Print GC information (available when built with `GC_PROF` flag)
+  * `-h`: Print hidden class graph information. (available when built with `HC_PROF` flag)
 
 * Other flags
   * `-R`: REPL mode. (not for users)
@@ -168,9 +163,7 @@ file are logged.
 * output 
   * `-o <filename>`: Output to `filename`.  (defailt: `source1.sbc`)
   * `--out-obc` (prefix is double minus): Output OBC (binary) format instead of SBC.
-  * `--out-insn32`: Emit 32 bit format of instructions (OBC only).
-  * `--out-align32`: Assume the number of pointer tag bit is 2 rather than 3.
-  * `--out-bit32`: Same as `--out-insn32 --out-align32`
+  * `--basebit {64,32}`: generate code for 64 / 32 bit eJSVM.
 
 * optimization
   * `-O`: Recommended set of optimizations.  (same as `--bc-opt const:cce:copy:rie:dce:reg:rie:dce:reg -opt-g3`)
