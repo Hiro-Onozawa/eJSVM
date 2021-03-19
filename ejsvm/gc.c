@@ -362,7 +362,7 @@ JSValue* gc_jsalloc(Context *ctx, uintptr_t request_bytes, uint32_t type)
       ++gc_alloc_sec;
     }
   }
-  {
+  if (allocinfo_flag) {
     size_t allocate = HEADER_GET_SIZE(VALPTR_TO_HEADERPTR(addr)) << LOG_BYTES_IN_JSVALUE;
     size_t header = HEADER_BYTES;
     size_t waste = allocate - header - request_bytes;
