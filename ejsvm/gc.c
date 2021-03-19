@@ -328,7 +328,8 @@ JSValue* gc_jsalloc(Context *ctx, uintptr_t request_bytes, uint32_t type)
   time_t sec;
   suseconds_t usec;
 
-  getrusage(RUSAGE_SELF, &ru0);
+  if (cputime_flag)
+    getrusage(RUSAGE_SELF, &ru0);
 #endif /* GC_PROFILE */
 
   if (check_gc_request(ctx))
@@ -344,7 +345,7 @@ JSValue* gc_jsalloc(Context *ctx, uintptr_t request_bytes, uint32_t type)
   }
 #endif /* GC_DEBUG */
 #ifdef GC_PROFILE
-  {
+  if (cputime_flag) {
     time_t sec;
     suseconds_t usec;
 
